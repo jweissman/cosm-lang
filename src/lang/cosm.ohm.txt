@@ -1,6 +1,36 @@
 Cosm {
+  Program
+    = Statement StatementTail* ";"?
+
+  StatementTail
+    = ";" Statement
+
+  Statement
+    = LetStmt
+    | Exp
+
+  LetStmt
+    = "let" ident "=" Exp
+
   Exp
-    = AddExp
+    = OrExp
+
+  OrExp
+    = OrExp "||" AndExp   -- or
+    | AndExp
+
+  AndExp
+    = AndExp "&&" CmpExp  -- and
+    | CmpExp
+
+  CmpExp
+    = AddExp "==" AddExp  -- eq
+    | AddExp "!=" AddExp  -- neq
+    | AddExp "<=" AddExp  -- lte
+    | AddExp "<" AddExp   -- lt
+    | AddExp ">=" AddExp  -- gte
+    | AddExp ">" AddExp   -- gt
+    | AddExp
 
   AddExp
     = AddExp "+" MulExp  -- plus
@@ -13,15 +43,57 @@ Cosm {
     | ExpExp
 
   ExpExp
-    = PriExp "^" ExpExp  -- power
+    = UnaryExp "^" ExpExp  -- power
+    | UnaryExp
+
+  UnaryExp
+    = "!" UnaryExp   -- not
+    | "+" UnaryExp   -- pos
+    | "-" UnaryExp   -- neg
+    | PostExp
+
+  PostExp
+    = PostExp "." ident  -- access
+    | PostExp "(" CallArgs? ")"  -- call
     | PriExp
 
   PriExp
     = "(" Exp ")"  -- paren
-    | "+" PriExp   -- pos
-    | "-" PriExp   -- neg
+    | "[" ArrayItems? "]"  -- array
+    | "{" HashItems? "}"  -- hash
+    | string
+    | boolean
     | ident
     | number
+
+  CallArgs
+    = Exp ("," Exp)*
+
+  ArrayItems
+    = Exp ("," Exp)*
+
+  HashItems
+    = HashEntry ("," HashEntry)*
+
+  HashEntry
+    = ident ":" Exp
+
+  string
+    = "\"" stringChar* "\""
+
+  stringChar
+    = ~("\\" | "\"") any  -- plain
+    | "\\" escape         -- escape
+
+  escape
+    = "\""  -- quote
+    | "\\"  -- slash
+    | "n"   -- newline
+    | "t"   -- tab
+
+  boolean
+    = "true"   -- true
+    | "false"  -- false
 
   ident  (an identifier)
     = letter alnum*

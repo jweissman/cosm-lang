@@ -1,0 +1,45 @@
+#!/usr/bin/env bun
+
+import { readFileSync } from "node:fs";
+import Cosm from "../src/cosm";
+console.log("Cosm version:", Cosm.version);
+
+function repl() {
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: 'cosm> '
+  });
+
+  rl.prompt();
+
+  rl.on('line', (line: string) => {
+    try {
+      const result = Cosm.Interpreter.eval(line);
+      console.log(Cosm.Values.cosmToJS(result));
+    } catch (e) {
+      console.error("Error:", e.message);
+    }
+    rl.prompt();
+  }).on('close', () => {
+    console.log('Goodbye!');
+    process.exit(0);
+  });
+}
+
+if (require.main === module) {
+  const filePath = process.argv[2];
+  if (filePath) {
+    try {
+      const source = readFileSync(filePath, "utf8");
+      const result = Cosm.Interpreter.eval(source);
+      console.log(Cosm.Values.cosmToJS(result));
+    } catch (e) {
+      console.error("Error:", e.message);
+      process.exit(1);
+    }
+  } else {
+    repl();
+  }
+}
