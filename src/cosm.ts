@@ -8,10 +8,14 @@ type CosmArray = { type: 'array', items: CosmValue[] };
 type CosmHash = { type: 'hash', entries: Record<string, CosmValue> };
 type CosmObject = { type: 'object', className: string, fields: Record<string, CosmValue> };
 type CosmClass = { type: 'class', name: string, superclassName?: string };
+type CosmEnv = { bindings: Record<string, CosmValue>, parent?: CosmEnv };
 type CosmFunction = {
   type: 'function',
   name: string,
-  call: (args: CosmValue[]) => CosmValue,
+  nativeCall?: (args: CosmValue[]) => CosmValue,
+  params?: string[],
+  body?: AST,
+  env?: CosmEnv,
 };
 type CosmValue = CosmNumber
   | CosmBool
@@ -35,14 +39,21 @@ namespace Cosm {
     static class(name: string, superclassName?: string): CosmClass {
       return { type: 'class', name, superclassName };
     }
-    static func(name: string, call: (args: CosmValue[]) => CosmValue): CosmFunction {
-      return { type: 'function', name, call };
+    static nativeFunc(name: string, nativeCall: (args: CosmValue[]) => CosmValue): CosmFunction {
+      return { type: 'function', name, nativeCall };
+    }
+    static closure(name: string, params: string[], body: AST, env: CosmEnv): CosmFunction {
+      return { type: 'function', name, params, body, env };
     }
   }
 
   type ASTNodeKind =
     | 'program'
+    | 'block'
     | 'let'
+    | 'def'
+    | 'if'
+    | 'lambda'
     | 'number'
     | 'bool'
     | 'string'
@@ -76,6 +87,7 @@ namespace Cosm {
     children?: AST[];
     left?: AST;
     right?: AST;
+    params?: string[];
   };
 
   type Repository = {
@@ -83,110 +95,157 @@ namespace Cosm {
     classes: Record<string, CosmClass>;
   };
 
-  type Env = Record<string, CosmValue>;
+  type Env = CosmEnv;
 
   export class Parser {
-    static grammar = ohm.grammar(rawGrammar);
-    static semantics = this.grammar.createSemantics().addOperation('ast', {
-      _iter(...children) {
-        return {
+    static parse(input: string): AST {
+      const grammar = ohm.grammar(rawGrammar);
+      const semantics = grammar.createSemantics().addOperation('ast', {
+        _iter(...children) {
+          return {
+            kind: 'list',
+            value: '',
+            children: children.map((child) => child.ast()),
+          };
+        },
+        Program: (statements) => ({
+          kind: 'program',
+          value: '',
+          children: statements.ast().children ?? [],
+        }),
+        StatementList: (first, rest, _trailing) => ({
           kind: 'list',
           value: '',
-          children: children.map((child) => child.ast()),
-        };
-      },
-      Program: (first, rest, _trailing) => ({
-        kind: 'program',
-        value: '',
-        children: [first.ast(), ...rest.children.map((child) => child.ast())],
-      }),
-      StatementTail: (_sep, statement) => statement.ast(),
-      Statement: (statement) => statement.ast(),
-      LetStmt: (_let, name, _eq, expr) => ({
-        kind: 'let',
-        value: name.sourceString,
-        left: expr.ast(),
-      }),
-      Exp: (exp) => exp.ast(),
-      OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
-      AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_eq: (left, _op, right) => ({ kind: 'eq', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_neq: (left, _op, right) => ({ kind: 'neq', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_lt: (left, _op, right) => ({ kind: 'lt', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_lte: (left, _op, right) => ({ kind: 'lte', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_gt: (left, _op, right) => ({ kind: 'gt', value: '', left: left.ast(), right: right.ast() }),
-      CmpExp_gte: (left, _op, right) => ({ kind: 'gte', value: '', left: left.ast(), right: right.ast() }),
-      AddExp_plus: (left, _op, right) => ({ kind: 'add', value: '', left: left.ast(), right: right.ast() }),
-      AddExp_minus: (left, _op, right) => ({ kind: 'subtract', value: '', left: left.ast(), right: right.ast() }),
-      MulExp_times: (left, _op, right) => ({ kind: 'multiply', value: '', left: left.ast(), right: right.ast() }),
-      MulExp_divide: (left, _op, right) => ({ kind: 'divide', value: '', left: left.ast(), right: right.ast() }),
-      ExpExp_power: (left, _op, right) => ({ kind: 'pow', value: '', left: left.ast(), right: right.ast() }),
-      UnaryExp_not: (_op, expr) => ({ kind: 'not', value: '', left: expr.ast() }),
-      UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
-      UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
-      PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
-      PostExp_call: (callee, _open, args, _close) => {
-        const list = args.ast();
-        const children = list.children?.[0]?.kind === 'list'
-          ? list.children[0].children ?? []
-          : list.children ?? [];
-        return { kind: 'call', value: '', left: callee.ast(), children };
-      },
-      PriExp_paren: (_open, exp, _close) => exp.ast(),
-      PriExp_array: (_open, items, _close) => {
-        const list = items.ast();
-        const children = list.children?.[0]?.kind === 'list'
-          ? list.children[0].children ?? []
-          : list.children ?? [];
-        return { kind: 'array', value: '', children };
-      },
-      PriExp_hash: (_open, entries, _close) => {
-        const list = entries.ast();
-        const children = list.children?.[0]?.kind === 'list'
-          ? list.children[0].children ?? []
-          : list.children ?? [];
-        return { kind: 'hash', value: '', children };
-      },
-      CallArgs: (first, _seps, rest) => ({
-        kind: 'list',
-        value: '',
-        children: [first.ast(), ...rest.children.map((child) => child.ast())],
-      }),
-      ArrayItems: (first, _seps, rest) => ({
-        kind: 'list',
-        value: '',
-        children: [first.ast(), ...rest.children.map((child) => child.ast())],
-      }),
-      HashItems: (first, _seps, rest) => ({
-        kind: 'list',
-        value: '',
-        children: [first.ast(), ...rest.children.map((child) => child.ast())],
-      }),
-      HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
-      string: (_open, chars, _close) => ({
-        kind: 'string',
-        value: chars.children.map((child) => child.ast().value).join(''),
-      }),
-      stringChar_plain: (char) => ({ kind: 'string', value: char.sourceString }),
-      stringChar_escape: (_slash, escape) => escape.ast(),
-      escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
-      escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
-      escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
-      escape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
-      boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
-      boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
-      number_whole: (digits) => ({ kind: 'number', value: digits.sourceString }),
-      number_fract: (whole, _dot, fraction) => ({
-        kind: 'number',
-        value: `${whole.sourceString}.${fraction.sourceString}`,
-      }),
-      ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
-    });
-
-    static parse(input: string): AST {
-      const matchResult = this.grammar.match(input);
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        StatementTail: (_sep, statement) => statement.ast(),
+        Statement: (statement) => statement.ast(),
+        DefStmt: (_def, name, _open, params, _close, _do, body, _end) => {
+          const list = params.ast();
+          const paramNodes = list.children?.[0]?.kind === 'list'
+            ? list.children[0].children ?? []
+            : list.children ?? [];
+          return {
+            kind: 'def',
+            value: name.sourceString,
+            params: paramNodes.map((param) => param.value),
+            children: [{ kind: 'block', value: '', children: body.ast().children ?? [] }],
+          };
+        },
+        LetStmt: (_let, name, _eq, expr) => ({
+          kind: 'let',
+          value: name.sourceString,
+          left: expr.ast(),
+        }),
+        Exp: (exp) => exp.ast(),
+        IfExp_full: (_if, condition, _then, thenBody, _else, elseBody, _end) => ({
+          kind: 'if',
+          value: '',
+          left: condition.ast(),
+          children: [
+            { kind: 'block', value: '', children: thenBody.ast().children ?? [] },
+            { kind: 'block', value: '', children: elseBody.ast().children ?? [] },
+          ],
+        }),
+        PriExp_block: (_do, body, _end) => ({
+          kind: 'block',
+          value: '',
+          children: body.ast().children ?? [],
+        }),
+        PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => {
+          const list = params.ast();
+          const paramNodes = list.children?.[0]?.kind === 'list'
+            ? list.children[0].children ?? []
+            : list.children ?? [];
+          return {
+            kind: 'lambda',
+            value: '<lambda>',
+            params: paramNodes.map((param) => param.value),
+            children: [{ kind: 'block', value: '', children: [body.ast()] }],
+          };
+        },
+        OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
+        AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_eq: (left, _op, right) => ({ kind: 'eq', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_neq: (left, _op, right) => ({ kind: 'neq', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_lt: (left, _op, right) => ({ kind: 'lt', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_lte: (left, _op, right) => ({ kind: 'lte', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_gt: (left, _op, right) => ({ kind: 'gt', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_gte: (left, _op, right) => ({ kind: 'gte', value: '', left: left.ast(), right: right.ast() }),
+        AddExp_plus: (left, _op, right) => ({ kind: 'add', value: '', left: left.ast(), right: right.ast() }),
+        AddExp_minus: (left, _op, right) => ({ kind: 'subtract', value: '', left: left.ast(), right: right.ast() }),
+        MulExp_times: (left, _op, right) => ({ kind: 'multiply', value: '', left: left.ast(), right: right.ast() }),
+        MulExp_divide: (left, _op, right) => ({ kind: 'divide', value: '', left: left.ast(), right: right.ast() }),
+        ExpExp_power: (left, _op, right) => ({ kind: 'pow', value: '', left: left.ast(), right: right.ast() }),
+        UnaryExp_not: (_op, expr) => ({ kind: 'not', value: '', left: expr.ast() }),
+        UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
+        UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
+        PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
+        PostExp_call: (callee, _open, args, _close) => {
+          const list = args.ast();
+          const children = list.children?.[0]?.kind === 'list'
+            ? list.children[0].children ?? []
+            : list.children ?? [];
+          return { kind: 'call', value: '', left: callee.ast(), children };
+        },
+        PriExp_paren: (_open, exp, _close) => exp.ast(),
+        PriExp_array: (_open, items, _close) => {
+          const list = items.ast();
+          const children = list.children?.[0]?.kind === 'list'
+            ? list.children[0].children ?? []
+            : list.children ?? [];
+          return { kind: 'array', value: '', children };
+        },
+        PriExp_hash: (_open, entries, _close) => {
+          const list = entries.ast();
+          const children = list.children?.[0]?.kind === 'list'
+            ? list.children[0].children ?? []
+            : list.children ?? [];
+          return { kind: 'hash', value: '', children };
+        },
+        CallArgs: (first, _seps, rest) => ({
+          kind: 'list',
+          value: '',
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        ArrayItems: (first, _seps, rest) => ({
+          kind: 'list',
+          value: '',
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        HashItems: (first, _seps, rest) => ({
+          kind: 'list',
+          value: '',
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        ParamList: (first, _seps, rest) => ({
+          kind: 'list',
+          value: '',
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
+        string: (_open, chars, _close) => ({
+          kind: 'string',
+          value: chars.children.map((child) => child.ast().value).join(''),
+        }),
+        stringChar_plain: (char) => ({ kind: 'string', value: char.sourceString }),
+        stringChar_escape: (_slash, escape) => escape.ast(),
+        escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
+        escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
+        escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
+        escape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
+        boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
+        boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
+        number_whole: (digits) => ({ kind: 'number', value: digits.sourceString }),
+        number_fract: (whole, _dot, fraction) => ({
+          kind: 'number',
+          value: `${whole.sourceString}.${fraction.sourceString}`,
+        }),
+        ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
+      });
+      const matchResult = grammar.match(input);
       if (matchResult.succeeded()) {
-        return this.semantics(matchResult).ast();
+        return semantics(matchResult).ast();
       }
       throw new Error("Parse error: " + matchResult.message);
     }
@@ -198,9 +257,17 @@ namespace Cosm {
     static evalNode(ast: AST, env: Env): CosmValue {
       switch (ast.kind) {
         case 'program':
-          return this.evalProgramNode(ast, env);
+          return this.evalStatements(ast.children ?? [], env);
+        case 'block':
+          return this.evalBlock(ast, env);
         case 'let':
           return this.evalLet(ast, env);
+        case 'def':
+          return this.evalDef(ast, env);
+        case 'if':
+          return this.evalIf(ast, env);
+        case 'lambda':
+          return this.evalLambda(ast, env);
         case 'number':
           return Types.number(Number(ast.value));
         case 'bool':
@@ -226,9 +293,8 @@ namespace Cosm {
           return this.evalAccess(ast, env);
         case 'call':
           return this.evalCall(ast, env);
-        case 'add': {
+        case 'add':
           return this.evalAdd(ast, env);
-        }
         case 'subtract': {
           const [left, right] = this.evalBinary(ast, 'subtract', env);
           return Types.number(left - right);
@@ -284,27 +350,6 @@ namespace Cosm {
       }
     }
 
-    private static evalProgramNode(ast: AST, env: Env): CosmValue {
-      const expressions = ast.children ?? [];
-      let result: CosmValue = Types.bool(true);
-      for (const expression of expressions) {
-        result = this.evalNode(expression, env);
-      }
-      return result;
-    }
-
-    private static evalLet(ast: AST, env: Env): CosmValue {
-      if (Object.hasOwn(env, ast.value)) {
-        throw new Error(`Name error: duplicate local '${ast.value}'`);
-      }
-      if (!ast.left) {
-        throw new Error("Invalid AST: let node must have a value expression");
-      }
-      const value = this.evalNode(ast.left, env);
-      env[ast.value] = value;
-      return value;
-    }
-
     private static createRepository(): Repository {
       const objectClass = Types.class('Object');
       const numberClass = Types.class('Number', 'Object');
@@ -334,7 +379,7 @@ namespace Cosm {
         Function: functionClass,
       };
 
-      globals.assert = Types.func('assert', (args) => {
+      globals.assert = Types.nativeFunc('assert', (args) => {
         if (args.length < 1 || args.length > 2) {
           throw new Error(`Arity error: assert expects 1 or 2 arguments, got ${args.length}`);
         }
@@ -354,7 +399,7 @@ namespace Cosm {
         return Types.bool(true);
       });
 
-      globals.len = Types.func('len', (args) => {
+      globals.len = Types.nativeFunc('len', (args) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: len expects 1 argument, got ${args.length}`);
         }
@@ -372,6 +417,68 @@ namespace Cosm {
       globals.classes = Types.object('Object', classes);
 
       return { globals, classes };
+    }
+
+    private static createEnv(parent?: Env): Env {
+      return { bindings: {}, parent };
+    }
+
+    private static evalStatements(statements: AST[], env: Env): CosmValue {
+      let result: CosmValue = Types.bool(true);
+      for (const statement of statements) {
+        result = this.evalNode(statement, env);
+      }
+      return result;
+    }
+
+    private static evalBlock(ast: AST, env: Env): CosmValue {
+      return this.evalStatements(ast.children ?? [], this.createEnv(env));
+    }
+
+    private static evalLet(ast: AST, env: Env): CosmValue {
+      if (Object.hasOwn(env.bindings, ast.value)) {
+        throw new Error(`Name error: duplicate local '${ast.value}'`);
+      }
+      if (!ast.left) {
+        throw new Error("Invalid AST: let node must have a value expression");
+      }
+      const value = this.evalNode(ast.left, env);
+      env.bindings[ast.value] = value;
+      return value;
+    }
+
+    private static evalDef(ast: AST, env: Env): CosmValue {
+      if (Object.hasOwn(env.bindings, ast.value)) {
+        throw new Error(`Name error: duplicate local '${ast.value}'`);
+      }
+      const [body] = ast.children ?? [];
+      if (!body) {
+        throw new Error('Invalid AST: def node must have a body');
+      }
+      const value = Types.closure(ast.value, ast.params ?? [], body, env);
+      env.bindings[ast.value] = value;
+      return value;
+    }
+
+    private static evalIf(ast: AST, env: Env): CosmValue {
+      const conditionAst = this.expectChild(ast, 'if');
+      const condition = this.evalNode(conditionAst, env);
+      if (condition.type !== 'bool') {
+        throw new Error('Type error: if expects a boolean condition');
+      }
+      const [thenBranch, elseBranch] = ast.children ?? [];
+      if (!thenBranch || !elseBranch) {
+        throw new Error('Invalid AST: if node must have then and else branches');
+      }
+      return this.evalNode(condition.value ? thenBranch : elseBranch, env);
+    }
+
+    private static evalLambda(ast: AST, env: Env): CosmValue {
+      const [body] = ast.children ?? [];
+      if (!body) {
+        throw new Error('Invalid AST: lambda node must have a body');
+      }
+      return Types.closure(ast.value, ast.params ?? [], body, env);
     }
 
     private static expectChildren(ast: AST, op: string): [AST, AST] {
@@ -469,7 +576,7 @@ namespace Cosm {
         case 'class':
           return left.name === (right as CosmClass).name;
         case 'function':
-          return left.name === (right as CosmFunction).name;
+          return left === right;
         case 'array': {
           const rightArray = right as CosmArray;
           return left.items.length === rightArray.items.length
@@ -491,9 +598,11 @@ namespace Cosm {
     }
 
     private static lookupName(name: string, env: Env): CosmValue {
-      const localValue = env[name];
-      if (localValue !== undefined) {
-        return localValue;
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        const localValue = scope.bindings[name];
+        if (localValue !== undefined) {
+          return localValue;
+        }
       }
       const value = this.repository.globals[name];
       if (value === undefined) {
@@ -514,7 +623,23 @@ namespace Cosm {
       if (callee.type !== 'function') {
         throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
       }
-      return callee.call(args);
+      if (callee.nativeCall) {
+        return callee.nativeCall(args);
+      }
+      if (!callee.params || !callee.body || !callee.env) {
+        throw new Error(`Invalid function: ${callee.name}`);
+      }
+      if (args.length !== callee.params.length) {
+        throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${args.length}`);
+      }
+      const callEnv = this.createEnv(callee.env);
+      for (const [index, param] of callee.params.entries()) {
+        if (Object.hasOwn(callEnv.bindings, param)) {
+          throw new Error(`Name error: duplicate parameter '${param}'`);
+        }
+        callEnv.bindings[param] = args[index];
+      }
+      return this.evalStatements(callee.body.children ?? [], callEnv);
     }
 
     private static lookupProperty(receiver: CosmValue, property: string): CosmValue {
@@ -587,7 +712,7 @@ namespace Cosm {
     }
 
     static eval(input: string): CosmValue {
-      return this.evalNode(Parser.parse(input), {});
+      return this.evalNode(Parser.parse(input), this.createEnv());
     }
   }
 

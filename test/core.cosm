@@ -5,5 +5,24 @@ let greeting = "hello";
 let pair = { left: greeting, right: greeting + " cosm" };
 assert(pair.left == "hello", "locals can feed hashes");
 assert(pair.right == "hello cosm", "locals can be reused later");
+assert(do let x = 1; x + 2 end == 3, "blocks return their last value");
+let letShadow = do let greeting = "inner"; greeting end;
+assert(letShadow == "inner", "blocks can create inner locals");
+assert(greeting == "hello", "outer local survives block shadowing");
+assert((if true then "yes" else "no" end) == "yes", "if picks the true branch");
+let prefix = "co";
+let join = ->(rest) { prefix + rest };
+assert(join("sm") == "cosm", "closures capture outer locals");
+let twice = ->(value) { value + value };
+assert(twice(21) == 42, "user-defined functions can be called");
+def scoped() do
+  let local = "hidden";
+  local
+end;
+assert(scoped() == "hidden", "function body returns its last value");
+def greet(name) do
+  "hello " + name
+end;
+assert(greet("cosm") == "hello cosm", "def introduces named functions");
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 classes.String.name

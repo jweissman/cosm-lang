@@ -1,0 +1,25 @@
+{
+  "name": "cosm-lang-vscode",
+  "displayName": "cosm-lang-vscode",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "cosm",
+      "aliases": ["Cosm", "cosm"],
+      "extensions": [".cosm"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "cosm",
+      "scopeName": "source.cosm",
+      "path": "./syntaxes/cosm.tmLanguage.json"
+    }]
+  }
+}

@@ -1,19 +1,30 @@
 Cosm {
   Program
+    = StatementList
+
+  StatementList
     = Statement StatementTail* ";"?
 
   StatementTail
     = ";" Statement
 
   Statement
-    = LetStmt
+    = DefStmt
+    | LetStmt
     | Exp
+
+  DefStmt
+    = "def" ident "(" ParamList? ")" "do" StatementList "end"
 
   LetStmt
     = "let" ident "=" Exp
 
   Exp
-    = OrExp
+    = IfExp
+
+  IfExp
+    = "if" Exp "then" StatementList "else" StatementList "end"  -- full
+    | OrExp
 
   OrExp
     = OrExp "||" AndExp   -- or
@@ -59,6 +70,8 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
+    | "do" StatementList "end"  -- block
+    | "->" "(" ParamList? ")" "{" Exp "}"  -- lambda
     | "[" ArrayItems? "]"  -- array
     | "{" HashItems? "}"  -- hash
     | string
@@ -68,6 +81,9 @@ Cosm {
 
   CallArgs
     = Exp ("," Exp)*
+
+  ParamList
+    = ident ("," ident)*
 
   ArrayItems
     = Exp ("," Exp)*
