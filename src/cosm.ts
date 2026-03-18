@@ -1,94 +1,58 @@
 import * as ohm from 'ohm-js';
 import rawGrammar from "./lang/cosm.ohm.txt";
+import { CosmValue, CosmClass, CosmEnv, CoreNode, CoreNodeKind, CosmArray, CosmHash, CosmObject, Types } from './types';
 
-type CosmNumber = { type: 'number', value: number };
-type CosmBool = { type: 'bool', value: boolean };
-type CosmString = { type: 'string', value: string };
-type CosmArray = { type: 'array', items: CosmValue[] };
-type CosmHash = { type: 'hash', entries: Record<string, CosmValue> };
-type CosmObject = { type: 'object', className: string, fields: Record<string, CosmValue> };
-type CosmClass = { type: 'class', name: string, superclassName?: string };
-type CosmEnv = { bindings: Record<string, CosmValue>, parent?: CosmEnv };
-type CosmFunction = {
-  type: 'function',
-  name: string,
-  nativeCall?: (args: CosmValue[]) => CosmValue,
-  params?: string[],
-  body?: AST,
-  env?: CosmEnv,
+function never(_x: never): never {
+  throw new Error("Unexpected value: " + _x);
+}
+
+type SurfaceNodeKind =
+  | 'program'
+  | 'statement_list'
+  | 'statement'
+  | 'def_stmt'
+  | 'let_stmt'
+  | 'if_expr'
+  | 'block_expr'
+  | 'lambda_expr'
+  | 'number'
+  | 'bool'
+  | 'string'
+  | 'ident'
+  | 'list'
+  | 'array'
+  | 'hash'
+  | 'pair'
+  | 'add'
+  | 'subtract'
+  | 'multiply'
+  | 'divide'
+  | 'pow'
+  | 'pos'
+  | 'neg'
+  | 'not'
+  | 'or'
+  | 'and'
+  | 'eq'
+  | 'neq'
+  | 'lt'
+  | 'lte'
+  | 'gt'
+  | 'gte'
+  | 'access'
+  | 'call';
+
+type SurfaceNode = {
+  kind: SurfaceNodeKind;
+  value: string;
+  children?: SurfaceNode[];
+  left?: SurfaceNode;
+  right?: SurfaceNode;
+  params?: string[];
 };
-type CosmValue = CosmNumber
-  | CosmBool
-  | CosmString
-  | CosmArray
-  | CosmHash
-  | CosmObject
-  | CosmClass
-  | CosmFunction;
+
 
 namespace Cosm {
-  export class Types {
-    static number(value: number): CosmNumber { return { type: 'number', value }; }
-    static bool(value: boolean): CosmBool { return { type: 'bool', value }; }
-    static string(value: string): CosmString { return { type: 'string', value }; }
-    static array(items: CosmValue[]): CosmArray { return { type: 'array', items }; }
-    static hash(entries: Record<string, CosmValue>): CosmHash { return { type: 'hash', entries }; }
-    static object(className: string, fields: Record<string, CosmValue>): CosmObject {
-      return { type: 'object', className, fields };
-    }
-    static class(name: string, superclassName?: string): CosmClass {
-      return { type: 'class', name, superclassName };
-    }
-    static nativeFunc(name: string, nativeCall: (args: CosmValue[]) => CosmValue): CosmFunction {
-      return { type: 'function', name, nativeCall };
-    }
-    static closure(name: string, params: string[], body: AST, env: CosmEnv): CosmFunction {
-      return { type: 'function', name, params, body, env };
-    }
-  }
-
-  type ASTNodeKind =
-    | 'program'
-    | 'block'
-    | 'let'
-    | 'def'
-    | 'if'
-    | 'lambda'
-    | 'number'
-    | 'bool'
-    | 'string'
-    | 'ident'
-    | 'list'
-    | 'array'
-    | 'hash'
-    | 'pair'
-    | 'add'
-    | 'subtract'
-    | 'multiply'
-    | 'divide'
-    | 'pow'
-    | 'pos'
-    | 'neg'
-    | 'not'
-    | 'or'
-    | 'and'
-    | 'eq'
-    | 'neq'
-    | 'lt'
-    | 'lte'
-    | 'gt'
-    | 'gte'
-    | 'access'
-    | 'call';
-
-  type AST = {
-    kind: ASTNodeKind;
-    value: string;
-    children?: AST[];
-    left?: AST;
-    right?: AST;
-    params?: string[];
-  };
 
   type Repository = {
     globals: Record<string, CosmValue>;
@@ -97,8 +61,115 @@ namespace Cosm {
 
   type Env = CosmEnv;
 
+  class Lowerer {
+    static lower(node: SurfaceNode): CoreNode {
+      switch (node.kind) {
+        case 'program':
+          return { kind: 'program', value: '', children: this.lowerChildren(node) };
+        case 'statement_list':
+          return { kind: 'block', value: '', children: this.lowerChildren(node) };
+        case 'statement':
+          if (!node.left) {
+            throw new Error('Invalid surface AST: statement node must wrap a child');
+          }
+          return this.lower(node.left);
+        case 'def_stmt':
+          return {
+            kind: 'def',
+            value: node.value,
+            params: node.params ?? [],
+            children: this.lowerChildren(node),
+          };
+        case 'let_stmt':
+          return {
+            kind: 'let',
+            value: node.value,
+            left: this.lowerRequired(node.left, 'let_stmt'),
+          };
+        case 'if_expr':
+          return {
+            kind: 'if',
+            value: '',
+            left: this.lowerRequired(node.left, 'if_expr'),
+            children: this.lowerChildren(node),
+          };
+        case 'block_expr':
+          return {
+            kind: 'block',
+            value: '',
+            children: this.lowerChildren(node),
+          };
+        case 'lambda_expr':
+          return {
+            kind: 'lambda',
+            value: '<lambda>',
+            params: node.params ?? [],
+            children: this.lowerChildren(node),
+          };
+        case 'number':
+        case 'bool':
+        case 'string':
+        case 'ident':
+        case 'add':
+        case 'subtract':
+        case 'multiply':
+        case 'divide':
+        case 'pow':
+        case 'pos':
+        case 'neg':
+        case 'not':
+        case 'or':
+        case 'and':
+        case 'eq':
+        case 'neq':
+        case 'lt':
+        case 'lte':
+        case 'gt':
+        case 'gte':
+        case 'access':
+        case 'call':
+        case 'array':
+        case 'hash':
+        case 'pair':
+          return {
+            kind: node.kind as CoreNodeKind,
+            value: node.value,
+            params: node.params,
+            left: node.left ? this.lower(node.left) : undefined,
+            right: node.right ? this.lower(node.right) : undefined,
+            children: node.children?.map((child) => this.lower(child)),
+          };
+        case 'list':
+          throw new Error('Invalid surface AST: list nodes must be lowered by their parent');
+      }
+    }
+
+    private static lowerChildren(node: SurfaceNode): CoreNode[] {
+      return (node.children ?? []).map((child) => this.lower(child));
+    }
+
+    private static lowerRequired(node: SurfaceNode | undefined, kind: string): CoreNode {
+      if (!node) {
+        throw new Error(`Invalid surface AST: ${kind} is missing a required child`);
+      }
+      return this.lower(node);
+    }
+  }
+
   export class Parser {
-    static parse(input: string): AST {
+    private static listChildren(node: SurfaceNode): SurfaceNode[] {
+      const children = node.children ?? [];
+      if (children[0]?.kind === 'list') {
+        return children[0].children ?? [];
+      }
+      return children;
+    }
+
+    private static paramNames(node: SurfaceNode): string[] {
+      return this.listChildren(node).map((param) => param.value);
+    }
+
+    static parseSurface(input: string): SurfaceNode {
       const grammar = ohm.grammar(rawGrammar);
       const semantics = grammar.createSemantics().addOperation('ast', {
         _iter(...children) {
@@ -111,59 +182,51 @@ namespace Cosm {
         Program: (statements) => ({
           kind: 'program',
           value: '',
-          children: statements.ast().children ?? [],
+          children: [statements.ast()],
         }),
         StatementList: (first, rest, _trailing) => ({
-          kind: 'list',
+          kind: 'statement_list',
           value: '',
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
         }),
         StatementTail: (_sep, statement) => statement.ast(),
-        Statement: (statement) => statement.ast(),
-        DefStmt: (_def, name, _open, params, _close, _do, body, _end) => {
-          const list = params.ast();
-          const paramNodes = list.children?.[0]?.kind === 'list'
-            ? list.children[0].children ?? []
-            : list.children ?? [];
-          return {
-            kind: 'def',
-            value: name.sourceString,
-            params: paramNodes.map((param) => param.value),
-            children: [{ kind: 'block', value: '', children: body.ast().children ?? [] }],
-          };
-        },
+        Statement: (statement) => ({
+          kind: 'statement',
+          value: '',
+          left: statement.ast(),
+        }),
+        DefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          params: Parser.paramNames(params.ast()),
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+        }),
         LetStmt: (_let, name, _eq, expr) => ({
-          kind: 'let',
+          kind: 'let_stmt',
           value: name.sourceString,
           left: expr.ast(),
         }),
         Exp: (exp) => exp.ast(),
         IfExp_full: (_if, condition, _then, thenBody, _else, elseBody, _end) => ({
-          kind: 'if',
+          kind: 'if_expr',
           value: '',
           left: condition.ast(),
           children: [
-            { kind: 'block', value: '', children: thenBody.ast().children ?? [] },
-            { kind: 'block', value: '', children: elseBody.ast().children ?? [] },
+            { kind: 'block_expr', value: '', children: Parser.listChildren(thenBody.ast()) },
+            { kind: 'block_expr', value: '', children: Parser.listChildren(elseBody.ast()) },
           ],
         }),
         PriExp_block: (_do, body, _end) => ({
-          kind: 'block',
+          kind: 'block_expr',
           value: '',
-          children: body.ast().children ?? [],
+          children: Parser.listChildren(body.ast()),
         }),
-        PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => {
-          const list = params.ast();
-          const paramNodes = list.children?.[0]?.kind === 'list'
-            ? list.children[0].children ?? []
-            : list.children ?? [];
-          return {
-            kind: 'lambda',
-            value: '<lambda>',
-            params: paramNodes.map((param) => param.value),
-            children: [{ kind: 'block', value: '', children: [body.ast()] }],
-          };
-        },
+        PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => ({
+          kind: 'lambda_expr',
+          value: '<lambda>',
+          params: Parser.paramNames(params.ast()),
+          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
         OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
         AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
         CmpExp_eq: (left, _op, right) => ({ kind: 'eq', value: '', left: left.ast(), right: right.ast() }),
@@ -181,28 +244,23 @@ namespace Cosm {
         UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
         UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
         PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
-        PostExp_call: (callee, _open, args, _close) => {
-          const list = args.ast();
-          const children = list.children?.[0]?.kind === 'list'
-            ? list.children[0].children ?? []
-            : list.children ?? [];
-          return { kind: 'call', value: '', left: callee.ast(), children };
-        },
+        PostExp_call: (callee, _open, args, _close) => ({
+          kind: 'call',
+          value: '',
+          left: callee.ast(),
+          children: Parser.listChildren(args.ast()),
+        }),
         PriExp_paren: (_open, exp, _close) => exp.ast(),
-        PriExp_array: (_open, items, _close) => {
-          const list = items.ast();
-          const children = list.children?.[0]?.kind === 'list'
-            ? list.children[0].children ?? []
-            : list.children ?? [];
-          return { kind: 'array', value: '', children };
-        },
-        PriExp_hash: (_open, entries, _close) => {
-          const list = entries.ast();
-          const children = list.children?.[0]?.kind === 'list'
-            ? list.children[0].children ?? []
-            : list.children ?? [];
-          return { kind: 'hash', value: '', children };
-        },
+        PriExp_array: (_open, items, _close) => ({
+          kind: 'array',
+          value: '',
+          children: Parser.listChildren(items.ast()),
+        }),
+        PriExp_hash: (_open, entries, _close) => ({
+          kind: 'hash',
+          value: '',
+          children: Parser.listChildren(entries.ast()),
+        }),
         CallArgs: (first, _seps, rest) => ({
           kind: 'list',
           value: '',
@@ -243,18 +301,23 @@ namespace Cosm {
         }),
         ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
       });
+
       const matchResult = grammar.match(input);
       if (matchResult.succeeded()) {
         return semantics(matchResult).ast();
       }
       throw new Error("Parse error: " + matchResult.message);
     }
+
+    static parse(input: string): CoreNode {
+      return Lowerer.lower(this.parseSurface(input));
+    }
   }
 
   export class Interpreter {
     private static readonly repository = this.createRepository();
 
-    static evalNode(ast: AST, env: Env): CosmValue {
+    static evalNode(ast: CoreNode, env: Env): CosmValue {
       switch (ast.kind) {
         case 'program':
           return this.evalStatements(ast.children ?? [], env);
@@ -346,7 +409,7 @@ namespace Cosm {
           return Types.bool(left >= right);
         }
         default:
-          throw new Error("Unknown AST node kind: " + ast.kind);
+          never(ast);
       }
     }
 
@@ -423,7 +486,7 @@ namespace Cosm {
       return { bindings: {}, parent };
     }
 
-    private static evalStatements(statements: AST[], env: Env): CosmValue {
+    private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
       let result: CosmValue = Types.bool(true);
       for (const statement of statements) {
         result = this.evalNode(statement, env);
@@ -431,11 +494,11 @@ namespace Cosm {
       return result;
     }
 
-    private static evalBlock(ast: AST, env: Env): CosmValue {
+    private static evalBlock(ast: CoreNode, env: Env): CosmValue {
       return this.evalStatements(ast.children ?? [], this.createEnv(env));
     }
 
-    private static evalLet(ast: AST, env: Env): CosmValue {
+    private static evalLet(ast: CoreNode, env: Env): CosmValue {
       if (Object.hasOwn(env.bindings, ast.value)) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
@@ -447,7 +510,7 @@ namespace Cosm {
       return value;
     }
 
-    private static evalDef(ast: AST, env: Env): CosmValue {
+    private static evalDef(ast: CoreNode, env: Env): CosmValue {
       if (Object.hasOwn(env.bindings, ast.value)) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
@@ -460,7 +523,7 @@ namespace Cosm {
       return value;
     }
 
-    private static evalIf(ast: AST, env: Env): CosmValue {
+    private static evalIf(ast: CoreNode, env: Env): CosmValue {
       const conditionAst = this.expectChild(ast, 'if');
       const condition = this.evalNode(conditionAst, env);
       if (condition.type !== 'bool') {
@@ -473,7 +536,7 @@ namespace Cosm {
       return this.evalNode(condition.value ? thenBranch : elseBranch, env);
     }
 
-    private static evalLambda(ast: AST, env: Env): CosmValue {
+    private static evalLambda(ast: CoreNode, env: Env): CosmValue {
       const [body] = ast.children ?? [];
       if (!body) {
         throw new Error('Invalid AST: lambda node must have a body');
@@ -481,21 +544,21 @@ namespace Cosm {
       return Types.closure(ast.value, ast.params ?? [], body, env);
     }
 
-    private static expectChildren(ast: AST, op: string): [AST, AST] {
+    private static expectChildren(ast: CoreNode, op: string): [CoreNode, CoreNode] {
       if (!ast.left || !ast.right) {
         throw new Error(`Invalid AST: ${op} node must have left and right children`);
       }
       return [ast.left, ast.right];
     }
 
-    private static expectChild(ast: AST, op: string): AST {
+    private static expectChild(ast: CoreNode, op: string): CoreNode {
       if (!ast.left) {
         throw new Error(`Invalid AST: ${op} node must have one child`);
       }
       return ast.left;
     }
 
-    private static evalBinary(ast: AST, op: string, env: Env): [number, number] {
+    private static evalBinary(ast: CoreNode, op: string, env: Env): [number, number] {
       const [leftAst, rightAst] = this.expectChildren(ast, op);
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
@@ -505,7 +568,7 @@ namespace Cosm {
       return [left.value, right.value];
     }
 
-    private static evalAdd(ast: AST, env: Env): CosmValue {
+    private static evalAdd(ast: CoreNode, env: Env): CosmValue {
       const [leftAst, rightAst] = this.expectChildren(ast, 'add');
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
@@ -518,7 +581,7 @@ namespace Cosm {
       throw new Error('Type error: add expects numeric operands or string concatenation');
     }
 
-    private static evalBinaryBool(ast: AST, op: string, env: Env): [boolean, boolean] {
+    private static evalBinaryBool(ast: CoreNode, op: string, env: Env): [boolean, boolean] {
       const [leftAst, rightAst] = this.expectChildren(ast, op);
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
@@ -528,7 +591,7 @@ namespace Cosm {
       return [left.value, right.value];
     }
 
-    private static evalUnaryNumber(ast: AST, op: string, env: Env): number {
+    private static evalUnaryNumber(ast: CoreNode, op: string, env: Env): number {
       const child = this.evalNode(this.expectChild(ast, op), env);
       if (child.type !== 'number') {
         throw new Error(`Type error: ${op} expects a numeric operand`);
@@ -536,7 +599,7 @@ namespace Cosm {
       return child.value;
     }
 
-    private static evalUnaryBool(ast: AST, op: string, env: Env): boolean {
+    private static evalUnaryBool(ast: CoreNode, op: string, env: Env): boolean {
       const child = this.evalNode(this.expectChild(ast, op), env);
       if (child.type !== 'bool') {
         throw new Error(`Type error: ${op} expects a boolean operand`);
@@ -544,7 +607,7 @@ namespace Cosm {
       return child.value;
     }
 
-    private static evalEquality(ast: AST, shouldEqual: boolean, env: Env): boolean {
+    private static evalEquality(ast: CoreNode, shouldEqual: boolean, env: Env): boolean {
       const [leftAst, rightAst] = this.expectChildren(ast, shouldEqual ? 'eq' : 'neq');
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
@@ -611,12 +674,12 @@ namespace Cosm {
       return value;
     }
 
-    private static evalAccess(ast: AST, env: Env): CosmValue {
+    private static evalAccess(ast: CoreNode, env: Env): CosmValue {
       const receiver = this.evalNode(this.expectChild(ast, 'access'), env);
       return this.lookupProperty(receiver, ast.value);
     }
 
-    private static evalCall(ast: AST, env: Env): CosmValue {
+    private static evalCall(ast: CoreNode, env: Env): CosmValue {
       const calleeAst = this.expectChild(ast, 'call');
       const callee = this.evalNode(calleeAst, env);
       const args = (ast.children ?? []).map((child) => this.evalNode(child, env));

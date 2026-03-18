@@ -64,7 +64,7 @@ Cosm {
     | PostExp
 
   PostExp
-    = PostExp "." ident  -- access
+    = PostExp "." name  -- access
     | PostExp "(" CallArgs? ")"  -- call
     | PriExp
 
@@ -111,7 +111,22 @@ Cosm {
     = "true"   -- true
     | "false"  -- false
 
+  keyword
+    = ("class"
+      | "def"
+      | "do"
+      | "else"
+      | "end"
+      | "false"
+      | "if"
+      | "let"
+      | "then"
+      | "true") ~alnum
+
   ident  (an identifier)
+    = ~keyword letter alnum*
+
+  name
     = letter alnum*
 
   number  (a number)

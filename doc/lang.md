@@ -133,6 +133,7 @@ do let x = 1; x + 2 end
 - Identifiers currently resolve from the built-in global repository only.
 - Innermost lexical locals are checked before outer locals and built-in globals.
 - Hash keys are currently identifier keys, not string keys.
+- Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
 - `if` requires `else` in the current version.
 - String interpolation is not implemented yet; use `+` for now.
 - Loops and reassignment are not implemented yet.

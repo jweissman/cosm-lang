@@ -118,6 +118,7 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("let x = 1; let x = 2")).toThrow("Name error: duplicate local 'x'");
   expect(() => cosmEval("def name() do 1 end; def name() do 2 end")).toThrow("Name error: duplicate local 'name'");
   expect(() => cosmEval("let make = ->() { do let x = 1; x end }; x")).toThrow("Name error: unknown identifier 'x'");
+  expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
 });
 
 test("cli can evaluate a source file", () => {
