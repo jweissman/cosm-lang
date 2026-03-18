@@ -89,6 +89,7 @@ Cosm {
     | "{" HashItems? "}"  -- hash
     | string
     | boolean
+    | self
     | ident
     | number
 
@@ -132,6 +133,9 @@ Cosm {
     = "true"   -- true
     | "false"  -- false
 
+  self
+    = "self" ~alnum
+
   keyword
     = ("class"
       | "def"
@@ -141,6 +145,7 @@ Cosm {
       | "false"
       | "if"
       | "let"
+      | "self"
       | "then"
       | "true") ~alnum
 

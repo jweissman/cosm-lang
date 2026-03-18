@@ -46,7 +46,12 @@ export type CosmBool = { type: 'bool', value: boolean };
 export type CosmString = { type: 'string', value: string };
 export type CosmArray = { type: 'array', items: CosmValue[] };
 export type CosmHash = { type: 'hash', entries: Record<string, CosmValue> };
-export type CosmObject = { type: 'object', className: string, fields: Record<string, CosmValue> };
+export type CosmObject = {
+  type: 'object',
+  className: string,
+  classRef?: CosmClass,
+  fields: Record<string, CosmValue>,
+};
 export type CosmEnv = { bindings: Record<string, CosmValue>, parent?: CosmEnv };
 export type CosmFunction = {
   type: 'function',
@@ -73,27 +78,50 @@ export type CosmValue = CosmNumber
   | CosmClass
   | CosmFunction;
 
-  export class Types {
-    static number(value: number): CosmNumber { return { type: 'number', value }; }
-    static bool(value: boolean): CosmBool { return { type: 'bool', value }; }
-    static string(value: string): CosmString { return { type: 'string', value }; }
-    static array(items: CosmValue[]): CosmArray { return { type: 'array', items }; }
-    static hash(entries: Record<string, CosmValue>): CosmHash { return { type: 'hash', entries }; }
-    static object(className: string, fields: Record<string, CosmValue>): CosmObject {
-      return { type: 'object', className, fields };
-    }
-    static class(
-      name: string,
-      superclassName?: string,
-      methods: Record<string, CosmFunction> = {},
-      superclass?: CosmClass,
-    ): CosmClass {
-      return { type: 'class', name, superclassName, methods, superclass };
-    }
-    static nativeFunc(name: string, nativeCall: (args: CosmValue[]) => CosmValue): CosmFunction {
-      return { type: 'function', name, nativeCall };
-    }
-    static closure(name: string, params: string[], body: CoreNode, env: CosmEnv): CosmFunction {
-      return { type: 'function', name, params, body, env };
-    }
-  }
+export type SurfaceNodeKind =
+  | 'program'
+  | 'statement_list'
+  | 'statement'
+  | 'class_stmt'
+  | 'def_stmt'
+  | 'class_super'
+  | 'class_body'
+  | 'let_stmt'
+  | 'if_expr'
+  | 'block_expr'
+  | 'lambda_expr'
+  | 'number'
+  | 'bool'
+  | 'string'
+  | 'ident'
+  | 'list'
+  | 'array'
+  | 'hash'
+  | 'pair'
+  | 'add'
+  | 'subtract'
+  | 'multiply'
+  | 'divide'
+  | 'pow'
+  | 'pos'
+  | 'neg'
+  | 'not'
+  | 'or'
+  | 'and'
+  | 'eq'
+  | 'neq'
+  | 'lt'
+  | 'lte'
+  | 'gt'
+  | 'gte'
+  | 'access'
+  | 'call';
+
+export type SurfaceNode = {
+  kind: SurfaceNodeKind;
+  value: string;
+  children?: SurfaceNode[];
+  left?: SurfaceNode;
+  right?: SurfaceNode;
+  params?: string[];
+};

@@ -41,9 +41,13 @@ class Pair do
   def label() do
     "pair"
   end
+  def classname() do
+    self.class.name
+  end
 end;
 assert(Pair.name == "Pair", "class definitions bind a class value");
 assert(classes.Pair.name == "Pair", "class definitions appear in the reflective classes view");
 assert(Pair.methods.label.name == "label", "class defs collect methods reflectively");
+assert(Pair.new().classname() == "Pair", "instances can send methods with self");
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 classes.String.name

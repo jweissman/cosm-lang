@@ -1,59 +1,10 @@
-import * as ohm from 'ohm-js';
-import rawGrammar from "./lang/cosm.ohm.txt";
-import { CosmValue, CosmClass, CosmEnv, CoreNode, CoreNodeKind, CosmArray, CosmHash, CosmObject, CosmFunction, Types } from './types';
+import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmArray, CosmHash, CosmObject, CosmFunction } from './types';
+import { Construct } from "./Construct";
+import { Parser } from './ast/parser';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
 }
-
-type SurfaceNodeKind =
-  | 'program'
-  | 'statement_list'
-  | 'statement'
-  | 'class_stmt'
-  | 'def_stmt'
-  | 'class_super'
-  | 'class_body'
-  | 'let_stmt'
-  | 'if_expr'
-  | 'block_expr'
-  | 'lambda_expr'
-  | 'number'
-  | 'bool'
-  | 'string'
-  | 'ident'
-  | 'list'
-  | 'array'
-  | 'hash'
-  | 'pair'
-  | 'add'
-  | 'subtract'
-  | 'multiply'
-  | 'divide'
-  | 'pow'
-  | 'pos'
-  | 'neg'
-  | 'not'
-  | 'or'
-  | 'and'
-  | 'eq'
-  | 'neq'
-  | 'lt'
-  | 'lte'
-  | 'gt'
-  | 'gte'
-  | 'access'
-  | 'call';
-
-type SurfaceNode = {
-  kind: SurfaceNodeKind;
-  value: string;
-  children?: SurfaceNode[];
-  left?: SurfaceNode;
-  right?: SurfaceNode;
-  params?: string[];
-};
-
 
 namespace Cosm {
 
@@ -64,321 +15,7 @@ namespace Cosm {
 
   type Env = CosmEnv;
 
-  class Lowerer {
-    static lower(node: SurfaceNode): CoreNode {
-      switch (node.kind) {
-        case 'program':
-          return {
-            kind: 'program',
-            value: '',
-            children: this.lowerProgramChildren(node),
-          };
-        case 'statement_list':
-          return { kind: 'block', value: '', children: this.lowerChildren(node) };
-        case 'statement':
-          if (!node.left) {
-            throw new Error('Invalid surface AST: statement node must wrap a child');
-          }
-          return this.lower(node.left);
-        case 'class_stmt':
-          return {
-            kind: 'class',
-            value: node.value,
-            left: node.left ? this.lower(node.left) : undefined,
-            children: this.lowerChildren(node),
-          };
-        case 'def_stmt':
-          return {
-            kind: 'def',
-            value: node.value,
-            params: node.params ?? [],
-            children: this.lowerChildren(node),
-          };
-        case 'let_stmt':
-          return {
-            kind: 'let',
-            value: node.value,
-            left: this.lowerRequired(node.left, 'let_stmt'),
-          };
-        case 'class_super':
-          return {
-            kind: 'ident',
-            value: node.value,
-          };
-        case 'if_expr':
-          return {
-            kind: 'if',
-            value: '',
-            left: this.lowerRequired(node.left, 'if_expr'),
-            children: this.lowerChildren(node),
-          };
-        case 'block_expr':
-          return {
-            kind: 'block',
-            value: '',
-            children: this.lowerChildren(node),
-          };
-        case 'lambda_expr':
-          return {
-            kind: 'lambda',
-            value: '<lambda>',
-            params: node.params ?? [],
-            children: this.lowerChildren(node),
-          };
-        case 'number':
-        case 'bool':
-        case 'string':
-        case 'ident':
-        case 'add':
-        case 'subtract':
-        case 'multiply':
-        case 'divide':
-        case 'pow':
-        case 'pos':
-        case 'neg':
-        case 'not':
-        case 'or':
-        case 'and':
-        case 'eq':
-        case 'neq':
-        case 'lt':
-        case 'lte':
-        case 'gt':
-        case 'gte':
-        case 'access':
-        case 'call':
-        case 'array':
-        case 'hash':
-        case 'pair':
-          return {
-            kind: node.kind as CoreNodeKind,
-            value: node.value,
-            params: node.params,
-            left: node.left ? this.lower(node.left) : undefined,
-            right: node.right ? this.lower(node.right) : undefined,
-            children: node.children?.map((child) => this.lower(child)),
-          };
-        case 'list':
-        case 'class_body':
-          throw new Error('Invalid surface AST: list nodes must be lowered by their parent');
-      }
-    }
-
-    private static lowerChildren(node: SurfaceNode): CoreNode[] {
-      return (node.children ?? []).map((child) => this.lower(child));
-    }
-
-    private static lowerProgramChildren(node: SurfaceNode): CoreNode[] {
-      const [statementList] = node.children ?? [];
-      if (!statementList) {
-        return [];
-      }
-      if (statementList.kind !== 'statement_list') {
-        throw new Error('Invalid surface AST: program must contain a statement list');
-      }
-      return this.lowerChildren(statementList);
-    }
-
-    private static lowerRequired(node: SurfaceNode | undefined, kind: string): CoreNode {
-      if (!node) {
-        throw new Error(`Invalid surface AST: ${kind} is missing a required child`);
-      }
-      return this.lower(node);
-    }
-  }
-
-  export class Parser {
-    private static listChildren(node: SurfaceNode): SurfaceNode[] {
-      const children = node.children ?? [];
-      if (children[0]?.kind === 'list') {
-        return children[0].children ?? [];
-      }
-      return children;
-    }
-
-    private static paramNames(node: SurfaceNode): string[] {
-      return this.listChildren(node).map((param) => param.value);
-    }
-
-    static parseSurface(input: string): SurfaceNode {
-      const grammar = ohm.grammar(rawGrammar);
-      const semantics = grammar.createSemantics().addOperation('ast', {
-        _iter(...children) {
-          return {
-            kind: 'list',
-            value: '',
-            children: children.map((child) => child.ast()),
-          };
-        },
-        Program: (statements) => ({
-          kind: 'program',
-          value: '',
-          children: [statements.ast()],
-        }),
-        StatementList: (first, rest, _trailing) => ({
-          kind: 'statement_list',
-          value: '',
-          children: [first.ast(), ...rest.children.map((child) => child.ast())],
-        }),
-        StatementTail: (_sep, statement) => statement.ast(),
-        Statement: (statement) => ({
-          kind: 'statement',
-          value: '',
-          left: statement.ast(),
-        }),
-        ClassStmt: (_class, name, superclass, _do, body, _end) => {
-          const superclassNode = superclass.ast();
-          return {
-            kind: 'class_stmt',
-            value: name.sourceString,
-            left: superclassNode.kind === 'list' ? superclassNode.children?.[0] : superclassNode,
-            children: Parser.listChildren(body.ast()),
-          };
-        },
-        ClassSuper: (_open, name, _close) => ({
-          kind: 'class_super',
-          value: name.sourceString,
-        }),
-        ClassBody: (members) => ({
-          kind: 'class_body',
-          value: '',
-          children: members.children.map((child) => child.ast()),
-        }),
-        ClassMember: (member, _semi) => member.ast(),
-        DefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
-          kind: 'def_stmt',
-          value: name.sourceString,
-          params: Parser.paramNames(params.ast()),
-          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
-        }),
-        LetStmt: (_let, name, _eq, expr) => ({
-          kind: 'let_stmt',
-          value: name.sourceString,
-          left: expr.ast(),
-        }),
-        Exp: (exp) => exp.ast(),
-        IfExp_full: (_if, condition, _then, thenBody, _else, elseBody, _end) => ({
-          kind: 'if_expr',
-          value: '',
-          left: condition.ast(),
-          children: [
-            { kind: 'block_expr', value: '', children: Parser.listChildren(thenBody.ast()) },
-            { kind: 'block_expr', value: '', children: Parser.listChildren(elseBody.ast()) },
-          ],
-        }),
-        PriExp_block: (_do, body, _end) => ({
-          kind: 'block_expr',
-          value: '',
-          children: Parser.listChildren(body.ast()),
-        }),
-        PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => ({
-          kind: 'lambda_expr',
-          value: '<lambda>',
-          params: Parser.paramNames(params.ast()),
-          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
-        }),
-        OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
-        AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_eq: (left, _op, right) => ({ kind: 'eq', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_neq: (left, _op, right) => ({ kind: 'neq', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_lt: (left, _op, right) => ({ kind: 'lt', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_lte: (left, _op, right) => ({ kind: 'lte', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_gt: (left, _op, right) => ({ kind: 'gt', value: '', left: left.ast(), right: right.ast() }),
-        CmpExp_gte: (left, _op, right) => ({ kind: 'gte', value: '', left: left.ast(), right: right.ast() }),
-        AddExp_plus: (left, _op, right) => ({ kind: 'add', value: '', left: left.ast(), right: right.ast() }),
-        AddExp_minus: (left, _op, right) => ({ kind: 'subtract', value: '', left: left.ast(), right: right.ast() }),
-        MulExp_times: (left, _op, right) => ({ kind: 'multiply', value: '', left: left.ast(), right: right.ast() }),
-        MulExp_divide: (left, _op, right) => ({ kind: 'divide', value: '', left: left.ast(), right: right.ast() }),
-        ExpExp_power: (left, _op, right) => ({ kind: 'pow', value: '', left: left.ast(), right: right.ast() }),
-        UnaryExp_not: (_op, expr) => ({ kind: 'not', value: '', left: expr.ast() }),
-        UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
-        UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
-        PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
-        PostExp_call: (callee, _open, args, _close) => ({
-          kind: 'call',
-          value: '',
-          left: callee.ast(),
-          children: Parser.listChildren(args.ast()),
-        }),
-        PriExp_paren: (_open, exp, _close) => exp.ast(),
-        PriExp_array: (_open, items, _close) => ({
-          kind: 'array',
-          value: '',
-          children: Parser.listChildren(items.ast()),
-        }),
-        PriExp_hash: (_open, entries, _close) => ({
-          kind: 'hash',
-          value: '',
-          children: Parser.listChildren(entries.ast()),
-        }),
-        CallArgs: (first, _seps, rest) => ({
-          kind: 'list',
-          value: '',
-          children: [first.ast(), ...rest.children.map((child) => child.ast())],
-        }),
-        ArrayItems: (first, _seps, rest) => ({
-          kind: 'list',
-          value: '',
-          children: [first.ast(), ...rest.children.map((child) => child.ast())],
-        }),
-        HashItems: (first, _seps, rest) => ({
-          kind: 'list',
-          value: '',
-          children: [first.ast(), ...rest.children.map((child) => child.ast())],
-        }),
-        ParamList: (first, _seps, rest) => ({
-          kind: 'list',
-          value: '',
-          children: [first.ast(), ...rest.children.map((child) => child.ast())],
-        }),
-        HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
-        string: (_open, parts, _close) => {
-          const children = Parser.listChildren(parts.ast());
-          const isPlain = children.every((child) => child.kind === 'string' && !(child.children?.length));
-          if (isPlain) {
-            return {
-              kind: 'string',
-              value: children.map((child) => child.value).join(''),
-            };
-          }
-          return {
-            kind: 'string',
-            value: '',
-            children,
-          };
-        },
-        stringPart_interp: (interpolation) => interpolation.ast(),
-        stringPart_text: (text) => text.ast(),
-        stringPart_escape: (_slash, escape) => escape.ast(),
-        interpolation: (_open, expr, _close) => expr.ast(),
-        stringText_plain: (char) => ({ kind: 'string', value: char.sourceString }),
-        stringText_hash: (hash) => ({ kind: 'string', value: hash.sourceString }),
-        escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
-        escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
-        escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
-        escape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
-        boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
-        boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
-        number_whole: (digits) => ({ kind: 'number', value: digits.sourceString }),
-        number_fract: (whole, _dot, fraction) => ({
-          kind: 'number',
-          value: `${whole.sourceString}.${fraction.sourceString}`,
-        }),
-        ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
-      });
-
-      const matchResult = grammar.match(input);
-      if (matchResult.succeeded()) {
-        return semantics(matchResult).ast();
-      }
-      throw new Error("Parse error: " + matchResult.message);
-    }
-
-    static parse(input: string): CoreNode {
-      return Lowerer.lower(this.parseSurface(input));
-    }
-  }
-
+  
   export class Interpreter {
     private static readonly repository = this.createRepository();
 
@@ -399,22 +36,22 @@ namespace Cosm {
         case 'lambda':
           return this.evalLambda(ast, env);
         case 'number':
-          return Types.number(Number(ast.value));
+          return Construct.number(Number(ast.value));
         case 'bool':
-          return Types.bool(ast.value === 'true');
+          return Construct.bool(ast.value === 'true');
         case 'string':
           if (!ast.children?.length) {
-            return Types.string(ast.value);
+            return Construct.string(ast.value);
           }
-          return Types.string(
+          return Construct.string(
             ast.children.map((child) => this.coerceToString(this.evalNode(child, env), 'interpolate')).join(''),
           );
         case 'ident':
           return this.lookupName(ast.value, env);
         case 'array':
-          return Types.array((ast.children ?? []).map((child) => this.evalNode(child, env)));
+          return Construct.array((ast.children ?? []).map((child) => this.evalNode(child, env)));
         case 'hash':
-          return Types.hash(
+          return Construct.hash(
             Object.fromEntries(
               (ast.children ?? []).map((child) => {
                 if (child.kind !== 'pair' || !child.left) {
@@ -432,53 +69,53 @@ namespace Cosm {
           return this.evalAdd(ast, env);
         case 'subtract': {
           const [left, right] = this.evalBinary(ast, 'subtract', env);
-          return Types.number(left - right);
+          return Construct.number(left - right);
         }
         case 'multiply': {
           const [left, right] = this.evalBinary(ast, 'multiply', env);
-          return Types.number(left * right);
+          return Construct.number(left * right);
         }
         case 'divide': {
           const [left, right] = this.evalBinary(ast, 'divide', env);
-          return Types.number(left / right);
+          return Construct.number(left / right);
         }
         case 'pow': {
           const [left, right] = this.evalBinary(ast, 'pow', env);
-          return Types.number(left ** right);
+          return Construct.number(left ** right);
         }
         case 'pos':
-          return Types.number(this.evalUnaryNumber(ast, 'pos', env));
+          return Construct.number(this.evalUnaryNumber(ast, 'pos', env));
         case 'neg':
-          return Types.number(-this.evalUnaryNumber(ast, 'neg', env));
+          return Construct.number(-this.evalUnaryNumber(ast, 'neg', env));
         case 'not':
-          return Types.bool(!this.evalUnaryBool(ast, 'not', env));
+          return Construct.bool(!this.evalUnaryBool(ast, 'not', env));
         case 'or': {
           const [left, right] = this.evalBinaryBool(ast, 'or', env);
-          return Types.bool(left || right);
+          return Construct.bool(left || right);
         }
         case 'and': {
           const [left, right] = this.evalBinaryBool(ast, 'and', env);
-          return Types.bool(left && right);
+          return Construct.bool(left && right);
         }
         case 'eq':
-          return Types.bool(this.evalEquality(ast, true, env));
+          return Construct.bool(this.evalEquality(ast, true, env));
         case 'neq':
-          return Types.bool(this.evalEquality(ast, false, env));
+          return Construct.bool(this.evalEquality(ast, false, env));
         case 'lt': {
           const [left, right] = this.evalBinary(ast, 'lt', env);
-          return Types.bool(left < right);
+          return Construct.bool(left < right);
         }
         case 'lte': {
           const [left, right] = this.evalBinary(ast, 'lte', env);
-          return Types.bool(left <= right);
+          return Construct.bool(left <= right);
         }
         case 'gt': {
           const [left, right] = this.evalBinary(ast, 'gt', env);
-          return Types.bool(left > right);
+          return Construct.bool(left > right);
         }
         case 'gte': {
           const [left, right] = this.evalBinary(ast, 'gte', env);
-          return Types.bool(left >= right);
+          return Construct.bool(left >= right);
         }
         default:
           never(ast);
@@ -486,13 +123,13 @@ namespace Cosm {
     }
 
     private static createRepository(): Repository {
-      const objectClass = Types.class('Object');
-      const numberClass = Types.class('Number', 'Object', {}, objectClass);
-      const booleanClass = Types.class('Boolean', 'Object', {}, objectClass);
-      const stringClass = Types.class('String', 'Object', {}, objectClass);
-      const arrayClass = Types.class('Array', 'Object', {}, objectClass);
-      const hashClass = Types.class('Hash', 'Object', {}, objectClass);
-      const functionClass = Types.class('Function', 'Object', {}, objectClass);
+      const objectClass = Construct.class('Object');
+      const numberClass = Construct.class('Number', 'Object', {}, objectClass);
+      const booleanClass = Construct.class('Boolean', 'Object', {}, objectClass);
+      const stringClass = Construct.class('String', 'Object', {}, objectClass);
+      const arrayClass = Construct.class('Array', 'Object', {}, objectClass);
+      const hashClass = Construct.class('Hash', 'Object', {}, objectClass);
+      const functionClass = Construct.class('Function', 'Object', {}, objectClass);
 
       const classes: Record<string, CosmClass> = {
         Object: objectClass,
@@ -514,7 +151,7 @@ namespace Cosm {
         Function: functionClass,
       };
 
-      globals.assert = Types.nativeFunc('assert', (args) => {
+      globals.assert = Construct.nativeFunc('assert', (args) => {
         if (args.length < 1 || args.length > 2) {
           throw new Error(`Arity error: assert expects 1 or 2 arguments, got ${args.length}`);
         }
@@ -531,19 +168,19 @@ namespace Cosm {
           }
           throw new Error('Assertion failed');
         }
-        return Types.bool(true);
+        return Construct.bool(true);
       });
 
-      globals.len = Types.nativeFunc('len', (args) => {
+      globals.len = Construct.nativeFunc('len', (args) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: len expects 1 argument, got ${args.length}`);
         }
         const [value] = args;
         switch (value.type) {
           case 'array':
-            return Types.number(value.items.length);
+            return Construct.number(value.items.length);
           case 'hash':
-            return Types.number(Object.keys(value.entries).length);
+            return Construct.number(Object.keys(value.entries).length);
           default:
             throw new Error('Type error: len expects an array or hash');
         }
@@ -557,7 +194,7 @@ namespace Cosm {
     }
 
     private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
-      let result: CosmValue = Types.bool(true);
+      let result: CosmValue = Construct.bool(true);
       for (const statement of statements) {
         result = this.evalNode(statement, env);
       }
@@ -575,7 +212,7 @@ namespace Cosm {
       const superclassName = ast.left?.value || 'Object';
       const superclass = this.lookupClass(superclassName, env);
       const methods = this.collectClassMethods(ast.value, ast.children ?? [], env);
-      const classValue = Types.class(ast.value, superclass.name, methods, superclass);
+      const classValue = Construct.class(ast.value, superclass.name, methods, superclass);
       env.bindings[ast.value] = classValue;
       return classValue;
     }
@@ -647,10 +284,10 @@ namespace Cosm {
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
       if (left.type === 'number' && right.type === 'number') {
-        return Types.number(left.value + right.value);
+        return Construct.number(left.value + right.value);
       }
       if (left.type === 'string' || right.type === 'string') {
-        return Types.string(
+        return Construct.string(
           this.coerceToString(left, 'concatenate') + this.coerceToString(right, 'concatenate'),
         );
       }
@@ -734,7 +371,7 @@ namespace Cosm {
         case 'object': {
           const rightObject = right as CosmObject;
           return left.className === rightObject.className
-            && this.valuesEqual(Types.hash(left.fields), Types.hash(rightObject.fields));
+            && this.valuesEqual(Construct.hash(left.fields), Construct.hash(rightObject.fields));
         }
       }
     }
@@ -773,7 +410,7 @@ namespace Cosm {
           }
         }
       }
-      return Types.object('Object', classes);
+      return Construct.object('Object', classes);
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
@@ -785,6 +422,10 @@ namespace Cosm {
       const calleeAst = this.expectChild(ast, 'call');
       const callee = this.evalNode(calleeAst, env);
       const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
+      return this.invokeFunction(callee, args);
+    }
+
+    private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue): CosmValue {
       if (callee.type !== 'function') {
         throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
       }
@@ -798,6 +439,9 @@ namespace Cosm {
         throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${args.length}`);
       }
       const callEnv = this.createEnv(callee.env);
+      if (selfValue) {
+        callEnv.bindings.self = selfValue;
+      }
       for (const [index, param] of callee.params.entries()) {
         if (Object.hasOwn(callEnv.bindings, param)) {
           throw new Error(`Name error: duplicate parameter '${param}'`);
@@ -815,7 +459,7 @@ namespace Cosm {
       switch (receiver.type) {
         case 'array':
           if (property === 'length') {
-            return Types.number(receiver.items.length);
+            return Construct.number(receiver.items.length);
           }
           throw new Error(`Property error: Array instance has no property '${property}'`);
         case 'hash': {
@@ -827,14 +471,18 @@ namespace Cosm {
         }
         case 'object': {
           const value = receiver.fields[property];
-          if (value === undefined) {
-            throw new Error(`Property error: object of class ${receiver.className} has no property '${property}'`);
+          if (value !== undefined) {
+            return value;
           }
-          return value;
+          const method = this.lookupMethod(this.classOf(receiver), property);
+          if (method) {
+            return this.bindMethod(receiver, method);
+          }
+          throw new Error(`Property error: object of class ${receiver.className} has no property '${property}'`);
         }
         case 'class':
           if (property === 'name') {
-            return Types.string(receiver.name);
+            return Construct.string(receiver.name);
           }
           if (property === 'superclass') {
             if (!receiver.superclass) {
@@ -843,12 +491,20 @@ namespace Cosm {
             return receiver.superclass;
           }
           if (property === 'methods') {
-            return Types.object('Object', receiver.methods);
+            return Construct.object('Object', receiver.methods);
+          }
+          if (property === 'new') {
+            return Construct.nativeFunc(`${receiver.name}.new`, (args) => {
+              if (args.length !== 0) {
+                throw new Error(`Arity error: ${receiver.name}.new expects 0 arguments, got ${args.length}`);
+              }
+              return Construct.object(receiver.name, {}, receiver);
+            });
           }
           throw new Error(`Property error: class ${receiver.name} has no property '${property}'`);
         case 'function':
           if (property === 'name') {
-            return Types.string(receiver.name);
+            return Construct.string(receiver.name);
           }
           throw new Error(`Property error: function ${receiver.name} has no property '${property}'`);
         default: {
@@ -871,7 +527,7 @@ namespace Cosm {
         case 'hash':
           return this.repository.classes.Hash;
         case 'object':
-          return this.repository.classes[value.className];
+          return value.classRef ?? this.repository.classes[value.className];
         case 'class':
           return this.repository.classes.Object;
         case 'function':
@@ -892,7 +548,7 @@ namespace Cosm {
       if (!body) {
         throw new Error(`Invalid AST: ${ast.kind} node must have a body`);
       }
-      return Types.closure(ast.value, ast.params ?? [], body, env);
+      return Construct.closure(ast.value, ast.params ?? [], body, env);
     }
 
     private static collectClassMethods(className: string, children: CoreNode[], env: Env): Record<string, CosmFunction> {
@@ -907,6 +563,21 @@ namespace Cosm {
         methods[child.value] = this.buildClosure(child, env);
       }
       return methods;
+    }
+
+    private static lookupMethod(classValue: CosmClass, name: string): CosmFunction | undefined {
+      const method = classValue.methods[name];
+      if (method) {
+        return method;
+      }
+      if (classValue.superclass) {
+        return this.lookupMethod(classValue.superclass, name);
+      }
+      return undefined;
+    }
+
+    private static bindMethod(receiver: CosmValue, method: CosmFunction): CosmFunction {
+      return Construct.nativeFunc(method.name, (args) => this.invokeFunction(method, args, receiver));
     }
   }
 

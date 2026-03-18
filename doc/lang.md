@@ -38,6 +38,7 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 - `class Name(Superclass) do ... end`
 
 Class bodies currently support `def` members. This first slice is reflective: class definitions bind a class value, appear in `classes`, and expose collected methods through `.methods`.
+Instances can be created with `ClassName.new()`, and instance methods can refer to `self`.
 
 ### Control Flow
 
@@ -123,6 +124,16 @@ end;
 Greeter.methods.greet.name
 ```
 
+```cosm
+class Pair do
+  def classname() do
+    self.class.name
+  end
+end;
+
+Pair.new().classname()
+```
+
 ### Built-ins
 
 - `assert(condition)`
@@ -155,9 +166,10 @@ do let x = 1; x + 2 end
 - Innermost lexical locals are checked before outer locals and built-in globals.
 - Hash keys are currently identifier keys, not string keys.
 - Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
+- `self` is reserved for method bodies.
 - Line comments use `# ...`.
 - `if` requires `else` in the current version.
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
-- `class` currently defines reflective class objects and method collections; instance creation and method send are still future work.
+- `class` currently supports reflective class objects, `Class.new()`, and instance method send via `obj.method(...)`.
 - Loops and reassignment are not implemented yet.

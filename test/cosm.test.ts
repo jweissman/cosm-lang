@@ -123,6 +123,9 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Point do end; classes.Point.name")).toBe("Point");
   expect(cosmEval("class Point(Number) do end; Point.superclass.name")).toBe("Number");
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
+  expect(cosmEval('class Greeter do def kind() do self.class.name end end; let g = Greeter.new(); g.kind()')).toBe("Greeter");
+  expect(cosmEval('class Base do def kind() do "base" end end; class Child(Base) do end; Child.new().kind()')).toBe("base");
+  expect(cosmEval('class Point do end; Point.new().class.name')).toBe("Point");
 });
 
 test("type errors stay explicit", () => {
@@ -144,7 +147,9 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("let make = ->() { do let x = 1; x end }; x")).toThrow("Name error: unknown identifier 'x'");
   expect(() => cosmEval("class Thing(UnknownThing) do end")).toThrow("Name error: unknown identifier 'UnknownThing'");
   expect(() => cosmEval("class Thing do def go() do 1 end; def go() do 2 end end")).toThrow("Name error: duplicate method 'go' in class 'Thing'");
+  expect(() => cosmEval("class Thing do end; Thing.new(1)")).toThrow("Arity error: Thing.new expects 0 arguments, got 1");
   expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
+  expect(() => cosmEval("let self = 1")).toThrow("Parse error:");
 });
 
 test("cli can evaluate a source file", () => {
