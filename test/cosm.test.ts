@@ -39,6 +39,8 @@ test("boolean logic respects precedence", () => {
 test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Number.name")).toBe("Number");
   expect(cosmEval("classes.Boolean.superclass.name")).toBe("Object");
+  expect(cosmEval("classes.Class.name")).toBe("Class");
+  expect(cosmEval("classes.Number.class.name")).toBe("Number class");
   expect(cosmEval("Number.name")).toBe("Number");
 });
 
@@ -47,17 +49,28 @@ test("values expose their class through access notation", () => {
   expect(cosmEval("true.class.name")).toBe("Boolean");
 });
 
+test("formatted output uses Cosm-oriented class names", () => {
+  const classValue = Cosm.Interpreter.eval("Class");
+  const classesValue = Cosm.Interpreter.eval("classes");
+  expect(Cosm.Values.format(classValue)).toBe("Class");
+  expect(Cosm.Values.format(classesValue)).toContain("Class: Class");
+});
+
 test("array and hash literals evaluate", () => {
   expect(cosmEval("[1, 2, 3]")).toEqual([1, 2, 3]);
   expect(cosmEval('{ answer: 42, ok: true, title: "cosm" }')).toEqual({ answer: 42, ok: true, title: "cosm" });
   expect(cosmEval("[1, 2].length")).toBe(2);
+  expect(cosmEval("{ answer: 42 }.length")).toBe(1);
   expect(cosmEval("{ answer: 42 }.answer")).toBe(42);
 });
 
 test("string literals and concatenation work", () => {
   expect(cosmEval('"cosm"')).toBe("cosm");
+  expect(cosmEval('"cosm".length')).toBe(4);
   expect(cosmEval('"co" + "sm"')).toBe("cosm");
+  expect(cosmEval('"co".plus("sm")')).toBe("cosm");
   expect(cosmEval('"answer: " + 42')).toBe("answer: 42");
+  expect(cosmEval('"answer: ".plus(42)')).toBe("answer: 42");
   expect(cosmEval('"ok? " + true')).toBe("ok? true");
   expect(cosmEval('"hello #{1 + 1}"')).toBe("hello 2");
   expect(cosmEval('let name = "cosm"; "hello #{name}"')).toBe("hello cosm");
@@ -66,19 +79,20 @@ test("string literals and concatenation work", () => {
 });
 
 test("built-in function calls work", () => {
-  expect(cosmEval("len([1, 2, 3])")).toBe(3);
-  expect(cosmEval("len({ a: 1, b: 2 })")).toBe(2);
+  expect(cosmEval("[1, 2, 3].length")).toBe(3);
+  expect(cosmEval('"cosm".length')).toBe(4);
+  expect(cosmEval("{ a: 1, b: 2 }.length")).toBe(2);
   expect(cosmEval("assert(2 + 2 == 4)")).toBe(true);
   expect(cosmEval('assert("co" + "sm" == "cosm", "strings should concatenate")')).toBe(true);
 });
 
 test("semicolon-separated programs return the last result", () => {
-  expect(cosmEval("assert(len([1, 2]) == 2); 7 * 6")).toBe(42);
+  expect(cosmEval("assert([1, 2].length == 2); 7 * 6")).toBe(42);
 });
 
 test("program-scoped let bindings work", () => {
   expect(cosmEval('let base = 40; let name = "co" + "sm"; assert(name == "cosm"); base + 2')).toBe(42);
-  expect(cosmEval("let items = [1, 2, 3]; len(items)")).toBe(3);
+  expect(cosmEval("let items = [1, 2, 3]; items.length")).toBe(3);
   expect(cosmEval('let answer = 42; { value: answer }.value')).toBe(42);
 });
 
@@ -121,20 +135,33 @@ test("user-defined functions work", () => {
 test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Point do end; Point.name")).toBe("Point");
   expect(cosmEval("class Point do end; classes.Point.name")).toBe("Point");
-  expect(cosmEval("class Point(Number) do end; Point.superclass.name")).toBe("Number");
+  expect(cosmEval("class Point do end; Point.class.name")).toBe("Point class");
+  expect(cosmEval("class Point < Number do end; Point.class.superclass.name")).toBe("Number class");
+  expect(cosmEval("Class.class.name")).toBe("Class");
+  expect(cosmEval("class Point < Number do end; Point.superclass.name")).toBe("Number");
+  expect(cosmEval("1.plus(2)")).toBe(3);
+  expect(cosmEval("class Pair do def init(left, right) do true end end; Pair.slots.length")).toBe(2);
+  expect(cosmEval("class Pair do def init(left, right) do true end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
+  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethods.label.name')).toBe("label");
   expect(cosmEval('class Greeter do def kind() do self.class.name end end; let g = Greeter.new(); g.kind()')).toBe("Greeter");
-  expect(cosmEval('class Base do def kind() do "base" end end; class Child(Base) do end; Child.new().kind()')).toBe("base");
+  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.label()')).toBe("Greeter!");
+  expect(cosmEval('class Greeter do def self.kind() do self.class.name end end; Greeter.kind()')).toBe("Greeter class");
+  expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.label()')).toBe("base");
+  expect(cosmEval('class Base do def init(left) do true end; def kind() do "base #{@left}" end end; class Child < Base do def init(right) do assert(@left == 1) end end; let child = Child.new(1, 2); child.kind()')).toBe("base 1");
+  expect(cosmEval('class Checked do def init(value) do assert(@value == value) end end; Checked.new(4).value')).toBe(4);
+  expect(cosmEval('class Pair do def init(left, right) do true end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");
   expect(cosmEval('class Point do end; Point.new().class.name')).toBe("Point");
 });
 
 test("type errors stay explicit", () => {
   expect(() => cosmEval("[1] + 1")).toThrow("Type error: add expects numeric operands or string concatenation");
   expect(() => cosmEval("!1")).toThrow("Type error: not expects a boolean operand");
-  expect(() => cosmEval("len(1)")).toThrow("Type error: len expects an array or hash");
+  expect(() => cosmEval("len(1)")).toThrow("Name error: unknown identifier 'len'");
   expect(() => cosmEval("1(2)")).toThrow("Type error: attempted to call a non-function value of type number");
   expect(() => cosmEval("let add = ->(a, b) { a + b }; add(1)")).toThrow("Arity error: function expects 2 arguments, got 1");
   expect(() => cosmEval('"value: #{[1]}"')).toThrow("Type error: cannot interpolate value of type array into a string");
+  expect(() => cosmEval("1.plus(true)")).toThrow("Type error: add expects numeric operands or string concatenation");
 });
 
 test("lookup and property errors stay explicit", () => {
@@ -145,9 +172,13 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("let x = 1; let x = 2")).toThrow("Name error: duplicate local 'x'");
   expect(() => cosmEval("def name() do 1 end; def name() do 2 end")).toThrow("Name error: duplicate local 'name'");
   expect(() => cosmEval("let make = ->() { do let x = 1; x end }; x")).toThrow("Name error: unknown identifier 'x'");
-  expect(() => cosmEval("class Thing(UnknownThing) do end")).toThrow("Name error: unknown identifier 'UnknownThing'");
+  expect(() => cosmEval("class Thing < UnknownThing do end")).toThrow("Name error: unknown identifier 'UnknownThing'");
   expect(() => cosmEval("class Thing do def go() do 1 end; def go() do 2 end end")).toThrow("Name error: duplicate method 'go' in class 'Thing'");
-  expect(() => cosmEval("class Thing do end; Thing.new(1)")).toThrow("Arity error: Thing.new expects 0 arguments, got 1");
+  expect(() => cosmEval("class Greeter do def label() do self.name end end; Greeter.label()")).toThrow("Property error: class Greeter has no property 'label'");
+  expect(() => cosmEval("class Thing do def init(value) do true end end; Thing.new()")).toThrow("Arity error: Thing.new expects 1 arguments, got 0");
+  expect(() => cosmEval("class Thing do def init(value, value) do true end end")).toThrow("Name error: duplicate slot 'value' in class 'Thing'");
+  expect(() => cosmEval("@value")).toThrow("Name error: ivar access '@value' requires self");
+  expect(() => cosmEval("class Thing do def init(value) do true end; def missing() do @other end end; Thing.new(1).missing()")).toThrow("Property error: object of class Thing has no ivar '@other'");
   expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
   expect(() => cosmEval("let self = 1")).toThrow("Parse error:");
 });
@@ -155,7 +186,7 @@ test("lookup and property errors stay explicit", () => {
 test("cli can evaluate a source file", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "smoke.cosm");
-  writeFileSync(sourcePath, "assert(len([1, 2, 3]) == 3); classes.Array.name\n");
+  writeFileSync(sourcePath, "assert([1, 2, 3].length == 3); assert(\"cosm\".length == 4); assert({ a: 1, b: 2 }.length == 2); classes.Array.name\n");
 
   const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
     cwd: process.cwd(),

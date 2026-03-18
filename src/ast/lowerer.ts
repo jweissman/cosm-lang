@@ -30,6 +30,13 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             params: node.params ?? [],
             children: this.lowerChildren(node),
           };
+        case 'class_def_stmt':
+          return {
+            kind: 'class_def',
+            value: node.value,
+            params: node.params ?? [],
+            children: this.lowerChildren(node),
+          };
         case 'let_stmt':
           return {
             kind: 'let',
@@ -65,6 +72,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         case 'bool':
         case 'string':
         case 'ident':
+        case 'ivar':
         case 'add':
         case 'subtract':
         case 'multiply':

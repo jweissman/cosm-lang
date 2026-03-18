@@ -2,40 +2,51 @@ import { expect, test } from "bun:test";
 import { Construct as Val } from "../src/Construct";
 
 test("type constructors build expected runtime values", () => {
-  expect(Val.number(42)).toEqual({ type: "number", value: 42 });
-  expect(Val.bool(true)).toEqual({ type: "bool", value: true });
-  expect(Val.string("cosm")).toEqual({ type: "string", value: "cosm" });
-  expect(Val.array([Val.number(1), Val.number(2)])).toEqual({
+  expect(Val.number(42)).toMatchObject({ type: "number", value: 42 });
+  expect(Val.bool(true)).toMatchObject({ type: "bool", value: true });
+  expect(Val.string("cosm")).toMatchObject({ type: "string", value: "cosm" });
+  expect(Val.array([Val.number(1), Val.number(2)])).toMatchObject({
     type: "array",
-    items: [{ type: "number", value: 1 }, { type: "number", value: 2 }],
+    items: [Val.number(1), Val.number(2)],
   });
-  expect(Val.hash({ answer: Val.number(42) })).toEqual({
+  expect(Val.hash({ answer: Val.number(42) })).toMatchObject({
     type: "hash",
-    entries: { answer: { type: "number", value: 42 } },
+    entries: { answer: Val.number(42) },
   });
+});
+
+test("primitive runtime values carry behavior", () => {
+  expect(Val.number(20).plus(Val.number(22))).toMatchObject({ type: "number", value: 42 });
+  expect(Val.string("co").plus(Val.string("sm"))).toMatchObject({ type: "string", value: "cosm" });
+  expect(Val.string("answer: ").plus(Val.number(42))).toMatchObject({ type: "string", value: "answer: 42" });
+  expect(Val.number(42).toCosmString("interpolate")).toBe("42");
+  expect(Val.bool(true).toCosmString("concatenate")).toBe("true");
+  expect(Val.number(1).nativeMethod("plus")?.nativeCall?.([Val.number(2)], Val.number(1))).toMatchObject({ type: "number", value: 3 });
+  expect(Val.array([Val.number(1), Val.number(2)]).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });
+  expect(Val.hash({ answer: Val.number(42), ok: Val.bool(true) }).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });
 });
 
 test("callable and reflective constructors preserve metadata", () => {
   const env = { bindings: {} };
   const body = { kind: "block", value: "", children: [] } as const;
 
-  expect(Val.class("Number", "Object")).toEqual({
+  expect(Val.class("Number", "Object")).toMatchObject({
     type: "class",
     name: "Number",
     superclassName: "Object",
     superclass: undefined,
     methods: {},
   });
-  expect(Val.object("Point", { x: Val.number(1) })).toEqual({
+  expect(Val.object("Point", { x: Val.number(1) })).toMatchObject({
     type: "object",
     className: "Point",
-    fields: { x: { type: "number", value: 1 } },
+    fields: { x: Val.number(1) },
   });
-  expect(Val.nativeFunc("len", () => Val.number(0))).toMatchObject({
+  expect(Val.nativeFunc("assert", () => Val.bool(true))).toMatchObject({
     type: "function",
-    name: "len",
+    name: "assert",
   });
-  expect(Val.closure("join", ["rest"], body, env)).toEqual({
+  expect(Val.closure("join", ["rest"], body, env)).toMatchObject({
     type: "function",
     name: "join",
     params: ["rest"],

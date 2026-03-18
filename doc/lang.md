@@ -35,10 +35,13 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 ### Classes
 
 - `class Name do ... end`
-- `class Name(Superclass) do ... end`
+- `class Name < Superclass do ... end`
 
-Class bodies currently support `def` members. This first slice is reflective: class definitions bind a class value, appear in `classes`, and expose collected methods through `.methods`.
-Instances can be created with `ClassName.new()`, and instance methods can refer to `self`.
+Class bodies currently support instance methods via `def name(...)` and explicit class methods via `def self.name(...)`. A method named `init` defines constructor arity and field names; its parameter list becomes the class's declared fields. Class definitions bind a class value, appear in `classes`, and expose collected slots and methods through `.slots`, `.methods`, and `.classMethods`.
+Instances can be created with `ClassName.new(...)`, and constructor arguments are assigned positionally to the fields implied by `init`. Instance methods can refer to `self`, and `init` bodies run after those fields are assigned.
+Inside instance methods, `@name` is shorthand for reading the instance field named `name`. This makes object-state provenance explicit without replacing `self.name`.
+Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
+Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` is `Point class`, while `Class.class.name` stays `Class`.
 
 ### Control Flow
 
@@ -54,7 +57,9 @@ let label = "co" + "sm";
 assert(1 + 1 == 2);
 assert(label == "cosm");
 assert((if true then 1 else 2 end) == 1);
-assert(len([1, 2, 3]) == 3);
+assert([1, 2, 3].length == 3);
+assert("cosm".length == 4);
+assert({ left: 1, right: 2 }.length == 2);
 42
 ```
 
@@ -116,22 +121,51 @@ greet("cosm")
 
 ```cosm
 class Greeter do
-  def greet(name) do
-    "hello " + name
+  def self.label() do
+    self.name + "!"
   end
 end;
 
-Greeter.methods.greet.name
+Greeter.classMethods.label.name
 ```
 
 ```cosm
 class Pair do
-  def classname() do
+  def init(left, right) do
+    true
+  end
+  def sum() do
+    @left + @right
+  end
+end;
+
+let pair = Pair.new(1, 2);
+pair.sum()
+```
+
+```cosm
+class Greeter do
+  def self.label() do
+    self.name + "!"
+  end
+  def self.kind() do
     self.class.name
   end
 end;
 
-Pair.new().classname()
+Greeter.label()
+Greeter.kind()
+```
+
+```cosm
+class Point do end;
+Point.class.name
+Class.class.name
+```
+
+```cosm
+1.plus(2)
+"co".plus("sm")
 ```
 
 ### Built-ins
@@ -139,8 +173,6 @@ Pair.new().classname()
 - `assert(condition)`
 - `assert(condition, message)`
   Raises `Assertion failed` unless `condition` evaluates to `true`. With a message, it raises `Assertion failed: <message>`.
-- `len(value)`
-  Works on arrays and hashes.
 
 ### Built-in Repository
 
@@ -148,13 +180,15 @@ Pair.new().classname()
   Reflective object containing core classes.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`
+  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`
 
 Examples:
 
 ```cosm
 classes.Array.name
 [1, 2].class.name
+"cosm".length
+{ answer: 42 }.length
 { answer: 42 }.answer
 "co" + "sm"
 do let x = 1; x + 2 end
@@ -162,14 +196,18 @@ do let x = 1; x + 2 end
 
 ## Notes
 
-- Identifiers currently resolve from the built-in global repository only.
-- Innermost lexical locals are checked before outer locals and built-in globals.
+- Identifiers resolve lexically first, then fall back to the built-in/global repository.
 - Hash keys are currently identifier keys, not string keys.
 - Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
 - `self` is reserved for method bodies.
+- `@name` reads instance fields through the current `self` and is only valid when `self` is bound to an object instance.
 - Line comments use `# ...`.
 - `if` requires `else` in the current version.
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
-- `class` currently supports reflective class objects, `Class.new()`, and instance method send via `obj.method(...)`.
+- `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
+- `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, but the full metaclass chain and diamond semantics are still future work.
+- Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
+- Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.
+- Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.

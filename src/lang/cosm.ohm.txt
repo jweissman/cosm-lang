@@ -18,13 +18,17 @@ Cosm {
     = "class" ident ClassSuper? "do" ClassBody "end"
 
   ClassSuper
-    = "(" ident ")"
+    = "<" ident
 
   ClassBody
     = ClassMember*
 
   ClassMember
-    = DefStmt ";"?
+    = ClassDefStmt ";"?
+
+  ClassDefStmt
+    = "def" "self" "." ident "(" ParamList? ")" "do" StatementList "end"  -- class
+    | "def" ident "(" ParamList? ")" "do" StatementList "end"              -- instance
 
   DefStmt
     = "def" ident "(" ParamList? ")" "do" StatementList "end"
@@ -90,6 +94,7 @@ Cosm {
     | string
     | boolean
     | self
+    | ivar
     | ident
     | number
 
@@ -135,6 +140,9 @@ Cosm {
 
   self
     = "self" ~alnum
+
+  ivar
+    = "@" ident
 
   keyword
     = ("class"

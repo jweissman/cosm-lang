@@ -13,7 +13,10 @@ export class Parser {
     }
 
     private static paramNames(node: SurfaceNode): string[] {
-      return this.listChildren(node).map((param) => param.value);
+      if (node.kind === 'ident') {
+        return [node.value];
+      }
+      return (node.children ?? []).flatMap((child) => this.paramNames(child));
     }
 
     static parseSurface(input: string): SurfaceNode {
@@ -51,7 +54,7 @@ export class Parser {
             children: Parser.listChildren(body.ast()),
           };
         },
-        ClassSuper: (_open, name, _close) => ({
+        ClassSuper: (_lt, name) => ({
           kind: 'class_super',
           value: name.sourceString,
         }),
@@ -61,6 +64,20 @@ export class Parser {
           children: members.children.map((child) => child.ast()),
         }),
         ClassMember: (member, _semi) => member.ast(),
+        ClassDefStmt_class: (_def, _self, _dot, name, _open, params, _close, _do, body, _end) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: Parser.paramNames(params.ast()),
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+        }),
+        ClassDefStmt_instance: (_def, name, _open, params, _close, _do, body, _end) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          target: 'instance',
+          params: Parser.paramNames(params.ast()),
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+        }),
         DefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
           kind: 'def_stmt',
           value: name.sourceString,
@@ -176,6 +193,7 @@ export class Parser {
         boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
         boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
         self: (_value) => ({ kind: 'ident', value: 'self' }),
+        ivar: (_at, name) => ({ kind: 'ivar', value: name.sourceString }),
         number_whole: (digits) => ({ kind: 'number', value: digits.sourceString }),
         number_fract: (whole, _dot, fraction) => ({
           kind: 'number',

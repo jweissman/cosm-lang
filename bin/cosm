@@ -1,24 +1,49 @@
 #!/usr/bin/env bun
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import Cosm from "../src/cosm";
 console.log("Cosm version:", Cosm.version);
+
+const HISTORY_PATH = join(process.cwd(), ".cosm_history");
+
+function loadHistory(): string[] {
+  if (!existsSync(HISTORY_PATH)) {
+    return [];
+  }
+  return readFileSync(HISTORY_PATH, "utf8")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0);
+}
+
+function saveHistory(entries: string[]) {
+  writeFileSync(HISTORY_PATH, `${entries.join("\n")}\n`, "utf8");
+}
 
 function repl() {
   const readline = require('readline');
   const sessionEnv = Cosm.Interpreter.createEnv();
+  const persistedHistory = loadHistory();
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: 'cosm> '
   });
+  rl.history = [...persistedHistory].reverse();
 
   rl.prompt();
 
   rl.on('line', (line: string) => {
+    const trimmed = line.trim();
+    if (trimmed.length > 0) {
+      const nextHistory = [...persistedHistory.filter((entry) => entry !== trimmed), trimmed];
+      persistedHistory.splice(0, persistedHistory.length, ...nextHistory.slice(-500));
+      saveHistory(persistedHistory);
+    }
     try {
       const result = Cosm.Interpreter.evalInEnv(line, sessionEnv);
-      console.log(Cosm.Values.cosmToJS(result));
+      console.log(Cosm.Values.format(result));
     } catch (e) {
       console.error("Error:", e.message);
     }
@@ -35,7 +60,7 @@ if (require.main === module) {
     try {
       const source = readFileSync(filePath, "utf8");
       const result = Cosm.Interpreter.eval(source);
-      console.log(Cosm.Values.cosmToJS(result));
+      console.log(Cosm.Values.format(result));
     } catch (e) {
       console.error("Error:", e.message);
       process.exit(1);

@@ -9,7 +9,13 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#self"
+		},
+		{
 			"include": "#defs"
+		},
+		{
+			"include": "#ivars"
 		},
 		{
 			"include": "#constants"
@@ -37,11 +43,31 @@
 				"match": "->"
 			}]
 		},
+		"self": {
+			"patterns": [
+				{
+					"name": "variable.language.self.cosm",
+					"match": "\\bself\\b"
+				}
+			]
+		},
 		"defs": {
 			"patterns": [
 				{
 					"name": "entity.name.function.cosm",
+					"match": "\\bdef\\s+self\\.([A-Za-z][A-Za-z0-9]*)\\b"
+				},
+				{
+					"name": "entity.name.function.cosm",
 					"match": "\\bdef\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				}
+			]
+		},
+		"ivars": {
+			"patterns": [
+				{
+					"name": "variable.other.object.ivar.cosm",
+					"match": "@[A-Za-z][A-Za-z0-9]*\\b"
 				}
 			]
 		},

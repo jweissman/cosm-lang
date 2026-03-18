@@ -3,7 +3,10 @@
 # arithmetic, strings, and basic built-ins
 assert(1 + 1 == 2, "math still works");
 assert("co" + "sm" == "cosm", "string concatenation works");
-assert("items: " + len([1, 2, 3]) == "items: 3", "strings can concatenate numbers");
+assert("co".plus("sm") == "cosm", "string instances can send plus directly");
+assert("cosm".length == 4, "strings expose length as a property");
+assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property");
+assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property");
 assert("hello #{1 + 1}" == "hello 2", "strings can interpolate expressions");
 
 # locals and data literals
@@ -36,18 +39,64 @@ def greet(name) do
 end;
 assert(greet("cosm") == "hello cosm", "def introduces named functions");
 
-# classes and reflective access still work
+# classes, metaclasses, and reflective access
+assert(1.plus(2) == 3, "number instances can send plus directly");
+assert(Class.name == "Class", "Class is available as a reflective built-in");
+assert(Number.class.name == "Number class", "built-in classes now have explicit metaclasses");
+assert(Number.class.superclass.name == "Object class", "built-in metaclasses follow the class inheritance chain");
+
+# instance construction and instance-side methods
 class Pair do
+  def init(left, right) do
+    true
+  end
   def label() do
-    "pair"
+    "#{@left}:#{@right}"
+  end
+  def sum() do
+    @left + @right
   end
   def classname() do
     self.class.name
   end
 end;
+let tuple = Pair.new(1, 2);
 assert(Pair.name == "Pair", "class definitions bind a class value");
 assert(classes.Pair.name == "Pair", "class definitions appear in the reflective classes view");
+assert(Pair.slots.length == 2, "class definitions collect slots reflectively");
 assert(Pair.methods.label.name == "label", "class defs collect methods reflectively");
-assert(Pair.new().classname() == "Pair", "instances can send methods with self");
+assert(tuple.left == 1, "constructors assign slot values in order");
+assert(tuple.right == 2, "constructors assign later slot values in order");
+assert(tuple.label() == "1:2", "methods can use ivar shorthand for field provenance");
+assert(tuple.sum() == 3, "ivars behave like direct instance-field reads");
+assert(tuple.classname() == "Pair", "instances can send methods with self");
+
+# class-side methods and metaclass ownership
+class Checked do
+  def init(value) do
+    assert(@value == value, "init bodies can observe assigned fields");
+  end
+end;
+class Greeter do
+  def self.label() do
+    self.name + "!"
+  end
+  def self.kind() do
+    self.class.name
+  end
+end;
+class BaseLabel do
+  def self.label() do
+    "base"
+  end
+end;
+class ChildLabel < BaseLabel do end;
+assert(Checked.new(4).value == 4, "init signatures drive constructor arity and fields");
+assert(Greeter.classMethods.label.name == "label", "class methods reflect separately from instance methods");
+assert(Greeter.label() == "Greeter!", "class objects can participate in method send when explicitly declared");
+assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
+assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
+
+# ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 classes.String.name
