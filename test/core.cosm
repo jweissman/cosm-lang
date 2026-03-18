@@ -1,15 +1,26 @@
+## Core self-test for current Cosm surface
+
+# arithmetic, strings, and basic built-ins
 assert(1 + 1 == 2, "math still works");
 assert("co" + "sm" == "cosm", "string concatenation works");
 assert("items: " + len([1, 2, 3]) == "items: 3", "strings can concatenate numbers");
+assert("hello #{1 + 1}" == "hello 2", "strings can interpolate expressions");
+
+# locals and data literals
 let greeting = "hello";
 let pair = { left: greeting, right: greeting + " cosm" };
 assert(pair.left == "hello", "locals can feed hashes");
 assert(pair.right == "hello cosm", "locals can be reused later");
+assert("#{greeting} cosm" == "hello cosm", "interpolation can see locals");
+
+# blocks and conditionals
 assert(do let x = 1; x + 2 end == 3, "blocks return their last value");
 let letShadow = do let greeting = "inner"; greeting end;
 assert(letShadow == "inner", "blocks can create inner locals");
 assert(greeting == "hello", "outer local survives block shadowing");
 assert((if true then "yes" else "no" end) == "yes", "if picks the true branch");
+
+# lambdas and defs
 let prefix = "co";
 let join = ->(rest) { prefix + rest };
 assert(join("sm") == "cosm", "closures capture outer locals");
@@ -24,5 +35,15 @@ def greet(name) do
   "hello " + name
 end;
 assert(greet("cosm") == "hello cosm", "def introduces named functions");
+
+# classes and reflective access still work
+class Pair do
+  def label() do
+    "pair"
+  end
+end;
+assert(Pair.name == "Pair", "class definitions bind a class value");
+assert(classes.Pair.name == "Pair", "class definitions appear in the reflective classes view");
+assert(Pair.methods.label.name == "label", "class defs collect methods reflectively");
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 classes.String.name

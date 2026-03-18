@@ -3,28 +3,91 @@
 	"name": "Cosm",
 	"patterns": [
 		{
+			"include": "#comments"
+		},
+		{
 			"include": "#keywords"
+		},
+		{
+			"include": "#defs"
+		},
+		{
+			"include": "#constants"
 		},
 		{
 			"include": "#strings"
 		}
 	],
 	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.number-sign.cosm",
+					"match": "#.*$"
+				}
+			]
+		},
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.cosm",
-				"match": "\\b(def|do|else|end|if|let|then)\\b"
+				"match": "\\b(class|def|do|else|end|if|let|then)\\b"
 			},
 			{
 				"name": "storage.type.function.cosm",
 				"match": "->"
 			}]
 		},
+		"defs": {
+			"patterns": [
+				{
+					"name": "entity.name.function.cosm",
+					"match": "\\bdef\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.numeric.cosm",
+					"match": "\\b\\d+(?:\\.\\d+)?\\b"
+				},
+				{
+					"name": "constant.language.boolean.cosm",
+					"match": "\\b(true|false)\\b"
+				}
+			]
+		},
 		"strings": {
 			"name": "string.quoted.double.cosm",
 			"begin": "\"",
 			"end": "\"",
 			"patterns": [
+				{
+					"name": "meta.interpolation.cosm",
+					"begin": "#\\{",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.section.interpolation.begin.cosm"
+						}
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.interpolation.end.cosm"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#comments"
+						},
+						{
+							"include": "#keywords"
+						},
+						{
+							"include": "#constants"
+						}
+					]
+				},
 				{
 					"name": "constant.character.escape.cosm",
 					"match": "\\\\."

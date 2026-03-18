@@ -1,6 +1,7 @@
 export type CoreNodeKind =
   | 'program'
   | 'block'
+  | 'class'
   | 'let'
   | 'def'
   | 'if'
@@ -46,7 +47,6 @@ export type CosmString = { type: 'string', value: string };
 export type CosmArray = { type: 'array', items: CosmValue[] };
 export type CosmHash = { type: 'hash', entries: Record<string, CosmValue> };
 export type CosmObject = { type: 'object', className: string, fields: Record<string, CosmValue> };
-export type CosmClass = { type: 'class', name: string, superclassName?: string };
 export type CosmEnv = { bindings: Record<string, CosmValue>, parent?: CosmEnv };
 export type CosmFunction = {
   type: 'function',
@@ -55,6 +55,13 @@ export type CosmFunction = {
   params?: string[],
   body?: CoreNode,
   env?: CosmEnv,
+};
+export type CosmClass = {
+  type: 'class',
+  name: string,
+  superclassName?: string,
+  superclass?: CosmClass,
+  methods: Record<string, CosmFunction>,
 };
 
 export type CosmValue = CosmNumber
@@ -75,8 +82,13 @@ export type CosmValue = CosmNumber
     static object(className: string, fields: Record<string, CosmValue>): CosmObject {
       return { type: 'object', className, fields };
     }
-    static class(name: string, superclassName?: string): CosmClass {
-      return { type: 'class', name, superclassName };
+    static class(
+      name: string,
+      superclassName?: string,
+      methods: Record<string, CosmFunction> = {},
+      superclass?: CosmClass,
+    ): CosmClass {
+      return { type: 'class', name, superclassName, methods, superclass };
     }
     static nativeFunc(name: string, nativeCall: (args: CosmValue[]) => CosmValue): CosmFunction {
       return { type: 'function', name, nativeCall };

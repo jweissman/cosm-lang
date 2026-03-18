@@ -6,11 +6,14 @@ Cosm currently evaluates a small expression language with semicolon-separated pr
 
 Programs also support lexical local bindings with `let`.
 
+Line comments starting with `#` are ignored anywhere whitespace is allowed.
+
 ### Literals
 
 - Numbers: `1`, `2.5`
 - Booleans: `true`, `false`
 - Strings: `"cosm"`, `"line\nbreak"`
+- Interpolated strings: `"hello #{name}"`
 - Arrays: `[1, 2, 3]`
 - Hashes: `{ answer: 42, ok: true, title: "cosm" }`
 
@@ -28,6 +31,13 @@ Programs also support lexical local bindings with `let`.
 
 - Lambdas: `->(arg1, arg2) { expr }`
 - Named defs: `def name(arg1, arg2) do ... end`
+
+### Classes
+
+- `class Name do ... end`
+- `class Name(Superclass) do ... end`
+
+Class bodies currently support `def` members. This first slice is reflective: class definitions bind a class value, appear in `classes`, and expose collected methods through `.methods`.
 
 ### Control Flow
 
@@ -103,6 +113,16 @@ end;
 greet("cosm")
 ```
 
+```cosm
+class Greeter do
+  def greet(name) do
+    "hello " + name
+  end
+end;
+
+Greeter.methods.greet.name
+```
+
 ### Built-ins
 
 - `assert(condition)`
@@ -115,6 +135,7 @@ greet("cosm")
 
 - `classes`
   Reflective object containing core classes.
+- User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
   `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`
 
@@ -134,6 +155,9 @@ do let x = 1; x + 2 end
 - Innermost lexical locals are checked before outer locals and built-in globals.
 - Hash keys are currently identifier keys, not string keys.
 - Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
+- Line comments use `# ...`.
 - `if` requires `else` in the current version.
-- String interpolation is not implemented yet; use `+` for now.
+- String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
+- Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
+- `class` currently defines reflective class objects and method collections; instance creation and method send are still future work.
 - Loops and reassignment are not implemented yet.

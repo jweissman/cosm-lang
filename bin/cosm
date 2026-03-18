@@ -6,6 +6,7 @@ console.log("Cosm version:", Cosm.version);
 
 function repl() {
   const readline = require('readline');
+  const sessionEnv = Cosm.Interpreter.createEnv();
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -16,7 +17,7 @@ function repl() {
 
   rl.on('line', (line: string) => {
     try {
-      const result = Cosm.Interpreter.eval(line);
+      const result = Cosm.Interpreter.evalInEnv(line, sessionEnv);
       console.log(Cosm.Values.cosmToJS(result));
     } catch (e) {
       console.error("Error:", e.message);

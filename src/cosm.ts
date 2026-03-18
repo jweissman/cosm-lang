@@ -1,6 +1,6 @@
 import * as ohm from 'ohm-js';
 import rawGrammar from "./lang/cosm.ohm.txt";
-import { CosmValue, CosmClass, CosmEnv, CoreNode, CoreNodeKind, CosmArray, CosmHash, CosmObject, Types } from './types';
+import { CosmValue, CosmClass, CosmEnv, CoreNode, CoreNodeKind, CosmArray, CosmHash, CosmObject, CosmFunction, Types } from './types';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -10,7 +10,10 @@ type SurfaceNodeKind =
   | 'program'
   | 'statement_list'
   | 'statement'
+  | 'class_stmt'
   | 'def_stmt'
+  | 'class_super'
+  | 'class_body'
   | 'let_stmt'
   | 'if_expr'
   | 'block_expr'
@@ -65,7 +68,11 @@ namespace Cosm {
     static lower(node: SurfaceNode): CoreNode {
       switch (node.kind) {
         case 'program':
-          return { kind: 'program', value: '', children: this.lowerChildren(node) };
+          return {
+            kind: 'program',
+            value: '',
+            children: this.lowerProgramChildren(node),
+          };
         case 'statement_list':
           return { kind: 'block', value: '', children: this.lowerChildren(node) };
         case 'statement':
@@ -73,6 +80,13 @@ namespace Cosm {
             throw new Error('Invalid surface AST: statement node must wrap a child');
           }
           return this.lower(node.left);
+        case 'class_stmt':
+          return {
+            kind: 'class',
+            value: node.value,
+            left: node.left ? this.lower(node.left) : undefined,
+            children: this.lowerChildren(node),
+          };
         case 'def_stmt':
           return {
             kind: 'def',
@@ -85,6 +99,11 @@ namespace Cosm {
             kind: 'let',
             value: node.value,
             left: this.lowerRequired(node.left, 'let_stmt'),
+          };
+        case 'class_super':
+          return {
+            kind: 'ident',
+            value: node.value,
           };
         case 'if_expr':
           return {
@@ -140,12 +159,24 @@ namespace Cosm {
             children: node.children?.map((child) => this.lower(child)),
           };
         case 'list':
+        case 'class_body':
           throw new Error('Invalid surface AST: list nodes must be lowered by their parent');
       }
     }
 
     private static lowerChildren(node: SurfaceNode): CoreNode[] {
       return (node.children ?? []).map((child) => this.lower(child));
+    }
+
+    private static lowerProgramChildren(node: SurfaceNode): CoreNode[] {
+      const [statementList] = node.children ?? [];
+      if (!statementList) {
+        return [];
+      }
+      if (statementList.kind !== 'statement_list') {
+        throw new Error('Invalid surface AST: program must contain a statement list');
+      }
+      return this.lowerChildren(statementList);
     }
 
     private static lowerRequired(node: SurfaceNode | undefined, kind: string): CoreNode {
@@ -195,6 +226,25 @@ namespace Cosm {
           value: '',
           left: statement.ast(),
         }),
+        ClassStmt: (_class, name, superclass, _do, body, _end) => {
+          const superclassNode = superclass.ast();
+          return {
+            kind: 'class_stmt',
+            value: name.sourceString,
+            left: superclassNode.kind === 'list' ? superclassNode.children?.[0] : superclassNode,
+            children: Parser.listChildren(body.ast()),
+          };
+        },
+        ClassSuper: (_open, name, _close) => ({
+          kind: 'class_super',
+          value: name.sourceString,
+        }),
+        ClassBody: (members) => ({
+          kind: 'class_body',
+          value: '',
+          children: members.children.map((child) => child.ast()),
+        }),
+        ClassMember: (member, _semi) => member.ast(),
         DefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
           kind: 'def_stmt',
           value: name.sourceString,
@@ -282,12 +332,27 @@ namespace Cosm {
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
         }),
         HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
-        string: (_open, chars, _close) => ({
-          kind: 'string',
-          value: chars.children.map((child) => child.ast().value).join(''),
-        }),
-        stringChar_plain: (char) => ({ kind: 'string', value: char.sourceString }),
-        stringChar_escape: (_slash, escape) => escape.ast(),
+        string: (_open, parts, _close) => {
+          const children = Parser.listChildren(parts.ast());
+          const isPlain = children.every((child) => child.kind === 'string' && !(child.children?.length));
+          if (isPlain) {
+            return {
+              kind: 'string',
+              value: children.map((child) => child.value).join(''),
+            };
+          }
+          return {
+            kind: 'string',
+            value: '',
+            children,
+          };
+        },
+        stringPart_interp: (interpolation) => interpolation.ast(),
+        stringPart_text: (text) => text.ast(),
+        stringPart_escape: (_slash, escape) => escape.ast(),
+        interpolation: (_open, expr, _close) => expr.ast(),
+        stringText_plain: (char) => ({ kind: 'string', value: char.sourceString }),
+        stringText_hash: (hash) => ({ kind: 'string', value: hash.sourceString }),
         escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
         escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
         escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
@@ -323,6 +388,8 @@ namespace Cosm {
           return this.evalStatements(ast.children ?? [], env);
         case 'block':
           return this.evalBlock(ast, env);
+        case 'class':
+          return this.evalClass(ast, env);
         case 'let':
           return this.evalLet(ast, env);
         case 'def':
@@ -336,7 +403,12 @@ namespace Cosm {
         case 'bool':
           return Types.bool(ast.value === 'true');
         case 'string':
-          return Types.string(ast.value);
+          if (!ast.children?.length) {
+            return Types.string(ast.value);
+          }
+          return Types.string(
+            ast.children.map((child) => this.coerceToString(this.evalNode(child, env), 'interpolate')).join(''),
+          );
         case 'ident':
           return this.lookupName(ast.value, env);
         case 'array':
@@ -415,12 +487,12 @@ namespace Cosm {
 
     private static createRepository(): Repository {
       const objectClass = Types.class('Object');
-      const numberClass = Types.class('Number', 'Object');
-      const booleanClass = Types.class('Boolean', 'Object');
-      const stringClass = Types.class('String', 'Object');
-      const arrayClass = Types.class('Array', 'Object');
-      const hashClass = Types.class('Hash', 'Object');
-      const functionClass = Types.class('Function', 'Object');
+      const numberClass = Types.class('Number', 'Object', {}, objectClass);
+      const booleanClass = Types.class('Boolean', 'Object', {}, objectClass);
+      const stringClass = Types.class('String', 'Object', {}, objectClass);
+      const arrayClass = Types.class('Array', 'Object', {}, objectClass);
+      const hashClass = Types.class('Hash', 'Object', {}, objectClass);
+      const functionClass = Types.class('Function', 'Object', {}, objectClass);
 
       const classes: Record<string, CosmClass> = {
         Object: objectClass,
@@ -477,12 +549,10 @@ namespace Cosm {
         }
       });
 
-      globals.classes = Types.object('Object', classes);
-
       return { globals, classes };
     }
 
-    private static createEnv(parent?: Env): Env {
+    static createEnv(parent?: Env): Env {
       return { bindings: {}, parent };
     }
 
@@ -496,6 +566,18 @@ namespace Cosm {
 
     private static evalBlock(ast: CoreNode, env: Env): CosmValue {
       return this.evalStatements(ast.children ?? [], this.createEnv(env));
+    }
+
+    private static evalClass(ast: CoreNode, env: Env): CosmValue {
+      if (Object.hasOwn(env.bindings, ast.value)) {
+        throw new Error(`Name error: duplicate local '${ast.value}'`);
+      }
+      const superclassName = ast.left?.value || 'Object';
+      const superclass = this.lookupClass(superclassName, env);
+      const methods = this.collectClassMethods(ast.value, ast.children ?? [], env);
+      const classValue = Types.class(ast.value, superclass.name, methods, superclass);
+      env.bindings[ast.value] = classValue;
+      return classValue;
     }
 
     private static evalLet(ast: CoreNode, env: Env): CosmValue {
@@ -514,11 +596,7 @@ namespace Cosm {
       if (Object.hasOwn(env.bindings, ast.value)) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
-      const [body] = ast.children ?? [];
-      if (!body) {
-        throw new Error('Invalid AST: def node must have a body');
-      }
-      const value = Types.closure(ast.value, ast.params ?? [], body, env);
+      const value = this.buildClosure(ast, env);
       env.bindings[ast.value] = value;
       return value;
     }
@@ -537,11 +615,7 @@ namespace Cosm {
     }
 
     private static evalLambda(ast: CoreNode, env: Env): CosmValue {
-      const [body] = ast.children ?? [];
-      if (!body) {
-        throw new Error('Invalid AST: lambda node must have a body');
-      }
-      return Types.closure(ast.value, ast.params ?? [], body, env);
+      return this.buildClosure(ast, env);
     }
 
     private static expectChildren(ast: CoreNode, op: string): [CoreNode, CoreNode] {
@@ -576,7 +650,9 @@ namespace Cosm {
         return Types.number(left.value + right.value);
       }
       if (left.type === 'string' || right.type === 'string') {
-        return Types.string(this.coerceToString(left) + this.coerceToString(right));
+        return Types.string(
+          this.coerceToString(left, 'concatenate') + this.coerceToString(right, 'concatenate'),
+        );
       }
       throw new Error('Type error: add expects numeric operands or string concatenation');
     }
@@ -614,7 +690,7 @@ namespace Cosm {
       return shouldEqual ? this.valuesEqual(left, right) : !this.valuesEqual(left, right);
     }
 
-    private static coerceToString(value: CosmValue): string {
+    private static coerceToString(value: CosmValue, context: 'concatenate' | 'interpolate'): string {
       switch (value.type) {
         case 'string':
           return value.value;
@@ -623,6 +699,9 @@ namespace Cosm {
         case 'bool':
           return String(value.value);
         default:
+          if (context === 'interpolate') {
+            throw new Error(`Type error: cannot interpolate value of type ${value.type} into a string`);
+          }
           throw new Error(`Type error: cannot concatenate value of type ${value.type} into a string`);
       }
     }
@@ -661,6 +740,9 @@ namespace Cosm {
     }
 
     private static lookupName(name: string, env: Env): CosmValue {
+      if (name === 'classes') {
+        return this.classesObject(env);
+      }
       for (let scope: Env | undefined = env; scope; scope = scope.parent) {
         const localValue = scope.bindings[name];
         if (localValue !== undefined) {
@@ -672,6 +754,26 @@ namespace Cosm {
         throw new Error(`Name error: unknown identifier '${name}'`);
       }
       return value;
+    }
+
+    private static lookupClass(name: string, env: Env): CosmClass {
+      const value = this.lookupName(name, env);
+      if (value.type !== 'class') {
+        throw new Error(`Type error: '${name}' is not a class`);
+      }
+      return value;
+    }
+
+    private static classesObject(env: Env): CosmValue {
+      const classes = { ...this.repository.classes };
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        for (const [name, value] of Object.entries(scope.bindings)) {
+          if (value.type === 'class') {
+            classes[name] = value;
+          }
+        }
+      }
+      return Types.object('Object', classes);
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
@@ -735,10 +837,13 @@ namespace Cosm {
             return Types.string(receiver.name);
           }
           if (property === 'superclass') {
-            if (!receiver.superclassName) {
+            if (!receiver.superclass) {
               throw new Error(`Property error: class ${receiver.name} has no superclass`);
             }
-            return this.repository.classes[receiver.superclassName];
+            return receiver.superclass;
+          }
+          if (property === 'methods') {
+            return Types.object('Object', receiver.methods);
           }
           throw new Error(`Property error: class ${receiver.name} has no property '${property}'`);
         case 'function':
@@ -774,8 +879,34 @@ namespace Cosm {
       }
     }
 
+    static evalInEnv(input: string, env: Env): CosmValue {
+      return this.evalNode(Parser.parse(input), env);
+    }
+
     static eval(input: string): CosmValue {
-      return this.evalNode(Parser.parse(input), this.createEnv());
+      return this.evalInEnv(input, this.createEnv());
+    }
+
+    private static buildClosure(ast: CoreNode, env: Env) {
+      const [body] = ast.children ?? [];
+      if (!body) {
+        throw new Error(`Invalid AST: ${ast.kind} node must have a body`);
+      }
+      return Types.closure(ast.value, ast.params ?? [], body, env);
+    }
+
+    private static collectClassMethods(className: string, children: CoreNode[], env: Env): Record<string, CosmFunction> {
+      const methods: Record<string, CosmFunction> = {};
+      for (const child of children) {
+        if (child.kind !== 'def') {
+          throw new Error('Invalid AST: class body currently only supports def members');
+        }
+        if (Object.hasOwn(methods, child.value)) {
+          throw new Error(`Name error: duplicate method '${child.value}' in class '${className}'`);
+        }
+        methods[child.value] = this.buildClosure(child, env);
+      }
+      return methods;
     }
   }
 
@@ -795,7 +926,12 @@ namespace Cosm {
             Object.entries(value.entries).map(([key, entry]) => [key, this.cosmToJS(entry)]),
           );
         case 'class':
-          return { kind: 'class', name: value.name, superclassName: value.superclassName };
+          return {
+            kind: 'class',
+            name: value.name,
+            superclassName: value.superclassName,
+            methods: Object.keys(value.methods),
+          };
         case 'object':
           return Object.fromEntries(
             Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),

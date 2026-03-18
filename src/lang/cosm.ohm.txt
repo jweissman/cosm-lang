@@ -9,9 +9,22 @@ Cosm {
     = ";" Statement
 
   Statement
-    = DefStmt
+    = ClassStmt
+    | DefStmt
     | LetStmt
     | Exp
+
+  ClassStmt
+    = "class" ident ClassSuper? "do" ClassBody "end"
+
+  ClassSuper
+    = "(" ident ")"
+
+  ClassBody
+    = ClassMember*
+
+  ClassMember
+    = DefStmt ";"?
 
   DefStmt
     = "def" ident "(" ParamList? ")" "do" StatementList "end"
@@ -95,11 +108,19 @@ Cosm {
     = ident ":" Exp
 
   string
-    = "\"" stringChar* "\""
+    = "\"" stringPart* "\""
 
-  stringChar
-    = ~("\\" | "\"") any  -- plain
-    | "\\" escape         -- escape
+  stringPart
+    = interpolation  -- interp
+    | stringText     -- text
+    | "\\" escape    -- escape
+
+  interpolation
+    = "#{" applySyntactic<Exp> "}"
+
+  stringText
+    = ~("\\" | "\"" | "#") any  -- plain
+    | "#" ~"{"                  -- hash
 
   escape
     = "\""  -- quote
@@ -132,4 +153,9 @@ Cosm {
   number  (a number)
     = digit* "." digit+  -- fract
     | digit+             -- whole
+
+  comment
+    = "#" (~"\n" any)*
+
+  space += comment
 }
