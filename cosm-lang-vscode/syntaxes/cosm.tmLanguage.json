@@ -9,6 +9,9 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#classes"
+		},
+		{
 			"include": "#self"
 		},
 		{
@@ -16,6 +19,9 @@
 		},
 		{
 			"include": "#ivars"
+		},
+		{
+			"include": "#reflection"
 		},
 		{
 			"include": "#constants"
@@ -51,6 +57,22 @@
 				}
 			]
 		},
+		"classes": {
+			"patterns": [
+				{
+					"name": "entity.name.type.class.cosm",
+					"match": "\\bclass\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				},
+				{
+					"name": "entity.other.inherited-class.cosm",
+					"match": "\\bclass\\s+[A-Za-z][A-Za-z0-9]*\\s+<\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				},
+				{
+					"name": "support.class.cosm",
+					"match": "\\b[A-Z][A-Za-z0-9]*\\b"
+				}
+			]
+		},
 		"defs": {
 			"patterns": [
 				{
@@ -60,6 +82,14 @@
 				{
 					"name": "entity.name.function.cosm",
 					"match": "\\bdef\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				}
+			]
+		},
+		"reflection": {
+			"patterns": [
+				{
+					"name": "support.variable.property.reflective.cosm",
+					"match": "\\.(class|metaclass|superclass|methods|classMethods|slots|name|length)\\b"
 				}
 			]
 		},

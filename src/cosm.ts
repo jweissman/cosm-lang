@@ -683,6 +683,7 @@ namespace Cosm {
             kind: 'class',
             name: value.name,
             superclassName: value.superclassName,
+            metaclassName: value.classRef?.name,
             slots: value.slots,
             methods: Object.keys(value.methods),
             classMethods: Object.keys((value.classRef && value.classRef !== value ? value.classRef.methods : value.classMethods)),

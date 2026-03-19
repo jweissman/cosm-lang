@@ -136,7 +136,10 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Point do end; Point.name")).toBe("Point");
   expect(cosmEval("class Point do end; classes.Point.name")).toBe("Point");
   expect(cosmEval("class Point do end; Point.class.name")).toBe("Point class");
+  expect(cosmEval("class Point do end; Point.metaclass.name")).toBe("Point class");
+  expect(cosmEval("class Point do end; Point.metaclass.class.name")).toBe("Class");
   expect(cosmEval("class Point < Number do end; Point.class.superclass.name")).toBe("Number class");
+  expect(cosmEval("class Point < Number do end; Point.metaclass.superclass.name")).toBe("Number class");
   expect(cosmEval("Class.class.name")).toBe("Class");
   expect(cosmEval("class Point < Number do end; Point.superclass.name")).toBe("Number");
   expect(cosmEval("1.plus(2)")).toBe(3);
@@ -148,6 +151,7 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.label()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def self.kind() do self.class.name end end; Greeter.kind()')).toBe("Greeter class");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.label()')).toBe("base");
+  expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.metaclass.superclass.name')).toBe("Base class");
   expect(cosmEval('class Base do def init(left) do true end; def kind() do "base #{@left}" end end; class Child < Base do def init(right) do assert(@left == 1) end end; let child = Child.new(1, 2); child.kind()')).toBe("base 1");
   expect(cosmEval('class Checked do def init(value) do assert(@value == value) end end; Checked.new(4).value')).toBe(4);
   expect(cosmEval('class Pair do def init(left, right) do true end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");

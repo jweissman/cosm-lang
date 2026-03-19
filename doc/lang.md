@@ -41,7 +41,8 @@ Class bodies currently support instance methods via `def name(...)` and explicit
 Instances can be created with `ClassName.new(...)`, and constructor arguments are assigned positionally to the fields implied by `init`. Instance methods can refer to `self`, and `init` bodies run after those fields are assigned.
 Inside instance methods, `@name` is shorthand for reading the instance field named `name`. This makes object-state provenance explicit without replacing `self.name`.
 Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
-Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` is `Point class`, while `Class.class.name` stays `Class`.
+Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` and `Point.metaclass.name` are both `Point class`, `Point.metaclass.class.name` is `Class`, and `Class.class.name` stays `Class`.
+At the moment, `.class` on a class object is intentionally the same reflective link as `.metaclass`. That is transparent, but still somewhat provisional; richer class-side authoring syntax may come later once the underlying model feels less surprising.
 
 ### Control Flow
 
@@ -160,6 +161,8 @@ Greeter.kind()
 ```cosm
 class Point do end;
 Point.class.name
+Point.metaclass.name
+Point.metaclass.class.name
 Class.class.name
 ```
 
@@ -206,7 +209,8 @@ do let x = 1; x + 2 end
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
-- `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, but the full metaclass chain and diamond semantics are still future work.
+- `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.
+- `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.

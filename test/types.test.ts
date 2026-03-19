@@ -29,13 +29,20 @@ test("primitive runtime values carry behavior", () => {
 test("callable and reflective constructors preserve metadata", () => {
   const env = { bindings: {} };
   const body = { kind: "block", value: "", children: [] } as const;
+  const classMeta = Val.class("Number class", "Class");
+  const numberClass = Val.class("Number", "Object", [], {}, {}, undefined, classMeta);
 
-  expect(Val.class("Number", "Object")).toMatchObject({
+  expect(numberClass).toMatchObject({
     type: "class",
     name: "Number",
     superclassName: "Object",
     superclass: undefined,
     methods: {},
+  });
+  expect(numberClass.nativeProperty("metaclass")).toBe(classMeta);
+  expect(numberClass.nativeProperty("classMethods")).toMatchObject({
+    type: "object",
+    fields: {},
   });
   expect(Val.object("Point", { x: Val.number(1) })).toMatchObject({
     type: "object",

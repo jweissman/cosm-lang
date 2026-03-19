@@ -43,6 +43,8 @@ assert(greet("cosm") == "hello cosm", "def introduces named functions");
 assert(1.plus(2) == 3, "number instances can send plus directly");
 assert(Class.name == "Class", "Class is available as a reflective built-in");
 assert(Number.class.name == "Number class", "built-in classes now have explicit metaclasses");
+assert(Number.metaclass.name == "Number class", "class objects expose their metaclass directly");
+assert(Number.metaclass.class.name == "Class", "metaclasses are themselves instances of Class");
 assert(Number.class.superclass.name == "Object class", "built-in metaclasses follow the class inheritance chain");
 
 # instance construction and instance-side methods
@@ -95,6 +97,7 @@ assert(Checked.new(4).value == 4, "init signatures drive constructor arity and f
 assert(Greeter.classMethods.label.name == "label", "class methods reflect separately from instance methods");
 assert(Greeter.label() == "Greeter!", "class objects can participate in method send when explicitly declared");
 assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
+assert(ChildLabel.metaclass.superclass.name == "BaseLabel class", "user metaclasses inherit through the class hierarchy");
 assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
 
 # ordinary object/hash access still works

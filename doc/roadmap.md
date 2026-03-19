@@ -4,6 +4,16 @@
 
 Build toward an object model with real reflection and message-passing, while keeping the core language small enough to understand and test from inside Cosm itself.
 
+## Where We Are Now
+
+- The language has a stable-enough expression, function, and class surface to keep growing top-down through `test/core.cosm`.
+- Ordinary inheritance works for instance methods and `init`-driven construction.
+- Explicit class-side methods exist via `def self.name(...)`.
+- Minimal per-class metaclasses exist, and class-side lookup already follows the metaclass chain.
+- Primitive behavior is in a mixed bootstrap state: some behavior lives on TS runtime value classes, and some still lives in interpreter/class lookup glue.
+
+The important remaining work is not “make classes exist,” but “make the object model feel unsurprising.” That means clarifying reflection, tightening dispatch ownership, and deciding how modules, `Kernel`, and later JS interop fit into the same universe.
+
 ## Phases
 
 ### 1. Completed Foundations
@@ -35,15 +45,23 @@ Current focus inside this phase:
 - Explicit class-side methods via `def self.name(...)`, instead of overloading ordinary `def`.
 - Class objects participating in method send only through that explicit class-side method space.
 - Minimal per-class metaclasses owning class-side lookup, with `Class` as the bootstrap anchor.
+- The metaclass chain mirroring ordinary class inheritance closely enough to inspect and test from inside Cosm.
 - Shared runtime dispatch paths replacing evaluator special-casing where practical.
 - Primitive ownership moving into TS runtime value classes where that clarifies behavior better than repository closures.
 - Enough object-state semantics to make later metaclass and JS interop rest on something real.
+
+Questions this phase should answer:
+
+- Which behavior belongs on TS runtime value classes versus built-in Cosm classes during bootstrap?
+- How explicit should metaclass access remain in user-facing reflection?
+- How should normal OO concerns like inheritance, class-side behavior, and eventual delegation fit together without adding too much syntax too early?
+- What should the eventual home of globals like `assert`, inspect, and stdio be: top-level names, `Kernel`, or reflective modules?
 
 Concrete next construction ideas:
 
 - Continue moving arithmetic and string behavior behind dispatch-oriented TS runtime methods rather than evaluator branching.
 - Decide how much built-in behavior should live on TS runtime values versus built-in Cosm classes during bootstrap.
-- Turn the current bootstrap `Class` object into a fuller metaclass story, including coherent lookup rules and superclass relationships.
+- Turn the current bootstrap `Class` object into a fuller metaclass story, including coherent lookup rules, superclass relationships, and eventually explicit metaclass construction semantics.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
 - Introduce explicit ivar setup/writes once assignment semantics are ready, instead of overloading `init` params forever.
 - Sketch a small Cosm-level test harness once block/message infrastructure is steady enough to support it cleanly.
@@ -53,7 +71,8 @@ Concrete next construction ideas:
 - Make classes ordinary objects with a class of their own.
 - Expose reflective links like object -> class and class -> metaclass.
 - Define how method lookup walks superclass and metaclass chains.
-- Decide whether namespaces are reflective objects, lexical containers, or both.
+- Decide whether namespaces/modules are reflective objects, lexical containers, or both.
+- Decide whether class-side authoring needs a richer protocol than `def self.name(...)`, such as singleton-class style syntax, or whether that should wait until the underlying model is less provisional.
 
 The target here is not just “classes exist,” but “the runtime can explain itself from inside the language.”
 

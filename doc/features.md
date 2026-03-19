@@ -8,7 +8,7 @@
 - `class` definitions with inheritance, `def init(...)` constructors, reflective `.slots` and `.methods`, and instance creation through `Class.new(...)`.
 - Instance methods with `self` and `@ivar` reads.
 - Explicit class methods via `def self.name(...)`, reflected separately through `.classMethods`.
-- Minimal per-class metaclasses, with `Class` as the bootstrap anchor for class-of-class reflection.
+- Minimal per-class metaclasses, with `Class` as the bootstrap anchor for class-of-class reflection and metaclass inheritance that mirrors the ordinary class chain.
 - Reflective class access through `classes`.
 - Basic message send through `obj.method(...)`, including class objects as receivers.
 - Primitive ownership beginning to move into TS runtime classes via native properties/methods such as numeric/string `plus` and string/array/hash `length`.

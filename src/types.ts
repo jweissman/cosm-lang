@@ -223,6 +223,9 @@ export class CosmClassValue extends CosmValueBase {
     if (name === 'name') {
       return new CosmStringValue(this.name);
     }
+    if (name === 'metaclass') {
+      return this.classRef;
+    }
     if (name === 'superclass') {
       return this.superclass;
     }
