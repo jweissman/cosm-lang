@@ -144,6 +144,10 @@ export class Parser {
           value: '',
           children: Parser.listChildren(entries.ast()),
         }),
+        symbol: (_colon, name) => ({
+          kind: 'symbol',
+          value: name.sourceString,
+        }),
         CallArgs: (first, _seps, rest) => ({
           kind: 'list',
           value: '',
@@ -165,7 +169,7 @@ export class Parser {
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
         }),
         HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
-        string: (_open, parts, _close) => {
+        dstring: (_open, parts, _close) => {
           const children = Parser.listChildren(parts.ast());
           const isPlain = children.every((child) => child.kind === 'string' && !(child.children?.length));
           if (isPlain) {
@@ -180,16 +184,27 @@ export class Parser {
             children,
           };
         },
+        sstring: (_open, parts, _close) => ({
+          kind: 'string',
+          value: Parser.listChildren(parts.ast()).map((child) => child.value).join(''),
+        }),
         stringPart_interp: (interpolation) => interpolation.ast(),
         stringPart_text: (text) => text.ast(),
         stringPart_escape: (_slash, escape) => escape.ast(),
+        sstringPart_text: (text) => text.ast(),
+        sstringPart_escape: (_slash, escape) => escape.ast(),
         interpolation: (_open, expr, _close) => expr.ast(),
         stringText_plain: (char) => ({ kind: 'string', value: char.sourceString }),
         stringText_hash: (hash) => ({ kind: 'string', value: hash.sourceString }),
+        sstringText: (char) => ({ kind: 'string', value: char.sourceString }),
         escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
         escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
         escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
         escape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
+        sescape_quote: (_quote) => ({ kind: 'string', value: "'" }),
+        sescape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
+        sescape_newline: (_newline) => ({ kind: 'string', value: "\n" }),
+        sescape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
         boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
         boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
         self: (_value) => ({ kind: 'ident', value: 'self' }),

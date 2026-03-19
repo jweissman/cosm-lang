@@ -10,8 +10,13 @@
 - Explicit class methods via `def self.name(...)`, reflected separately through `.classMethods`.
 - Minimal per-class metaclasses, with `Class` as the bootstrap anchor for class-of-class reflection and metaclass inheritance that mirrors the ordinary class chain.
 - Reflective class access through `classes`.
+- Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
+- TS-backed interned `Symbol` values via `Symbol.intern("name")`.
+- Explicit message-passing infrastructure via `receiver.send(...)` and `Kernel.send(...)`, plus `Kernel.inspect(...)` for Cosm-oriented inspection.
+- First-class bound `Method` values with `.call(...)` and reflective lookup via `method(...)` / `classMethod(...)`.
 - Basic message send through `obj.method(...)`, including class objects as receivers.
 - Primitive ownership beginning to move into TS runtime classes via native properties/methods such as numeric/string `plus` and string/array/hash `length`.
+- Scalar equality and numeric ordering are now beginning to route through runtime message methods as well, instead of only evaluator branches.
 - Bun tests, direct runtime tests, a CLI runner, and `test/core.cosm` as a language-level smoke test.
 
 ## In Progress
@@ -29,3 +34,7 @@
 - Design how namespaces/modules should fit into the reflective object model.
 - Add a lightweight Cosm-native test harness on top of the current self-test loop.
 - Prepare a small notebook/playground service and JS interop layer once dispatch/reflection are steady enough to expose.
+
+## Current Reference Target
+
+- A simple web notebook with a persistent Cosm session, structured inspect output, and enough runtime reflection to explore the object model live.

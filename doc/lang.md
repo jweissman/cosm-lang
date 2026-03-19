@@ -12,7 +12,10 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 
 - Numbers: `1`, `2.5`
 - Booleans: `true`, `false`
-- Strings: `"cosm"`, `"line\nbreak"`
+- Double-quoted strings: `"cosm"`, `"line\nbreak"`
+- Single-quoted strings: `'cosm'`, `'#{not interpolated}'`
+- Symbol literals: `:status`
+- Interned symbols: `Symbol.intern("status")`
 - Interpolated strings: `"hello #{name}"`
 - Arrays: `[1, 2, 3]`
 - Hashes: `{ answer: 42, ok: true, title: "cosm" }`
@@ -176,11 +179,28 @@ Class.class.name
 - `assert(condition)`
 - `assert(condition, message)`
   Raises `Assertion failed` unless `condition` evaluates to `true`. With a message, it raises `Assertion failed: <message>`.
+- `Kernel.assert(condition)`
+- `Kernel.assert(condition, message)`
+  `Kernel` now exposes the same assertion service reflectively.
+- `Kernel.inspect(value)`
+  Returns the Cosm-oriented inspected string for a value.
+- `Kernel.send(receiver, message, ...args)`
+  Performs an explicit message send where `message` is a string or symbol.
+- `value.method(message)`
+  Returns a bound `Method` object for a method on a receiver. On class objects, this introspects instance methods.
+- `ClassValue.classMethod(message)`
+  Returns a bound class-side `Method` object for a class object.
 
 ### Built-in Repository
 
 - `classes`
   Reflective object containing core classes.
+- `Kernel`
+  Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
+- `cosm`
+  Reflective root object currently exposing `Kernel`, `classes`, and `version`.
+- `Symbol`
+  Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
   `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`
@@ -189,6 +209,21 @@ Examples:
 
 ```cosm
 classes.Array.name
+Kernel.assert(true)
+Kernel.class.name
+Kernel.inspect(Kernel)
+Kernel.send(1, Symbol.intern("plus"), 2)
+Kernel.method(:assert).name
+Kernel.method(:assert).call(true)
+cosm.Kernel.assert(true)
+cosm.classes.Array.name
+cosm.version
+:status.name
+Symbol.intern("status").name
+1.send(:plus, 2)
+classes.Kernel.methods.assert.name
+classes.Kernel.method(:assert).name
+1.send(Symbol.intern("plus"), 2)
 [1, 2].class.name
 "cosm".length
 { answer: 42 }.length
@@ -207,11 +242,18 @@ do let x = 1; x + 2 end
 - Line comments use `# ...`.
 - `if` requires `else` in the current version.
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
+- Single-quoted strings do not interpolate.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.
 - `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
+- `assert` still exists as a convenience global, but `Kernel.assert(...)` is the clearer long-term shape.
+- `:name` is syntax sugar for an interned symbol value, and `Symbol.intern("name")` exposes the same underlying TS runtime symbol model directly.
+- `send` is now available both as `Kernel.send(receiver, message, ...)` and `receiver.send(message, ...)`, which gives us a more explicit message-passing path while the broader dispatch model settles.
+- `methods` and `classMethods` currently return ordinary reflective objects, so dot access like `classes.Kernel.methods.assert` works. Bracket indexing like `methods[:assert]` is not implemented yet.
+- `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.
+- `Kernel`, `classes`, and `cosm` now also have clearer named runtime classes (`Kernel` and `Namespace`) rather than always appearing as anonymous `Object` bags.
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.

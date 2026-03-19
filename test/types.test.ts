@@ -5,6 +5,7 @@ test("type constructors build expected runtime values", () => {
   expect(Val.number(42)).toMatchObject({ type: "number", value: 42 });
   expect(Val.bool(true)).toMatchObject({ type: "bool", value: true });
   expect(Val.string("cosm")).toMatchObject({ type: "string", value: "cosm" });
+  expect(Val.symbol("status")).toMatchObject({ type: "symbol", name: "status" });
   expect(Val.array([Val.number(1), Val.number(2)])).toMatchObject({
     type: "array",
     items: [Val.number(1), Val.number(2)],
@@ -21,6 +22,7 @@ test("primitive runtime values carry behavior", () => {
   expect(Val.string("answer: ").plus(Val.number(42))).toMatchObject({ type: "string", value: "answer: 42" });
   expect(Val.number(42).toCosmString("interpolate")).toBe("42");
   expect(Val.bool(true).toCosmString("concatenate")).toBe("true");
+  expect(Val.symbol("ok").toCosmString("concatenate")).toBe(":ok");
   expect(Val.number(1).nativeMethod("plus")?.nativeCall?.([Val.number(2)], Val.number(1))).toMatchObject({ type: "number", value: 3 });
   expect(Val.array([Val.number(1), Val.number(2)]).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });
   expect(Val.hash({ answer: Val.number(42), ok: Val.bool(true) }).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });
@@ -48,6 +50,14 @@ test("callable and reflective constructors preserve metadata", () => {
     type: "object",
     className: "Point",
     fields: { x: Val.number(1) },
+  });
+  expect(Val.kernel({}, numberClass)).toMatchObject({
+    type: "object",
+    className: "Kernel",
+  });
+  expect(Val.namespace({}, numberClass)).toMatchObject({
+    type: "object",
+    className: "Namespace",
   });
   expect(Val.nativeFunc("assert", () => Val.bool(true))).toMatchObject({
     type: "function",

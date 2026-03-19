@@ -2,11 +2,12 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import Cosm from "../src/cosm";
+import Cosm from '../src/cosm';
+import { ValueAdapter } from "../src/ValueAdapter";
 
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
-  return Cosm.Values.cosmToJS(cosmValue);
+  return ValueAdapter.cosmToJS(cosmValue);
 };
 
 test("2 + 2", () => {
@@ -29,6 +30,10 @@ test("comparisons produce booleans", () => {
   expect(cosmEval("3 >= 4")).toBe(false);
   expect(cosmEval("2 + 2 == 4")).toBe(true);
   expect(cosmEval("2 + 2 != 5")).toBe(true);
+  expect(cosmEval("3.send(:lt, 4)")).toBe(true);
+  expect(cosmEval("3.send(:gte, 4)")).toBe(false);
+  expect(cosmEval(":ok.send(:eq, :ok)")).toBe(true);
+  expect(cosmEval('"co".send(:eq, "co")')).toBe(true);
 });
 
 test("boolean logic respects precedence", () => {
@@ -40,8 +45,48 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Number.name")).toBe("Number");
   expect(cosmEval("classes.Boolean.superclass.name")).toBe("Object");
   expect(cosmEval("classes.Class.name")).toBe("Class");
+  expect(cosmEval("classes.Kernel.name")).toBe("Kernel");
+  expect(cosmEval("classes.Method.name")).toBe("Method");
+  expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
+  expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
   expect(cosmEval("classes.Number.class.name")).toBe("Number class");
+  expect(cosmEval("cosm.classes.Number.name")).toBe("Number");
   expect(cosmEval("Number.name")).toBe("Number");
+});
+
+test("Kernel and cosm expose ambient reflective services", () => {
+  expect(cosmEval("Kernel.assert(true)")).toBe(true);
+  expect(cosmEval("cosm.Kernel.assert(true)")).toBe(true);
+  expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
+  expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
+  expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
+  expect(cosmEval('Kernel.send(1, Symbol.intern("plus"), 2)')).toBe(3);
+  expect(cosmEval("Kernel.method(:assert).class.name")).toBe("Method");
+  expect(cosmEval("Kernel.method(:assert).name")).toBe("assert");
+  expect(cosmEval("Kernel.method(:assert)(true)")).toBe(true);
+  expect(cosmEval("Kernel.method(:assert).call(true)")).toBe(true);
+  expect(cosmEval("classes.Kernel.method(:assert).name")).toBe("assert");
+  expect(cosmEval('classes.Kernel.method(:assert).call(true, "ok")')).toBe(true);
+  expect(cosmEval("Kernel.class.name")).toBe("Kernel");
+  expect(cosmEval("classes.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.version")).toBe("0.1.0");
+  expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
+});
+
+test("symbols are interned runtime values", () => {
+  expect(cosmEval(":status.class.name")).toBe("Symbol");
+  expect(cosmEval(":status.name")).toBe("status");
+  expect(cosmEval(":status == :status")).toBe(true);
+  expect(cosmEval(":left != :right")).toBe(true);
+  expect(cosmEval('Symbol.intern("status").class.name')).toBe("Symbol");
+  expect(cosmEval('Symbol.intern("status").name')).toBe("status");
+  expect(cosmEval('Symbol.intern("status") == Symbol.intern("status")')).toBe(true);
+  expect(cosmEval(':status == Symbol.intern("status")')).toBe(true);
+  expect(cosmEval('Symbol.intern("left") != Symbol.intern("right")')).toBe(true);
+  expect(cosmEval("1.send(:plus, 2)")).toBe(3);
+  expect(cosmEval('"co".send("plus", "sm")')).toBe("cosm");
+  expect(cosmEval('"sym=#{:ok}"')).toBe("sym=:ok");
 });
 
 test("values expose their class through access notation", () => {
@@ -52,8 +97,8 @@ test("values expose their class through access notation", () => {
 test("formatted output uses Cosm-oriented class names", () => {
   const classValue = Cosm.Interpreter.eval("Class");
   const classesValue = Cosm.Interpreter.eval("classes");
-  expect(Cosm.Values.format(classValue)).toBe("Class");
-  expect(Cosm.Values.format(classesValue)).toContain("Class: Class");
+  expect(ValueAdapter.format(classValue)).toBe("Class");
+  expect(ValueAdapter.format(classesValue)).toContain("Class: Class");
 });
 
 test("array and hash literals evaluate", () => {
@@ -66,6 +111,9 @@ test("array and hash literals evaluate", () => {
 
 test("string literals and concatenation work", () => {
   expect(cosmEval('"cosm"')).toBe("cosm");
+  expect(cosmEval("'cosm'")).toBe("cosm");
+  expect(cosmEval("'line\\nnext'")).toBe("line\nnext");
+  expect(cosmEval("'#{1 + 1}'")).toBe("#{1 + 1}");
   expect(cosmEval('"cosm".length')).toBe(4);
   expect(cosmEval('"co" + "sm"')).toBe("cosm");
   expect(cosmEval('"co".plus("sm")')).toBe("cosm");
@@ -98,8 +146,8 @@ test("program-scoped let bindings work", () => {
 
 test("session environments can retain bindings across evaluations", () => {
   const env = Cosm.Interpreter.createEnv();
-  expect(Cosm.Values.cosmToJS(Cosm.Interpreter.evalInEnv("let a = 4", env))).toBe(4);
-  expect(Cosm.Values.cosmToJS(Cosm.Interpreter.evalInEnv('"a=#{a}"', env))).toBe("a=4");
+  expect(ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("let a = 4", env))).toBe(4);
+  expect(ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv('"a=#{a}"', env))).toBe("a=4");
 });
 
 test("line comments are ignored by the parser", () => {
@@ -147,6 +195,9 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Pair do def init(left, right) do true end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethods.label.name')).toBe("label");
+  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).name')).toBe("label");
+  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label)()')).toBe("Greeter!");
+  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).call()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def kind() do self.class.name end end; let g = Greeter.new(); g.kind()')).toBe("Greeter");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.label()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def self.kind() do self.class.name end end; Greeter.kind()')).toBe("Greeter class");
@@ -166,12 +217,18 @@ test("type errors stay explicit", () => {
   expect(() => cosmEval("let add = ->(a, b) { a + b }; add(1)")).toThrow("Arity error: function expects 2 arguments, got 1");
   expect(() => cosmEval('"value: #{[1]}"')).toThrow("Type error: cannot interpolate value of type array into a string");
   expect(() => cosmEval("1.plus(true)")).toThrow("Type error: add expects numeric operands or string concatenation");
+  expect(() => cosmEval("Symbol.intern(1)")).toThrow("Type error: Symbol.intern expects a string argument");
+  expect(() => cosmEval("1.send(1, 2)")).toThrow("Type error: send expects a string or symbol message, got number");
+  expect(() => cosmEval("Kernel.method(:missing)")).toThrow("Property error: object of class Kernel has no property 'missing'");
 });
 
 test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("UnknownThing")).toThrow("Name error: unknown identifier 'UnknownThing'");
   expect(() => cosmEval("classes.Number.missing")).toThrow("Property error: class Number has no property 'missing'");
+  expect(() => cosmEval("Kernel.missing")).toThrow("Property error: object of class Kernel has no property 'missing'");
+  expect(() => cosmEval("classes.Kernel.classMethod(:assert)")).toThrow("Property error: class Kernel has no class method 'assert'");
   expect(() => cosmEval("assert(false)")).toThrow("Assertion failed");
+  expect(() => cosmEval("Kernel.assert(false)")).toThrow("Assertion failed");
   expect(() => cosmEval('assert(false, 1)')).toThrow("Type error: assert message must be a string");
   expect(() => cosmEval("let x = 1; let x = 2")).toThrow("Name error: duplicate local 'x'");
   expect(() => cosmEval("def name() do 1 end; def name() do 2 end")).toThrow("Name error: duplicate local 'name'");

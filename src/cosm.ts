@@ -1,6 +1,7 @@
 import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmArray, CosmHash, CosmObject, CosmFunction } from './types';
 import { Construct } from "./Construct";
 import { Parser } from './ast/parser';
+import { ValueAdapter } from './ValueAdapter';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -18,6 +19,7 @@ namespace Cosm {
   
   export class Interpreter {
     private static readonly repository = this.createRepository();
+    private static readonly symbolTable = new Map<string, CosmValue>();
 
     static evalNode(ast: CoreNode, env: Env): CosmValue {
       switch (ast.kind) {
@@ -46,6 +48,8 @@ namespace Cosm {
           return Construct.string(
             ast.children.map((child) => this.coerceToString(this.evalNode(child, env), 'interpolate')).join(''),
           );
+        case 'symbol':
+          return this.internSymbol(ast.value);
         case 'ident':
           return this.lookupName(ast.value, env);
         case 'ivar':
@@ -133,9 +137,13 @@ namespace Cosm {
       const numberClass = this.createBootClass('Number', objectClass, classClass);
       const booleanClass = this.createBootClass('Boolean', objectClass, classClass);
       const stringClass = this.createBootClass('String', objectClass, classClass);
+      const symbolClass = this.createBootClass('Symbol', objectClass, classClass);
       const arrayClass = this.createBootClass('Array', objectClass, classClass);
       const hashClass = this.createBootClass('Hash', objectClass, classClass);
       const functionClass = this.createBootClass('Function', objectClass, classClass);
+      const methodClass = this.createBootClass('Method', objectClass, classClass);
+      const namespaceClass = this.createBootClass('Namespace', objectClass, classClass);
+      const kernelClass = this.createBootClass('Kernel', objectClass, classClass);
 
       const classes: Record<string, CosmClass> = {
         Class: classClass,
@@ -143,9 +151,13 @@ namespace Cosm {
         Number: numberClass,
         Boolean: booleanClass,
         String: stringClass,
+        Symbol: symbolClass,
         Array: arrayClass,
         Hash: hashClass,
         Function: functionClass,
+        Method: methodClass,
+        Namespace: namespaceClass,
+        Kernel: kernelClass,
       };
 
       const globals: Record<string, CosmValue> = {
@@ -154,12 +166,15 @@ namespace Cosm {
         Number: numberClass,
         Boolean: booleanClass,
         String: stringClass,
+        Symbol: symbolClass,
         Array: arrayClass,
         Hash: hashClass,
         Function: functionClass,
+        Method: methodClass,
+        Namespace: namespaceClass,
       };
 
-      globals.assert = Construct.nativeFunc('assert', (args) => {
+      const assertFunction = Construct.nativeFunc('assert', (args) => {
         if (args.length < 1 || args.length > 2) {
           throw new Error(`Arity error: assert expects 1 or 2 arguments, got ${args.length}`);
         }
@@ -178,6 +193,37 @@ namespace Cosm {
         }
         return Construct.bool(true);
       });
+      if (symbolClass.classRef) {
+        symbolClass.classRef.methods.intern = Construct.nativeFunc('intern', (args) => {
+          if (args.length !== 1) {
+            throw new Error(`Arity error: Symbol.intern expects 1 arguments, got ${args.length}`);
+          }
+          const [name] = args;
+          if (name.type !== 'string') {
+            throw new Error('Type error: Symbol.intern expects a string argument');
+          }
+          return this.internSymbol(name.value);
+        });
+      }
+
+      kernelClass.methods.assert = assertFunction;
+      kernelClass.methods.inspect = Construct.nativeFunc('inspect', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: inspect expects 1 arguments, got ${args.length}`);
+        }
+        return Construct.string(ValueAdapter.format(args[0]));
+      });
+      kernelClass.methods.send = Construct.nativeFunc('send', (args) => {
+        if (args.length < 2) {
+          throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);
+        }
+        const [receiver, messageValue, ...messageArgs] = args;
+        return this.invokeSend(receiver, messageValue, messageArgs);
+      });
+      const kernelObject = Construct.kernel({}, kernelClass);
+
+      globals.Kernel = kernelObject;
+      globals.assert = assertFunction;
 
       return { globals, classes };
     }
@@ -345,6 +391,8 @@ namespace Cosm {
         case 'bool':
         case 'string':
           return left.value === (right as typeof left).value;
+        case 'symbol':
+          return left.name === (right as typeof left).name;
         case 'class':
           return left.name === (right as CosmClass).name;
         case 'function':
@@ -372,6 +420,9 @@ namespace Cosm {
     private static lookupName(name: string, env: Env): CosmValue {
       if (name === 'classes') {
         return this.classesObject(env);
+      }
+      if (name === 'cosm') {
+        return this.cosmObject(env);
       }
       for (let scope: Env | undefined = env; scope; scope = scope.parent) {
         const localValue = scope.bindings[name];
@@ -403,7 +454,15 @@ namespace Cosm {
           }
         }
       }
-      return Construct.object('Object', classes);
+      return Construct.namespace(classes, this.repository.classes.Namespace);
+    }
+
+    private static cosmObject(env: Env): CosmValue {
+      return Construct.namespace({
+        Kernel: this.repository.globals.Kernel,
+        classes: this.classesObject(env),
+        version: Construct.string(version),
+      }, this.repository.classes.Namespace);
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
@@ -428,6 +487,9 @@ namespace Cosm {
     }
 
     private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue): CosmValue {
+      if (callee.type === 'method') {
+        return this.invokeFunction(callee.target, args, callee.receiver);
+      }
       if (callee.type !== 'function') {
         throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
       }
@@ -457,6 +519,44 @@ namespace Cosm {
       if (property === 'class') {
         return this.classOf(receiver);
       }
+      if (receiver.type === 'method' && property === 'call') {
+        return Construct.nativeFunc('call', (args) => this.invokeFunction(receiver, args));
+      }
+      if (property === 'method') {
+        return Construct.nativeFunc('method', (args) => {
+          if (args.length !== 1) {
+            throw new Error(`Arity error: method expects 1 arguments, got ${args.length}`);
+          }
+          const [messageValue] = args;
+          const message = this.messageName(messageValue);
+          if (receiver.type === 'class') {
+            const method = this.lookupMethod(receiver, message);
+            if (!method) {
+              throw new Error(`Property error: class ${receiver.name} has no instance method '${message}'`);
+            }
+            return this.bindMethod(receiver, method);
+          }
+          const candidate = this.lookupProperty(receiver, message);
+          if (candidate.type !== 'function' && candidate.type !== 'method') {
+            throw new Error(`Type error: property '${message}' is not a method`);
+          }
+          return candidate;
+        });
+      }
+      if (property === 'classMethod' && receiver.type === 'class') {
+        return Construct.nativeFunc('classMethod', (args) => {
+          if (args.length !== 1) {
+            throw new Error(`Arity error: classMethod expects 1 arguments, got ${args.length}`);
+          }
+          const [messageValue] = args;
+          const message = this.messageName(messageValue);
+          const method = this.lookupMethod(this.classOf(receiver), message);
+          if (!method) {
+            throw new Error(`Property error: class ${receiver.name} has no class method '${message}'`);
+          }
+          return this.bindMethod(receiver, method);
+        });
+      }
 
       const nativeProperty = receiver.nativeProperty(property);
       if (nativeProperty !== undefined) {
@@ -474,6 +574,9 @@ namespace Cosm {
           if (method) {
             return this.bindMethod(receiver, method);
           }
+          if (property === 'send') {
+            return this.genericSendMethod(receiver);
+          }
           throw new Error(`Property error: Array instance has no property '${property}'`);
         }
         case 'hash': {
@@ -482,6 +585,9 @@ namespace Cosm {
             const method = this.lookupMethod(this.classOf(receiver), property);
             if (method) {
               return this.bindMethod(receiver, method);
+            }
+            if (property === 'send') {
+              return this.genericSendMethod(receiver);
             }
             throw new Error(`Property error: Hash instance has no property '${property}'`);
           }
@@ -495,6 +601,9 @@ namespace Cosm {
           const method = this.lookupMethod(this.classOf(receiver), property);
           if (method) {
             return this.bindMethod(receiver, method);
+          }
+          if (property === 'send') {
+            return this.genericSendMethod(receiver);
           }
           throw new Error(`Property error: object of class ${receiver.className} has no property '${property}'`);
         }
@@ -515,11 +624,17 @@ namespace Cosm {
               return this.bindMethod(receiver, method);
             }
           }
+          if (property === 'send') {
+            return this.genericSendMethod(receiver);
+          }
           throw new Error(`Property error: class ${receiver.name} has no property '${property}'`);
         case 'function': {
           const method = this.lookupMethod(this.classOf(receiver), property);
           if (method) {
             return this.bindMethod(receiver, method);
+          }
+          if (property === 'send') {
+            return this.genericSendMethod(receiver);
           }
           throw new Error(`Property error: function ${receiver.name} has no property '${property}'`);
         }
@@ -528,6 +643,9 @@ namespace Cosm {
           const method = this.lookupMethod(classValue, property);
           if (method) {
             return this.bindMethod(receiver, method);
+          }
+          if (property === 'send') {
+            return this.genericSendMethod(receiver);
           }
           throw new Error(`Property error: ${classValue.name} instance has no property '${property}'`);
         }
@@ -542,6 +660,8 @@ namespace Cosm {
           return this.repository.classes.Boolean;
         case 'string':
           return this.repository.classes.String;
+        case 'symbol':
+          return this.repository.classes.Symbol;
         case 'array':
           return this.repository.classes.Array;
         case 'hash':
@@ -552,6 +672,8 @@ namespace Cosm {
           return value.classRef ?? this.repository.classes.Class;
         case 'function':
           return this.repository.classes.Function;
+        case 'method':
+          return this.repository.classes.Method;
       }
     }
 
@@ -634,13 +756,56 @@ namespace Cosm {
       return undefined;
     }
 
-    private static bindMethod(receiver: CosmValue, method: CosmFunction): CosmFunction {
-      return Construct.nativeFunc(method.name, (args) => this.invokeFunction(method, args, receiver));
+    private static bindMethod(receiver: CosmValue, method: CosmFunction): CosmValue {
+      return Construct.method(method.name, receiver, method);
     }
 
     private static send(receiver: CosmValue, message: string, args: CosmValue[]): CosmValue {
-      const method = this.lookupProperty(receiver, message);
+      const method = this.resolveSendTarget(receiver, message);
       return this.invokeFunction(method, args, receiver);
+    }
+
+    private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]): CosmValue {
+      return this.send(receiver, this.messageName(messageValue), args);
+    }
+
+    private static resolveSendTarget(receiver: CosmValue, message: string): CosmValue {
+      try {
+        return this.lookupProperty(receiver, message);
+      } catch (error) {
+        if (
+          receiver.type === 'class'
+          && error instanceof Error
+          && error.message === `Property error: class ${receiver.name} has no property '${message}'`
+        ) {
+          const instanceMethod = this.lookupMethod(receiver, message);
+          if (instanceMethod) {
+            return this.bindMethod(receiver, instanceMethod);
+          }
+        }
+        throw error;
+      }
+    }
+
+    private static genericSendMethod(receiver: CosmValue): CosmValue {
+      return Construct.nativeFunc('send', (args) => {
+        if (args.length < 1) {
+          throw new Error(`Arity error: method send expects at least 1 arguments, got ${args.length}`);
+        }
+        const [messageValue, ...messageArgs] = args;
+        return this.invokeSend(receiver, messageValue, messageArgs);
+      });
+    }
+
+    private static messageName(messageValue: CosmValue): string {
+      switch (messageValue.type) {
+        case 'string':
+          return messageValue.value;
+        case 'symbol':
+          return messageValue.name;
+        default:
+          throw new Error(`Type error: send expects a string or symbol message, got ${messageValue.type}`);
+      }
     }
 
     private static lookupSelf(env: Env, ivarName?: string): CosmObject {
@@ -661,70 +826,18 @@ namespace Cosm {
       }
       return selfValue;
     }
-  }
 
-  export class Values {
-    static cosmToJS(value: CosmValue): any {
-      switch (value.type) {
-        case 'number':
-          return value.value;
-        case 'bool':
-          return value.value;
-        case 'string':
-          return value.value;
-        case 'array':
-          return value.items.map((item) => this.cosmToJS(item));
-        case 'hash':
-          return Object.fromEntries(
-            Object.entries(value.entries).map(([key, entry]) => [key, this.cosmToJS(entry)]),
-          );
-        case 'class':
-          return {
-            kind: 'class',
-            name: value.name,
-            superclassName: value.superclassName,
-            metaclassName: value.classRef?.name,
-            slots: value.slots,
-            methods: Object.keys(value.methods),
-            classMethods: Object.keys((value.classRef && value.classRef !== value ? value.classRef.methods : value.classMethods)),
-            className: (value.classRef ?? this.repository.classes.Class).name,
-          };
-        case 'object':
-          return Object.fromEntries(
-            Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),
-          );
-        case 'function':
-          return { kind: 'function', name: value.name };
+    private static internSymbol(name: string): CosmValue {
+      const existing = this.symbolTable.get(name);
+      if (existing) {
+        return existing;
       }
-    }
-
-    static format(value: CosmValue): string {
-      switch (value.type) {
-        case 'number':
-          return String(value.value);
-        case 'bool':
-          return String(value.value);
-        case 'string':
-          return JSON.stringify(value.value);
-        case 'array':
-          return `[${value.items.map((item) => this.format(item)).join(', ')}]`;
-        case 'hash':
-          return `{ ${Object.entries(value.entries).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ')} }`;
-        case 'function':
-          return `<function ${value.name}>`;
-        case 'class':
-          return value.name;
-        case 'object': {
-          const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
-          if (value.className === 'Object') {
-            return `{ ${entries} }`;
-          }
-          return `#<${value.className} ${entries}>`;
-        }
-      }
+      const symbol = Construct.symbol(name);
+      this.symbolTable.set(name, symbol);
+      return symbol;
     }
   }
 
-  export const version = "0.1.0";
+    export const version = "0.1.0";
 }
 export default Cosm;

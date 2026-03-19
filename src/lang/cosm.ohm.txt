@@ -92,11 +92,15 @@ Cosm {
     | "[" ArrayItems? "]"  -- array
     | "{" HashItems? "}"  -- hash
     | string
+    | symbol
     | boolean
     | self
     | ivar
     | ident
     | number
+
+  symbol
+    = ":" name
 
   CallArgs
     = Exp ("," Exp)*
@@ -114,12 +118,23 @@ Cosm {
     = ident ":" Exp
 
   string
+    = dstring
+    | sstring
+
+  dstring
     = "\"" stringPart* "\""
+
+  sstring
+    = "'" sstringPart* "'"
 
   stringPart
     = interpolation  -- interp
     | stringText     -- text
     | "\\" escape    -- escape
+
+  sstringPart
+    = sstringText   -- text
+    | "\\" sescape  -- escape
 
   interpolation
     = "#{" applySyntactic<Exp> "}"
@@ -128,8 +143,17 @@ Cosm {
     = ~("\\" | "\"" | "#") any  -- plain
     | "#" ~"{"                  -- hash
 
+  sstringText
+    = ~("\\" | "'") any
+
   escape
     = "\""  -- quote
+    | "\\"  -- slash
+    | "n"   -- newline
+    | "t"   -- tab
+
+  sescape
+    = "'"   -- quote
     | "\\"  -- slash
     | "n"   -- newline
     | "t"   -- tab

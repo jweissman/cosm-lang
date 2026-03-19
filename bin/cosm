@@ -2,7 +2,8 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import Cosm from "../src/cosm";
+import Cosm from '../src/cosm';
+import { ValueAdapter } from "../src/ValueAdapter";
 console.log("Cosm version:", Cosm.version);
 
 const HISTORY_PATH = join(process.cwd(), ".cosm_history");
@@ -43,7 +44,7 @@ function repl() {
     }
     try {
       const result = Cosm.Interpreter.evalInEnv(line, sessionEnv);
-      console.log(Cosm.Values.format(result));
+      console.log(ValueAdapter.format(result));
     } catch (e) {
       console.error("Error:", e.message);
     }
@@ -60,7 +61,7 @@ if (require.main === module) {
     try {
       const source = readFileSync(filePath, "utf8");
       const result = Cosm.Interpreter.eval(source);
-      console.log(Cosm.Values.format(result));
+      console.log(ValueAdapter.format(result));
     } catch (e) {
       console.error("Error:", e.message);
       process.exit(1);

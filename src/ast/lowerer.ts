@@ -71,6 +71,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         case 'number':
         case 'bool':
         case 'string':
+        case 'symbol':
         case 'ident':
         case 'ivar':
         case 'add':
