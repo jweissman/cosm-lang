@@ -30,6 +30,9 @@ test("comparisons produce booleans", () => {
   expect(cosmEval("3 >= 4")).toBe(false);
   expect(cosmEval("2 + 2 == 4")).toBe(true);
   expect(cosmEval("2 + 2 != 5")).toBe(true);
+  expect(cosmEval('"co" == "co"')).toBe(true);
+  expect(cosmEval(":ok == :ok")).toBe(true);
+  expect(cosmEval("true == true")).toBe(true);
   expect(cosmEval("3.send(:lt, 4)")).toBe(true);
   expect(cosmEval("3.send(:gte, 4)")).toBe(false);
   expect(cosmEval(":ok.send(:eq, :ok)")).toBe(true);
@@ -57,6 +60,15 @@ test("member access can inspect the class repository", () => {
 test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.assert(true)")).toBe(true);
   expect(cosmEval("cosm.Kernel.assert(true)")).toBe(true);
+  expect(cosmEval("Kernel.method(:print).name")).toBe("print");
+  expect(cosmEval("Kernel.method(:puts).name")).toBe("puts");
+  expect(cosmEval("Kernel.method(:test).name")).toBe("test");
+  expect(cosmEval("cosm.length >= 3")).toBe(true);
+  expect(cosmEval("cosm.has(:version)")).toBe(true);
+  expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
+  expect(cosmEval('cosm.get(:version)')).toBe("0.1.0");
+  expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
+  expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
@@ -131,6 +143,7 @@ test("built-in function calls work", () => {
   expect(cosmEval('"cosm".length')).toBe(4);
   expect(cosmEval("{ a: 1, b: 2 }.length")).toBe(2);
   expect(cosmEval("assert(2 + 2 == 4)")).toBe(true);
+  expect(cosmEval("assert true")).toBe(true);
   expect(cosmEval('assert("co" + "sm" == "cosm", "strings should concatenate")')).toBe(true);
 });
 
@@ -172,6 +185,7 @@ test("if expressions choose a branch and scope it", () => {
 
 test("user-defined functions work", () => {
   expect(cosmEval("let id = ->(x) { x }; id(42)")).toBe(42);
+  expect(cosmEval("let id = ->(x) { x }; id.call(42)")).toBe(42);
   expect(cosmEval('let greet = ->(name) { "hello " + name }; greet("cosm")')).toBe("hello cosm");
   expect(cosmEval("let pair = ->(a, b) { a + b }; pair(20, 22)")).toBe(42);
   expect(cosmEval('let outer = "co"; let join = ->(rest) { outer + rest }; join("sm")')).toBe("cosm");
@@ -263,6 +277,76 @@ test("cli can evaluate a source file", () => {
     expect(exitCode).toBe(0);
     expect(stderr).toBe("");
     expect(stdout).toContain("Array");
+  });
+});
+
+test("cli can write output through Kernel.puts", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "puts.cosm");
+  writeFileSync(sourcePath, 'Kernel.puts("hello from cosm"); 7\n');
+
+  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("hello from cosm");
+    expect(stdout).toContain("7");
+  });
+});
+
+test("cli supports bare puts with single-quoted strings", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "bare-puts.cosm");
+  writeFileSync(sourcePath, "puts 'hello from bare puts'; 9\n");
+
+  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("hello from bare puts");
+    expect(stdout).toContain("9");
+  });
+});
+
+test("cli can sketch a tiny Cosm-native test harness", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "kernel-test.cosm");
+  writeFileSync(sourcePath, 'test("smoke", ->() { assert(true) }); test("sad", ->() { assert(false, "boom") }); 11\n');
+
+  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("ok - smoke");
+    expect(stdout).toContain("not ok - sad: Assertion failed: boom");
+    expect(stdout).toContain("11");
   });
 });
 

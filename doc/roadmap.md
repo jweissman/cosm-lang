@@ -35,7 +35,7 @@ This target is useful because it pressures the right pieces of the runtime witho
 - Explicit class-side methods exist via `def self.name(...)`.
 - Minimal per-class metaclasses exist, and class-side lookup already follows the metaclass chain.
 - Primitive behavior is in a mixed bootstrap state: some behavior lives on TS runtime value classes, and some still lives in interpreter/class lookup glue.
-- There is now an ambient `Kernel` object with its own reflective class, plus a small `cosm` namespace object. That gives us a cleaner path for stdlib growth than leaving everything as anonymous globals.
+- There is now an ambient `Kernel` object with its own reflective class, plus small `cosm` and `classes` namespace objects. That gives us a cleaner path for stdlib growth than leaving everything as anonymous globals.
 
 Classes and inheritance are far enough along to stop being the main blocker. The next leverage point is giving the runtime a more coherent standard surface: `Kernel`, inspect/stdio, namespaces/modules, and a cleaner ownership story for primitive dispatch.
 
@@ -46,6 +46,26 @@ Relative to the longer-term vision:
 - Explicit message-passing is now beginning to surface through `send`, which is a good sign that dispatch can keep moving out of evaluator-only knowledge.
 - Host interop is mostly still ahead of us.
 - The notebook/platform story is still aspirational, but now concrete enough to guide sequencing.
+
+## Tie Your Shoes Snapshot
+
+What already feels real enough for everyday experiments:
+
+- Numbers, strings, booleans, symbols, arrays, hashes, blocks, conditionals, functions, classes, and reflective roots.
+- A persistent REPL/session loop.
+- Assertions, inspection, explicit send, and reflective namespace/class exploration.
+- A language-level smoke test in [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
+
+What still feels missing or provisional:
+
+- Print/puts/stdio on `Kernel`.
+- Math/random/time/process-ish baseline services.
+- A small Cosm-native test harness beyond `assert(...)`.
+- Assignment / ivar writes / richer object-state setup.
+- Syntax lowering for omitted semicolons or implicit local binding.
+- Modules/namespaces as a first-class language form rather than only ambient reflective objects.
+
+That suggests the next "tie your shoes" work should stay close to standard-surface basics, not just deep runtime theory.
 
 ## Completed Foundations
 
@@ -70,7 +90,8 @@ Current focus:
 - Shared runtime dispatch paths replacing evaluator special-casing where practical.
 - Primitive ownership moving into TS runtime value classes where that clarifies behavior better than repository closures.
 - Scalar equality and numeric ordering beginning to move behind explicit runtime message methods.
-- `Kernel` becoming the home for ambient services like `assert`, inspect, and later stdio.
+- `Kernel` becoming the home for ambient services like `assert`, inspect, explicit `send`, and later stdio.
+- The next OO/reflection design pressure is not just “metaclasses exist”, but “what is the eventual metaclass diamond/bootstrap rule for `Class`, `Object`, and per-class metaclasses?”
 - Explicit `send` becoming a first-class runtime operation instead of only implicit surface syntax.
 - The metaclass chain mirroring ordinary class inheritance closely enough to inspect and test from inside Cosm.
 - Enough object-state semantics to make later JS interop and delegation rest on something real.
@@ -86,6 +107,7 @@ Concrete next construction ideas:
 
 - Continue moving arithmetic and string behavior behind dispatch-oriented TS runtime methods rather than evaluator branching.
 - Grow `Kernel` into the home for inspect/print/stdio and other tie-your-shoes functionality.
+- Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
 - Introduce explicit ivar setup/writes once assignment semantics are ready, instead of overloading `init` params forever.
@@ -96,6 +118,7 @@ Recommended next slice:
 - Keep moving primitive behavior out of evaluator switches and into TS-backed runtime values or explicit runtime objects.
 - Add the first inspect/print surface on `Kernel`.
 - Continue making reflective roots (`Kernel`, `cosm`, `classes`, future modules) feel like real objects instead of interpreter conveniences.
+- Keep making `Namespace` feel module-like, so future modules can introspect their own exported constants with the same object protocol as `cosm` and `classes`.
 
 ## Next Platform Track: Standard Surface
 

@@ -1,5 +1,5 @@
 import { CosmNumberValue } from "./values/CosmNumberValue";
-import { CosmSymbolValue } from "./CosmSymbolValue";
+import { CosmSymbolValue } from "./values/CosmSymbolValue";
 import { CosmMethodValue } from "./values/CosmMethodValue";
 import { CosmBoolValue } from "./values/CosmBoolValue";
 import { CosmStringValue } from "./values/CosmStringValue";

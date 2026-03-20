@@ -11,6 +11,7 @@
 - Minimal per-class metaclasses, with `Class` as the bootstrap anchor for class-of-class reflection and metaclass inheritance that mirrors the ordinary class chain.
 - Reflective class access through `classes`.
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
+- `Kernel` now owns real native `assert`, `print`, `puts`, `inspect`, `send`, and a tiny `test(name, fn)` path in its TS value model, and `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
 - TS-backed interned `Symbol` values via `Symbol.intern("name")`.
 - Explicit message-passing infrastructure via `receiver.send(...)` and `Kernel.send(...)`, plus `Kernel.inspect(...)` for Cosm-oriented inspection.
 - First-class bound `Method` values with `.call(...)` and reflective lookup via `method(...)` / `classMethod(...)`.
@@ -29,6 +30,7 @@
 
 - Extend class-side dispatch semantics deliberately.
 - Move more operators and built-ins behind runtime/class dispatch.
+- Fill in more baseline language services: `Kernel.print`, stdio, math/random/time, and a tiny test harness.
 - Add explicit object-state setup/writes once assignment semantics exist.
 - Design the first reflective metaclass links.
 - Design how namespaces/modules should fit into the reflective object model.

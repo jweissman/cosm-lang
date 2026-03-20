@@ -4,6 +4,14 @@ import { CosmValueBase } from "./CosmValueBase";
 
 
 export class CosmFunctionValue extends CosmValueBase {
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+
+  static installRuntimeHooks(hooks: {
+    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+  }): void {
+    this.invokeHandler = hooks.invoke;
+  }
+
   readonly type = 'function';
 
   constructor(
@@ -21,5 +29,20 @@ export class CosmFunctionValue extends CosmValueBase {
       return new CosmStringValue(this.name);
     }
     return undefined;
+  }
+
+  override nativeMethod(name: string): CosmFunctionValue | undefined {
+    if (name !== 'call') {
+      return undefined;
+    }
+    return new CosmFunctionValue('call', (args, selfValue) => {
+      if (!(selfValue instanceof CosmFunctionValue)) {
+        throw new Error('Type error: call expects a function receiver');
+      }
+      if (!CosmFunctionValue.invokeHandler) {
+        throw new Error('Function runtime error: invoke handler is not installed');
+      }
+      return CosmFunctionValue.invokeHandler(selfValue, args);
+    });
   }
 }

@@ -20,9 +20,9 @@ test("primitive runtime values carry behavior", () => {
   expect(Val.number(20).plus(Val.number(22))).toMatchObject({ type: "number", value: 42 });
   expect(Val.string("co").plus(Val.string("sm"))).toMatchObject({ type: "string", value: "cosm" });
   expect(Val.string("answer: ").plus(Val.number(42))).toMatchObject({ type: "string", value: "answer: 42" });
-  expect(Val.number(42).toCosmString("interpolate")).toBe("42");
-  expect(Val.bool(true).toCosmString("concatenate")).toBe("true");
-  expect(Val.symbol("ok").toCosmString("concatenate")).toBe(":ok");
+  expect(Val.number(42).toCosmString()).toBe("42");
+  expect(Val.bool(true).toCosmString()).toBe("true");
+  expect(Val.symbol("ok").toCosmString()).toBe(":ok");
   expect(Val.number(1).nativeMethod("plus")?.nativeCall?.([Val.number(2)], Val.number(1))).toMatchObject({ type: "number", value: 3 });
   expect(Val.array([Val.number(1), Val.number(2)]).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });
   expect(Val.hash({ answer: Val.number(42), ok: Val.bool(true) }).nativeProperty("length")).toMatchObject({ type: "number", value: 2 });

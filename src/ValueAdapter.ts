@@ -26,7 +26,7 @@ export class ValueAdapter {
           slots: value.slots,
           methods: Object.keys(value.methods),
           classMethods: Object.keys((value.classRef && value.classRef !== value ? value.classRef.methods : value.classMethods)),
-          className: (value.classRef ?? this.repository.classes.Class).name,
+          className: value.classRef?.name ?? 'Class',
         };
       case 'object':
         return Object.fromEntries(
@@ -74,4 +74,3 @@ export class ValueAdapter {
     }
   }
 }
-

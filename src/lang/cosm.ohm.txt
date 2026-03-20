@@ -12,7 +12,17 @@ Cosm {
     = ClassStmt
     | DefStmt
     | LetStmt
+    | BareCallStmt
     | Exp
+
+  BareCallStmt
+    = BareCallee BareCallArgs
+
+  BareCallee
+    = ident BareCalleeTail*
+
+  BareCalleeTail
+    = "." name
 
   ClassStmt
     = "class" ident ClassSuper? "do" ClassBody "end"
@@ -104,6 +114,26 @@ Cosm {
 
   CallArgs
     = Exp ("," Exp)*
+
+  BareCallArgs
+    = BareArg ("," BareArg)*
+
+  BareArg
+    = string
+    | symbol
+    | boolean
+    | self
+    | ivar
+    | ident
+    | number
+    | BareArray
+    | BareHash
+
+  BareArray
+    = "[" ArrayItems? "]"
+
+  BareHash
+    = "{" HashItems? "}"
 
   ParamList
     = ident ("," ident)*

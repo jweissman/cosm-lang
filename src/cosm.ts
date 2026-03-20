@@ -2,6 +2,8 @@ import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmArray, CosmHash, CosmObjec
 import { Construct } from "./Construct";
 import { Parser } from './ast/parser';
 import { ValueAdapter } from './ValueAdapter';
+import { CosmKernelValue } from './values/CosmKernelValue';
+import { CosmFunctionValue } from './values/CosmFunctionValue';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -107,28 +109,28 @@ namespace Cosm {
           return Construct.bool(this.evalEquality(ast, true, env));
         case 'neq':
           return Construct.bool(this.evalEquality(ast, false, env));
-        case 'lt': {
-          const [left, right] = this.evalBinary(ast, 'lt', env);
-          return Construct.bool(left < right);
-        }
-        case 'lte': {
-          const [left, right] = this.evalBinary(ast, 'lte', env);
-          return Construct.bool(left <= right);
-        }
-        case 'gt': {
-          const [left, right] = this.evalBinary(ast, 'gt', env);
-          return Construct.bool(left > right);
-        }
-        case 'gte': {
-          const [left, right] = this.evalBinary(ast, 'gte', env);
-          return Construct.bool(left >= right);
-        }
+        case 'lt':
+          return Construct.bool(this.evalComparison(ast, 'lt', env));
+        case 'lte':
+          return Construct.bool(this.evalComparison(ast, 'lte', env));
+        case 'gt':
+          return Construct.bool(this.evalComparison(ast, 'gt', env));
+        case 'gte':
+          return Construct.bool(this.evalComparison(ast, 'gte', env));
         default:
           never(ast);
       }
     }
 
     private static createRepository(): Repository {
+      CosmKernelValue.installRuntimeHooks({
+        send: (receiver, messageValue, args) => this.invokeSend(receiver, messageValue, args),
+        invoke: (callee, args, selfValue) => this.invokeFunction(callee, args, selfValue),
+      });
+      CosmFunctionValue.installRuntimeHooks({
+        invoke: (callee, args, selfValue) => this.invokeFunction(callee, args, selfValue),
+      });
+
       const objectClass = Construct.class('Object');
       const classClass = Construct.class('Class', 'Object', [], {}, {}, objectClass);
       classClass.classRef = classClass;
@@ -174,25 +176,10 @@ namespace Cosm {
         Namespace: namespaceClass,
       };
 
-      const assertFunction = Construct.nativeFunc('assert', (args) => {
-        if (args.length < 1 || args.length > 2) {
-          throw new Error(`Arity error: assert expects 1 or 2 arguments, got ${args.length}`);
-        }
-        const [condition, message] = args;
-        if (condition.type !== 'bool') {
-          throw new Error('Type error: assert expects a boolean argument');
-        }
-        if (!condition.value) {
-          if (message) {
-            if (message.type !== 'string') {
-              throw new Error('Type error: assert message must be a string');
-            }
-            throw new Error(`Assertion failed: ${message.value}`);
-          }
-          throw new Error('Assertion failed');
-        }
-        return Construct.bool(true);
-      });
+      const assertFunction = Construct.kernel({}, kernelClass).nativeMethod('assert');
+      if (!assertFunction) {
+        throw new Error('Kernel bootstrap error: missing native assert method');
+      }
       if (symbolClass.classRef) {
         symbolClass.classRef.methods.intern = Construct.nativeFunc('intern', (args) => {
           if (args.length !== 1) {
@@ -206,24 +193,24 @@ namespace Cosm {
         });
       }
 
+      const kernelNative = Construct.kernel({}, kernelClass);
       kernelClass.methods.assert = assertFunction;
-      kernelClass.methods.inspect = Construct.nativeFunc('inspect', (args) => {
-        if (args.length !== 1) {
-          throw new Error(`Arity error: inspect expects 1 arguments, got ${args.length}`);
-        }
-        return Construct.string(ValueAdapter.format(args[0]));
-      });
-      kernelClass.methods.send = Construct.nativeFunc('send', (args) => {
-        if (args.length < 2) {
-          throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);
-        }
-        const [receiver, messageValue, ...messageArgs] = args;
-        return this.invokeSend(receiver, messageValue, messageArgs);
-      });
+      kernelClass.methods.print = kernelNative.nativeMethod('print')!;
+      kernelClass.methods.puts = kernelNative.nativeMethod('puts')!;
+      namespaceClass.methods.keys = Construct.namespace({}, namespaceClass).nativeMethod('keys')!;
+      namespaceClass.methods.has = Construct.namespace({}, namespaceClass).nativeMethod('has')!;
+      namespaceClass.methods.values = Construct.namespace({}, namespaceClass).nativeMethod('values')!;
+      namespaceClass.methods.get = Construct.namespace({}, namespaceClass).nativeMethod('get')!;
+      kernelClass.methods.inspect = kernelNative.nativeMethod('inspect')!;
+      kernelClass.methods.send = kernelNative.nativeMethod('send')!;
+      kernelClass.methods.test = kernelNative.nativeMethod('test')!;
       const kernelObject = Construct.kernel({}, kernelClass);
 
       globals.Kernel = kernelObject;
       globals.assert = assertFunction;
+      globals.print = kernelClass.methods.print;
+      globals.puts = kernelClass.methods.puts;
+      globals.test = kernelClass.methods.test;
 
       return { globals, classes };
     }
@@ -375,7 +362,20 @@ namespace Cosm {
       const [leftAst, rightAst] = this.expectChildren(ast, shouldEqual ? 'eq' : 'neq');
       const left = this.evalNode(leftAst, env);
       const right = this.evalNode(rightAst, env);
-      return shouldEqual ? this.valuesEqual(left, right) : !this.valuesEqual(left, right);
+      const result = this.tryNativePredicate(left, 'eq', right);
+      const equal = result ?? this.valuesEqual(left, right);
+      return shouldEqual ? equal : !equal;
+    }
+
+    private static evalComparison(ast: CoreNode, op: 'lt' | 'lte' | 'gt' | 'gte', env: Env): boolean {
+      const [leftAst, rightAst] = this.expectChildren(ast, op);
+      const left = this.evalNode(leftAst, env);
+      const right = this.evalNode(rightAst, env);
+      const result = this.tryNativePredicate(left, op, right);
+      if (result === null) {
+        throw new Error(`Type error: ${op} expects numeric operands`);
+      }
+      return result;
     }
 
     private static coerceToString(value: CosmValue, context: 'concatenate' | 'interpolate'): string {
@@ -415,6 +415,18 @@ namespace Cosm {
             && this.valuesEqual(Construct.hash(left.fields), Construct.hash(rightObject.fields));
         }
       }
+    }
+
+    private static tryNativePredicate(left: CosmValue, message: 'eq' | 'lt' | 'lte' | 'gt' | 'gte', right: CosmValue): boolean | null {
+      const nativeMethod = left.nativeMethod(message);
+      if (!nativeMethod) {
+        return null;
+      }
+      const result = this.invokeFunction(nativeMethod, [right], left);
+      if (result.type !== 'bool') {
+        throw new Error(`Type error: method ${message} must return a boolean`);
+      }
+      return result.value;
     }
 
     private static lookupName(name: string, env: Env): CosmValue {

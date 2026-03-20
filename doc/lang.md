@@ -55,6 +55,7 @@ At the moment, `.class` on a class object is intentionally the same reflective l
 ### Programs
 
 Programs may contain multiple expressions separated by `;`. The value of the last expression is the program result.
+At statement position, simple convenience calls may also omit parentheses, so forms like `assert true` and `puts 'hello'` are accepted as sugar for ordinary calls.
 
 ```cosm
 let label = "co" + "sm";
@@ -182,6 +183,18 @@ Class.class.name
 - `Kernel.assert(condition)`
 - `Kernel.assert(condition, message)`
   `Kernel` now exposes the same assertion service reflectively.
+- `Kernel.puts(value)`
+  Writes one formatted line to stdout. Strings print without quotes; other values use Cosm-style formatting.
+- `Kernel.print(value)`
+  Writes formatted output to stdout without a trailing newline.
+- `Kernel.test(name, fn)`
+  Runs a zero-argument function or method, prints a tiny pass/fail line, and returns `true` or `false`.
+- `puts(value)`
+  Convenience global alias for `Kernel.puts(value)`.
+- `print(value)`
+  Convenience global alias for `Kernel.print(value)`.
+- `test(name, fn)`
+  Convenience global alias for `Kernel.test(name, fn)`.
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `Kernel.send(receiver, message, ...args)`
@@ -190,6 +203,8 @@ Class.class.name
   Returns a bound `Method` object for a method on a receiver. On class objects, this introspects instance methods.
 - `ClassValue.classMethod(message)`
   Returns a bound class-side `Method` object for a class object.
+- `fn.call(arg1, arg2)`
+  Invokes a first-class function explicitly through the object model.
 
 ### Built-in Repository
 
@@ -199,6 +214,7 @@ Class.class.name
   Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
 - `cosm`
   Reflective root object currently exposing `Kernel`, `classes`, and `version`.
+  `cosm.length`, `cosm.keys()`, `cosm.values()`, `cosm.has(:name)`, and `cosm.get(:name)` now work through the `Namespace` runtime model.
 - `Symbol`
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
@@ -210,6 +226,10 @@ Examples:
 ```cosm
 classes.Array.name
 Kernel.assert(true)
+Kernel.print("hello")
+Kernel.puts("hello from cosm")
+puts 'hello from cosm'
+test("smoke", ->() { assert true })
 Kernel.class.name
 Kernel.inspect(Kernel)
 Kernel.send(1, Symbol.intern("plus"), 2)
@@ -218,6 +238,9 @@ Kernel.method(:assert).call(true)
 cosm.Kernel.assert(true)
 cosm.classes.Array.name
 cosm.version
+cosm.get(:version)
+classes.get(:Kernel).name
+cosm.values().length
 :status.name
 Symbol.intern("status").name
 1.send(:plus, 2)
@@ -248,12 +271,18 @@ do let x = 1; x + 2 end
 - `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.
 - `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
 - `assert` still exists as a convenience global, but `Kernel.assert(...)` is the clearer long-term shape.
+- `puts` also exists as a convenience global alias for `Kernel.puts(...)`.
+- `print` and `test` now also exist as convenience global aliases for `Kernel.print(...)` and `Kernel.test(...)`.
+- `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
+- `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
+- Parenthesis-free call sugar is currently narrow and statement-oriented; it exists mainly for lightweight convenience calls such as `assert true` and `puts 'hello'`.
 - `:name` is syntax sugar for an interned symbol value, and `Symbol.intern("name")` exposes the same underlying TS runtime symbol model directly.
 - `send` is now available both as `Kernel.send(receiver, message, ...)` and `receiver.send(message, ...)`, which gives us a more explicit message-passing path while the broader dispatch model settles.
+- `Kernel.inspect` and `Kernel.send` now live on the TS-backed `Kernel` runtime value rather than only being interpreter-installed helpers.
 - `methods` and `classMethods` currently return ordinary reflective objects, so dot access like `classes.Kernel.methods.assert` works. Bracket indexing like `methods[:assert]` is not implemented yet.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.
-- `Kernel`, `classes`, and `cosm` now also have clearer named runtime classes (`Kernel` and `Namespace`) rather than always appearing as anonymous `Object` bags.
+- `Kernel`, `classes`, and `cosm` now also have clearer named runtime classes (`Kernel` and `Namespace`) rather than always appearing as anonymous `Object` bags. `Namespace` currently owns `length`, `keys`, `values`, `has`, and `get` natively.
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.

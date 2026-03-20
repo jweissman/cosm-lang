@@ -45,6 +45,21 @@ export class Parser {
           value: '',
           left: statement.ast(),
         }),
+        BareCallStmt: (callee, args) => ({
+          kind: 'call',
+          value: '',
+          left: callee.ast(),
+          children: Parser.listChildren(args.ast()),
+        }),
+        BareCallee: (head, tails) => tails.children.reduce((receiver, tail) => ({
+          kind: 'access',
+          value: tail.ast().value,
+          left: receiver,
+        }), head.ast()),
+        BareCalleeTail: (_dot, name) => ({
+          kind: 'access',
+          value: name.sourceString,
+        }),
         ClassStmt: (_class, name, superclass, _do, body, _end) => {
           const superclassNode = superclass.ast();
           return {
@@ -152,6 +167,22 @@ export class Parser {
           kind: 'list',
           value: '',
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        BareCallArgs: (first, _seps, rest) => ({
+          kind: 'list',
+          value: '',
+          children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        BareArg: (arg) => arg.ast(),
+        BareArray: (_open, items, _close) => ({
+          kind: 'array',
+          value: '',
+          children: Parser.listChildren(items.ast()),
+        }),
+        BareHash: (_open, entries, _close) => ({
+          kind: 'hash',
+          value: '',
+          children: Parser.listChildren(entries.ast()),
         }),
         ArrayItems: (first, _seps, rest) => ({
           kind: 'list',

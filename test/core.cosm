@@ -5,12 +5,24 @@ assert(1 + 1 == 2, "math still works");
 assert("co" + "sm" == "cosm", "string concatenation works");
 assert("co".plus("sm") == "cosm", "string instances can send plus directly");
 assert(3.send(:lt, 4) == true, "numeric comparison can flow through explicit message send");
+assert("co" == "co", "string equality still works through operator syntax");
+assert(:ok == :ok, "symbol equality still works through operator syntax");
+assert(true == true, "boolean equality still works through operator syntax");
 assert("cosm".length == 4, "strings expose length as a property");
 assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property");
 assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property");
 assert("hello #{1 + 1}" == "hello 2", "strings can interpolate expressions");
 assert(Kernel.assert(true) == true, "Kernel exposes assert as an ambient service");
+assert true;
+assert(Kernel.print("core print") == "core print", "Kernel exposes a basic print service");
+assert(Kernel.puts("core self-test output") == "core self-test output", "Kernel exposes a basic puts service");
+puts 'core bare puts';
 assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
+assert(cosm.length >= 3, "namespaces expose a length property");
+assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
+assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
+assert(cosm.get(:version) == "0.1.0", "namespaces can retrieve entries by symbol");
+assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
 assert(Kernel.send(1, :plus, 2) == 3, "Kernel can drive explicit message sends");
@@ -47,6 +59,7 @@ assert((if true then "yes" else "no" end) == "yes", "if picks the true branch");
 let prefix = "co";
 let join = ->(rest) { prefix + rest };
 assert(join("sm") == "cosm", "closures capture outer locals");
+assert(join.call("sm") == "cosm", "functions can be invoked through call");
 let twice = ->(value) { value + value };
 assert(twice(21) == 42, "user-defined functions can be called");
 def scoped() do
@@ -121,6 +134,10 @@ assert(Greeter.label() == "Greeter!", "class objects can participate in method s
 assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
 assert(ChildLabel.metaclass.superclass.name == "BaseLabel class", "user metaclasses inherit through the class hierarchy");
 assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
+
+# tiny Cosm-native test harness sketch
+assert(test("core harness ok", ->() { assert(true) }) == true, "Kernel.test reports passing tests");
+assert(test("core harness sad", ->() { assert(false, "sad path") }) == false, "Kernel.test reports failing tests");
 
 # ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
