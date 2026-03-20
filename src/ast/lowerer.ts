@@ -43,6 +43,12 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             value: node.value,
             left: this.lowerRequired(node.left, 'let_stmt'),
           };
+        case 'require_stmt':
+          return {
+            kind: 'require',
+            value: '',
+            left: this.lowerRequired(node.left, 'require_stmt'),
+          };
         case 'class_super':
           return {
             kind: 'ident',

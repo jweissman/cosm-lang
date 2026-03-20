@@ -56,11 +56,21 @@ function repl() {
 }
 
 if (require.main === module) {
-  const filePath = process.argv[2];
+  const args = process.argv.slice(2);
+  const isTestMode = args[0] === "--test" || args[0] === "test";
+  const filePath = isTestMode ? args[1] : args[0];
   if (filePath) {
     try {
       const source = readFileSync(filePath, "utf8");
+      if (isTestMode) {
+        Cosm.Interpreter.eval("Kernel.resetTests()");
+      }
       const result = Cosm.Interpreter.eval(source);
+      if (isTestMode) {
+        const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
+        console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
+        process.exit(summary.failed > 0 ? 1 : 0);
+      }
       console.log(ValueAdapter.format(result));
     } catch (e) {
       console.error("Error:", e.message);

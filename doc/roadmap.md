@@ -28,6 +28,14 @@ The first concrete thing we should try to build is a simple web notebook:
 
 This target is useful because it pressures the right pieces of the runtime without forcing a full framework too early. It should shape near-term design decisions more than abstract “language completeness.”
 
+The next concrete extension of that target is likely:
+
+- a small HTTP/service layer
+- webhook-friendly integrations such as Slack
+- later, an explicit `cosm.ai` library for agentic or semantic helpers
+
+Those should begin as standard/runtime libraries rather than syntax features, so the reflective object model stays in control of the semantics.
+
 ## Where We Are Now
 
 - The language already has a stable-enough expression, function, and class surface to keep growing top-down through [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
@@ -53,14 +61,14 @@ What already feels real enough for everyday experiments:
 
 - Numbers, strings, booleans, symbols, arrays, hashes, blocks, conditionals, functions, classes, and reflective roots.
 - A persistent REPL/session loop.
-- Assertions, inspection, explicit send, and reflective namespace/class exploration.
+- Assertions, inspection, explicit send, reflective namespace/class exploration, and basic stdio through `Kernel`.
 - A language-level smoke test in [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
+- A tiny Cosm-native test flow through `require("cosm/test")`, `test(...)`, `describe(...)`, and `bin/cosm --test`.
 
 What still feels missing or provisional:
 
-- Print/puts/stdio on `Kernel`.
 - Math/random/time/process-ish baseline services.
-- A small Cosm-native test harness beyond `assert(...)`.
+- Richer Cosm-native test assertions and suite structure beyond the current bootstrap harness.
 - Assignment / ivar writes / richer object-state setup.
 - Syntax lowering for omitted semicolons or implicit local binding.
 - Modules/namespaces as a first-class language form rather than only ambient reflective objects.
@@ -74,9 +82,31 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 - `test/core.cosm` acts as a language-level smoke test, backed by Bun specs and direct runtime tests.
 - Class syntax, instance construction, inheritance, explicit class methods, and minimal metaclasses are working.
 
-## Active Track: Reflective Runtime Core
+## Active Track: Runtime + Stdlib Consolidation
 
 This is the current center of gravity.
+
+### v0.2 Target
+
+v0.2 should mean:
+
+- a stable reflective runtime core
+- clearer TS-backed ownership for the main runtime classes
+- a steadier standard surface through `Kernel`, `Namespace`, `cosm`, and `classes`
+- a first deliberate host boundary through `http`, `HttpRequest`, `HttpResponse`, and `HttpServer`
+- no notebook app or framework layer yet
+
+v0.2 intentionally does not include:
+
+- a notebook app
+- a framework/router layer
+- Slack/webhook integration
+- `cosm.ai`
+- VM execution
+- executable mirror/hologram objects
+- `template` / `data` syntax
+
+The immediate goal is to make the runtime feel steady enough that a later notebook or service layer is building on solid ground rather than bootstrap mush.
 
 We are trying to make the object model feel unsurprising:
 
@@ -95,6 +125,7 @@ Current focus:
 - Explicit `send` becoming a first-class runtime operation instead of only implicit surface syntax.
 - The metaclass chain mirroring ordinary class inheritance closely enough to inspect and test from inside Cosm.
 - Enough object-state semantics to make later JS interop and delegation rest on something real.
+- A tiny Cosm-native test surface that is pleasant enough to drive real build targets like an HTTP notebook without immediately hard-coding framework ideas into the language.
 
 Questions this track should answer:
 
@@ -102,23 +133,47 @@ Questions this track should answer:
 - How explicit should metaclass access remain in user-facing reflection?
 - How should inheritance, class-side behavior, and eventual delegation fit together without adding too much syntax too early?
 - Should namespaces/modules behave like reflective objects first, lexical containers first, or both?
+- What is the intended bootstrap "diamond" rule between `Class`, `Object`, per-class metaclasses, and later delegation/mirror concepts?
+- How should future wrapper concepts like mirrors and holograms relate to ordinary objects, metaclasses, and host interop boundaries?
+- If Cosm eventually gains `template`-style structure definitions, what metaobject protocol should those forms lower onto?
+
+### v0.2 Definition Of Done
+
+- Core reflective/runtime classes keep one explicit exposure protocol.
+- `cosm.ts` is not the main declaration site for runtime surfaces.
+- `Kernel`, `Namespace`, and the reflective roots cover the everyday "tie your shoes" surface more comfortably.
+- `HttpRequest`, `HttpResponse`, and `HttpServer` are documented and test-covered.
+- The self-test, tiny test harness, REPL, CLI, and default Bun suite remain green and stable.
 
 Concrete next construction ideas:
 
 - Continue moving arithmetic and string behavior behind dispatch-oriented TS runtime methods rather than evaluator branching.
-- Grow `Kernel` into the home for inspect/print/stdio and other tie-your-shoes functionality.
+- Grow `Kernel` into the home for inspect/print/stdio, time, randomness, and other tie-your-shoes functionality.
+- Keep moving small harness/runtime services like `describe`, `send`, and callable protocol onto TS-backed runtime values rather than interpreter special cases.
+- Deepen the HTTP host boundary through request/response objects rather than jumping to a framework/router abstraction.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
 - Introduce explicit ivar setup/writes once assignment semantics are ready, instead of overloading `init` params forever.
 - Sketch a small Cosm-level test harness once block/message infrastructure is steady enough to support it cleanly.
+- Keep making reflective surfaces like `.methods` and `.classMethods` look like real named runtime objects instead of ad hoc bags.
 
 Recommended next slice:
 
 - Keep moving primitive behavior out of evaluator switches and into TS-backed runtime values or explicit runtime objects.
-- Add the first inspect/print surface on `Kernel`.
+- Keep improving `Kernel.inspect(...)` and other standard-surface helpers.
 - Continue making reflective roots (`Kernel`, `cosm`, `classes`, future modules) feel like real objects instead of interpreter conveniences.
 - Keep making `Namespace` feel module-like, so future modules can introspect their own exported constants with the same object protocol as `cosm` and `classes`.
+
+## Research Themes
+
+These are not immediate implementation commitments, but they should shape the runtime we are building toward:
+
+- Metaclass bootstrap and eventual diamond clarity.
+- Mirrors and hologram-like reflective wrappers for presentation, delegation, or readonly views.
+- Reflective primitives that let object inspection and message dispatch feel explicit rather than magical.
+- A notebook/http runtime that can expose live Cosm objects and sessions without collapsing straight into raw host JS objects.
+- Template-driven structure forms as a later consequence of the reflective core, potentially covering both class-like and more immutable data-like structures.
 
 ## Next Platform Track: Standard Surface
 
@@ -131,10 +186,12 @@ This is the next likely leap in usefulness.
 
 ## Later Track: Host Interop
 
+- First tiny Bun-native host services like `http.serve(...)`.
 - JS object mirrors and conversion rules.
 - Safe method/property bridging.
 - Module import/load story.
 - Host services for HTTP, filesystem, clocks, randomness, and processes.
+- Later, an explicit `cosm.ai` or similar library surface for LLM-backed completions and semantic helpers.
 
 This track is important, but it should land on top of a runtime that already explains object identity, dispatch, and reflection coherently.
 

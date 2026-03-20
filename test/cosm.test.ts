@@ -23,6 +23,7 @@ test("arithmetic precedence works", () => {
 test("unary arithmetic works", () => {
   expect(cosmEval("-5 + +2")).toBe(-3);
   expect(cosmEval("3.5 * 2")).toBe(7);
+  expect(cosmEval("5.neg()")).toBe(-5);
 });
 
 test("comparisons produce booleans", () => {
@@ -33,15 +34,22 @@ test("comparisons produce booleans", () => {
   expect(cosmEval('"co" == "co"')).toBe(true);
   expect(cosmEval(":ok == :ok")).toBe(true);
   expect(cosmEval("true == true")).toBe(true);
+  expect(cosmEval("[1, 2] == [1, 2]")).toBe(true);
+  expect(cosmEval('{ answer: 42 } == { answer: 42 }')).toBe(true);
+  expect(cosmEval('class Pair do def init(left, right) true end end; Pair.new(1, 2) == Pair.new(1, 2)')).toBe(true);
   expect(cosmEval("3.send(:lt, 4)")).toBe(true);
   expect(cosmEval("3.send(:gte, 4)")).toBe(false);
   expect(cosmEval(":ok.send(:eq, :ok)")).toBe(true);
   expect(cosmEval('"co".send(:eq, "co")')).toBe(true);
+  expect(cosmEval("[1, 2].send(:eq, [1, 2])")).toBe(true);
 });
 
 test("boolean logic respects precedence", () => {
   expect(cosmEval("true || false && false")).toBe(true);
   expect(cosmEval("!(2 > 3) && true")).toBe(true);
+  expect(cosmEval("true.and(false)")).toBe(false);
+  expect(cosmEval("false.or(true)")).toBe(true);
+  expect(cosmEval("true.not()")).toBe(false);
 });
 
 test("member access can inspect the class repository", () => {
@@ -52,7 +60,27 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Method.name")).toBe("Method");
   expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
   expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
+  expect(cosmEval("classes.Http.name")).toBe("Http");
+  expect(cosmEval("classes.HttpRequest.name")).toBe("HttpRequest");
+  expect(cosmEval("classes.HttpResponse.name")).toBe("HttpResponse");
+  expect(cosmEval("classes.HttpServer.name")).toBe("HttpServer");
   expect(cosmEval("classes.Number.class.name")).toBe("Number class");
+  expect(cosmEval("classes.Object.methods.send.name")).toBe("send");
+  expect(cosmEval("classes.Object.methods.method.name")).toBe("method");
+  expect(cosmEval("classes.Class.methods.new.name")).toBe("new");
+  expect(cosmEval("classes.Class.methods.classMethod.name")).toBe("classMethod");
+  expect(cosmEval("classes.Function.methods.call.name")).toBe("call");
+  expect(cosmEval("classes.Method.methods.call.name")).toBe("call");
+  expect(cosmEval("classes.Symbol.methods.eq.name")).toBe("eq");
+  expect(cosmEval("classes.Symbol.classMethods.intern.name")).toBe("intern");
+  expect(cosmEval("classes.Namespace.methods.keys.name")).toBe("keys");
+  expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
+  expect(cosmEval("classes.Http.methods.serve.name")).toBe("serve");
+  expect(cosmEval("classes.HttpRequest.methods.bodyText.name")).toBe("bodyText");
+  expect(cosmEval("classes.HttpResponse.classMethods.ok.name")).toBe("ok");
+  expect(cosmEval("classes.HttpResponse.classMethods.text.name")).toBe("text");
+  expect(cosmEval("classes.HttpResponse.classMethods.json.name")).toBe("json");
+  expect(cosmEval("classes.HttpServer.methods.stop.name")).toBe("stop");
   expect(cosmEval("cosm.classes.Number.name")).toBe("Number");
   expect(cosmEval("Number.name")).toBe("Number");
 });
@@ -62,16 +90,38 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.Kernel.assert(true)")).toBe(true);
   expect(cosmEval("Kernel.method(:print).name")).toBe("print");
   expect(cosmEval("Kernel.method(:puts).name")).toBe("puts");
+  expect(cosmEval("Kernel.method(:warn).name")).toBe("warn");
+  expect(cosmEval("Kernel.method(:now).name")).toBe("now");
+  expect(cosmEval("Kernel.method(:random).name")).toBe("random");
   expect(cosmEval("Kernel.method(:test).name")).toBe("test");
+  expect(cosmEval("Kernel.method(:describe).name")).toBe("describe");
+  expect(cosmEval("Kernel.method(:expectEqual).name")).toBe("expectEqual");
+  expect(cosmEval("Kernel.method(:resetTests).name")).toBe("resetTests");
+  expect(cosmEval("Kernel.method(:testSummary).name")).toBe("testSummary");
+  expect(cosmEval("cosm.test.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.test.has(:test)")).toBe(true);
+  expect(cosmEval("cosm.test.has(:describe)")).toBe(true);
+  expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
+  expect(cosmEval("http.class.name")).toBe("Http");
+  expect(cosmEval("cosm.http.class.name")).toBe("Http");
+  expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Namespace");
+  expect(cosmEval('require("cosm/test"); test.class.name')).toBe("Function");
+  expect(cosmEval('require("cosm/test"); describe.class.name')).toBe("Function");
+  expect(cosmEval('require("cosm/test"); expectEqual.class.name')).toBe("Function");
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.1.0");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.2.0");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
+  expect(cosmEval('Kernel.expectEqual([1, 2], [1, 2])')).toBe(true);
+  expect(cosmEval("Kernel.now() > 0")).toBe(true);
+  expect(cosmEval("Kernel.random() >= 0 && Kernel.random() < 1")).toBe(true);
+  expect(cosmEval('Kernel.inspect(cosm.test)')).toContain("#<Namespace");
+  expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
   expect(cosmEval('Kernel.send(1, Symbol.intern("plus"), 2)')).toBe(3);
   expect(cosmEval("Kernel.method(:assert).class.name")).toBe("Method");
   expect(cosmEval("Kernel.method(:assert).name")).toBe("assert");
@@ -82,7 +132,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.1.0");
+  expect(cosmEval("cosm.version")).toBe("0.2.0");
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
 });
 
@@ -111,6 +161,7 @@ test("formatted output uses Cosm-oriented class names", () => {
   const classesValue = Cosm.Interpreter.eval("classes");
   expect(ValueAdapter.format(classValue)).toBe("Class");
   expect(ValueAdapter.format(classesValue)).toContain("Class: Class");
+  expect(ValueAdapter.format(Cosm.Interpreter.eval('HttpResponse.text("ok", 201)'))).toBe('#<HttpResponse 201 "ok">');
 });
 
 test("array and hash literals evaluate", () => {
@@ -186,6 +237,7 @@ test("if expressions choose a branch and scope it", () => {
 test("user-defined functions work", () => {
   expect(cosmEval("let id = ->(x) { x }; id(42)")).toBe(42);
   expect(cosmEval("let id = ->(x) { x }; id.call(42)")).toBe(42);
+  expect(cosmEval('def greet(name) "hi " + name end; greet("cosm")')).toBe("hi cosm");
   expect(cosmEval('let greet = ->(name) { "hello " + name }; greet("cosm")')).toBe("hello cosm");
   expect(cosmEval("let pair = ->(a, b) { a + b }; pair(20, 22)")).toBe(42);
   expect(cosmEval('let outer = "co"; let join = ->(rest) { outer + rest }; join("sm")')).toBe("cosm");
@@ -208,6 +260,7 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Pair do def init(left, right) do true end end; Pair.slots.length")).toBe(2);
   expect(cosmEval("class Pair do def init(left, right) do true end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
+  expect(cosmEval('class Greeter def greet(name) "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethods.label.name')).toBe("label");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).name')).toBe("label");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label)()')).toBe("Greeter!");
@@ -221,6 +274,15 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Checked do def init(value) do assert(@value == value) end end; Checked.new(4).value')).toBe(4);
   expect(cosmEval('class Pair do def init(left, right) do true end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");
   expect(cosmEval('class Point do end; Point.new().class.name')).toBe("Point");
+});
+
+test("http request and response runtime objects reflect cleanly", () => {
+  expect(cosmEval('HttpResponse.ok("ok").class.name')).toBe("HttpResponse");
+  expect(cosmEval('HttpResponse.ok("ok").status')).toBe(200);
+  expect(cosmEval('HttpResponse.text("made", 201).status')).toBe(201);
+  expect(cosmEval('HttpResponse.text("made", 201).body')).toBe("made");
+  expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).status')).toBe(202);
+  expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).headers.get("content-type")')).toBe("application/json");
 });
 
 test("type errors stay explicit", () => {
@@ -303,6 +365,28 @@ test("cli can write output through Kernel.puts", () => {
   });
 });
 
+test("cli can write warnings through Kernel.warn", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "warn.cosm");
+  writeFileSync(sourcePath, 'Kernel.warn("careful now"); 5\n');
+
+  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("5");
+    expect(stderr).toContain("careful now");
+  });
+});
+
 test("cli supports bare puts with single-quoted strings", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "bare-puts.cosm");
@@ -350,6 +434,53 @@ test("cli can sketch a tiny Cosm-native test harness", () => {
   });
 });
 
+test("cli can run the dedicated Cosm test file", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "test/test.cosm"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("# kernel basics");
+    expect(stdout).toContain("# callables");
+    expect(stdout).toContain("# objects");
+    expect(stdout).toContain("ok - math smoke");
+    expect(stdout).toContain("ok - class smoke");
+    expect(stdout).toContain("not ok - sad path: Assertion failed: boom");
+    expect(stdout).toContain("test harness complete");
+  });
+});
+
+test("cli test mode reports failures and exits nonzero", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "--test", "test/test.cosm"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(1);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("# kernel basics");
+    expect(stdout).toContain("# callables");
+    expect(stdout).toContain("# objects");
+    expect(stdout).toContain("ok - math smoke");
+    expect(stdout).toContain("not ok - sad path: Assertion failed: boom");
+    expect(stdout).toContain("7 passed, 1 failed, 8 total");
+  });
+});
+
 test("cli can run the cosm self-test file", () => {
   const proc = Bun.spawn(["bun", "bin/cosm", "test/core.cosm"], {
     cwd: process.cwd(),
@@ -363,7 +494,7 @@ test("cli can run the cosm self-test file", () => {
     proc.exited,
   ]).then(([stdout, stderr, exitCode]) => {
     expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
+    expect(stderr).toContain("core warning");
     expect(stdout).toContain("String");
   });
 });

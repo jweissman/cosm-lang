@@ -104,6 +104,11 @@ export class Parser {
           value: name.sourceString,
           left: expr.ast(),
         }),
+        RequireStmt_paren: (_require, _open, target, _close) => ({
+          kind: 'require_stmt',
+          value: '',
+          left: target.ast(),
+        }),
         Exp: (exp) => exp.ast(),
         IfExp_full: (_if, condition, _then, thenBody, _else, elseBody, _end) => ({
           kind: 'if_expr',

@@ -5,6 +5,7 @@
 Cosm currently evaluates a small expression language with semicolon-separated programs, lexical blocks, `if` expressions, stabby lambdas, and named `def` functions.
 
 Programs also support lexical local bindings with `let`.
+There is also a small bootstrap `require("...")` statement form for loading ambient stdlib helpers into the current scope.
 
 Line comments starting with `#` are ignored anywhere whitespace is allowed.
 
@@ -34,11 +35,13 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 
 - Lambdas: `->(arg1, arg2) { expr }`
 - Named defs: `def name(arg1, arg2) do ... end`
+- Named defs may also omit `do` when the body is already delimited by `end`: `def name(arg1) expr end`
 
 ### Classes
 
 - `class Name do ... end`
 - `class Name < Superclass do ... end`
+- `class Name ... end` is also accepted without the extra `do`
 
 Class bodies currently support instance methods via `def name(...)` and explicit class methods via `def self.name(...)`. A method named `init` defines constructor arity and field names; its parameter list becomes the class's declared fields. Class definitions bind a class value, appear in `classes`, and expose collected slots and methods through `.slots`, `.methods`, and `.classMethods`.
 Instances can be created with `ClassName.new(...)`, and constructor arguments are assigned positionally to the fields implied by `init`. Instance methods can refer to `self`, and `init` bodies run after those fields are assigned.
@@ -56,6 +59,7 @@ At the moment, `.class` on a class object is intentionally the same reflective l
 
 Programs may contain multiple expressions separated by `;`. The value of the last expression is the program result.
 At statement position, simple convenience calls may also omit parentheses, so forms like `assert true` and `puts 'hello'` are accepted as sugar for ordinary calls.
+`require("...")` is also statement-shaped in the current grammar.
 
 ```cosm
 let label = "co" + "sm";
@@ -187,16 +191,56 @@ Class.class.name
   Writes one formatted line to stdout. Strings print without quotes; other values use Cosm-style formatting.
 - `Kernel.print(value)`
   Writes formatted output to stdout without a trailing newline.
+- `Kernel.warn(value)`
+  Writes one formatted line to stderr.
+- `Kernel.now()`
+  Returns the current host timestamp in milliseconds since the Unix epoch.
+- `Kernel.random()`
+  Returns a host `Number` in the usual JS range `0 <= n < 1`.
+- `Kernel.expectEqual(actual, expected, message?)`
+  Tiny bootstrap equality helper for tests. Raises if the two values are not equal under Cosm equality.
 - `Kernel.test(name, fn)`
   Runs a zero-argument function or method, prints a tiny pass/fail line, and returns `true` or `false`.
+- `Kernel.describe(name, fn)`
+  Prints a section header, runs a zero-argument function or method, and returns that callable's result.
+- `Kernel.resetTests()`
+  Clears the current test counters.
+- `Kernel.testSummary()`
+  Returns a hash with `passed`, `failed`, and `total`.
 - `puts(value)`
   Convenience global alias for `Kernel.puts(value)`.
 - `print(value)`
   Convenience global alias for `Kernel.print(value)`.
+- `warn(value)`
+  Convenience global alias for `Kernel.warn(value)`.
 - `test(name, fn)`
   Convenience global alias for `Kernel.test(name, fn)`.
+- `describe(name, fn)`
+  Available after `require("cosm/test")`, and also exposed as `cosm.test.describe(...)`.
+- `expectEqual(actual, expected, message?)`
+  Available after `require("cosm/test")`, and also exposed as `cosm.test.expectEqual(...)`.
+- `resetTests()`
+  Convenience global alias for `Kernel.resetTests()`.
+- `testSummary()`
+  Convenience global alias for `Kernel.testSummary()`.
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
+- `http.serve(port, handler)`
+  Starts a tiny Bun-native HTTP server. `handler` receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`.
+- `HttpRequest.method`
+- `HttpRequest.url`
+- `HttpRequest.path`
+- `HttpRequest.headers`
+- `HttpRequest.query`
+- `HttpRequest.bodyText()`
+- `HttpResponse.ok(body)`
+- `HttpResponse.text(body, status?)`
+- `HttpResponse.json(value, status?)`
+- `HttpResponse.status`
+- `HttpResponse.body`
+- `HttpResponse.headers`
+- `HttpServer.stop()`
+  Stops a server started through `http.serve(...)`.
 - `Kernel.send(receiver, message, ...args)`
   Performs an explicit message send where `message` is a string or symbol.
 - `value.method(message)`
@@ -212,14 +256,16 @@ Class.class.name
   Reflective object containing core classes.
 - `Kernel`
   Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
+- `http`
+  First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `cosm`
-  Reflective root object currently exposing `Kernel`, `classes`, and `version`.
+  Reflective root object currently exposing `Kernel`, `http`, `classes`, `test`, and `version`.
   `cosm.length`, `cosm.keys()`, `cosm.values()`, `cosm.has(:name)`, and `cosm.get(:name)` now work through the `Namespace` runtime model.
 - `Symbol`
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`
+  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`
 
 Examples:
 
@@ -228,10 +274,24 @@ classes.Array.name
 Kernel.assert(true)
 Kernel.print("hello")
 Kernel.puts("hello from cosm")
+Kernel.warn("careful now")
 puts 'hello from cosm'
 test("smoke", ->() { assert true })
+require("cosm/test")
+describe("smoke section", ->() { test("smoke", ->() { assert(true) }) })
+cosm.test.test("smoke", ->() { assert(true) })
+cosm.test.describe("more smoke", ->() { test("nested", ->() { assert(true) }) })
+cosm.test.expectEqual([1, 2], [1, 2])
+cosm.test.summary()
 Kernel.class.name
 Kernel.inspect(Kernel)
+http.class.name
+cosm.http.class.name
+Kernel.now()
+Kernel.random()
+Kernel.expectEqual([1, 2], [1, 2])
+HttpResponse.text("ok", 201)
+HttpResponse.json({ ok: true }, 202)
 Kernel.send(1, Symbol.intern("plus"), 2)
 Kernel.method(:assert).name
 Kernel.method(:assert).call(true)
@@ -245,6 +305,12 @@ cosm.values().length
 Symbol.intern("status").name
 1.send(:plus, 2)
 classes.Kernel.methods.assert.name
+classes.Http.methods.serve.name
+classes.HttpServer.methods.stop.name
+classes.Object.methods.send.name
+classes.Class.methods.new.name
+classes.Function.methods.call.name
+classes.Symbol.classMethods.intern.name
 classes.Kernel.method(:assert).name
 1.send(Symbol.intern("plus"), 2)
 [1, 2].class.name
@@ -272,14 +338,22 @@ do let x = 1; x + 2 end
 - `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
 - `assert` still exists as a convenience global, but `Kernel.assert(...)` is the clearer long-term shape.
 - `puts` also exists as a convenience global alias for `Kernel.puts(...)`.
-- `print` and `test` now also exist as convenience global aliases for `Kernel.print(...)` and `Kernel.test(...)`.
+- `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
+- `resetTests` and `testSummary` also exist as convenience global aliases, though `cosm.test.reset()` / `cosm.test.summary()` are a better long-term shape.
+- `require("cosm/test")` injects `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope and returns the same namespace exposed as `cosm.test`.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
+- `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
+- `Kernel.describe(...)` is the current lightweight grouping primitive for Cosm-native tests; it prints a section header and then invokes a callable.
+- `def` and `class` currently allow a small parser convenience where `do` may be omitted before `end`.
+- Statement separators are still semicolon-oriented today; newline-only program separation is still a future lowering/grammar pass.
 - Parenthesis-free call sugar is currently narrow and statement-oriented; it exists mainly for lightweight convenience calls such as `assert true` and `puts 'hello'`.
 - `:name` is syntax sugar for an interned symbol value, and `Symbol.intern("name")` exposes the same underlying TS runtime symbol model directly.
 - `send` is now available both as `Kernel.send(receiver, message, ...)` and `receiver.send(message, ...)`, which gives us a more explicit message-passing path while the broader dispatch model settles.
 - `Kernel.inspect` and `Kernel.send` now live on the TS-backed `Kernel` runtime value rather than only being interpreter-installed helpers.
+- `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `methods` and `classMethods` currently return ordinary reflective objects, so dot access like `classes.Kernel.methods.assert` works. Bracket indexing like `methods[:assert]` is not implemented yet.
+- Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.

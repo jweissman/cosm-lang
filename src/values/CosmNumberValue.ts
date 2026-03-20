@@ -18,6 +18,10 @@ export class CosmNumberValue extends CosmValueBase {
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
+    const inherited = super.nativeMethod(name);
+    if (inherited && name !== 'eq') {
+      return inherited;
+    }
     if (name === 'plus') {
       return new CosmFunctionValue('plus', (args, selfValue) => {
         if (!(selfValue instanceof CosmNumberValue)) {
@@ -27,6 +31,41 @@ export class CosmNumberValue extends CosmValueBase {
           throw new Error(`Arity error: method plus expects 1 arguments, got ${args.length}`);
         }
         return selfValue.plus(args[0]);
+      });
+    }
+    if (name === 'pos' || name === 'neg') {
+      return new CosmFunctionValue(name, (args, selfValue) => {
+        if (!(selfValue instanceof CosmNumberValue)) {
+          throw new Error(`Type error: ${name} expects a numeric receiver`);
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method ${name} expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmNumberValue(name === 'pos' ? selfValue.value : -selfValue.value);
+      });
+    }
+    if (name === 'subtract' || name === 'multiply' || name === 'divide' || name === 'pow') {
+      return new CosmFunctionValue(name, (args, selfValue) => {
+        if (!(selfValue instanceof CosmNumberValue)) {
+          throw new Error(`Type error: ${name} expects a numeric receiver`);
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: method ${name} expects 1 arguments, got ${args.length}`);
+        }
+        const [right] = args;
+        if (!(right instanceof CosmNumberValue)) {
+          throw new Error(`Type error: ${name} expects numeric operands`);
+        }
+        switch (name) {
+          case 'subtract':
+            return new CosmNumberValue(selfValue.value - right.value);
+          case 'multiply':
+            return new CosmNumberValue(selfValue.value * right.value);
+          case 'divide':
+            return new CosmNumberValue(selfValue.value / right.value);
+          case 'pow':
+            return new CosmNumberValue(selfValue.value ** right.value);
+        }
       });
     }
     if (name === 'eq' || name === 'lt' || name === 'lte' || name === 'gt' || name === 'gte') {

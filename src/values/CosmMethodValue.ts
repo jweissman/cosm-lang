@@ -1,10 +1,37 @@
 import { CosmValue } from "../types";
+import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 
 
 export class CosmMethodValue extends CosmValueBase {
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+
+  static installRuntimeHooks(hooks: {
+    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+  }): void {
+    this.invokeHandler = hooks.invoke;
+  }
+
+  static readonly manifest: RuntimeValueManifest<CosmMethodValue> = {
+    properties: {
+      name: (self) => new CosmStringValue(self.name),
+      receiver: (self) => self.receiver,
+    },
+    methods: {
+      call: () => new CosmFunctionValue('call', (args, selfValue) => {
+        if (!(selfValue instanceof CosmMethodValue)) {
+          throw new Error('Type error: call expects a method receiver');
+        }
+        if (!CosmMethodValue.invokeHandler) {
+          throw new Error('Method runtime error: invoke handler is not installed');
+        }
+        return CosmMethodValue.invokeHandler(selfValue, args);
+      }),
+    },
+  };
+
   readonly type = 'method';
 
   constructor(
@@ -16,30 +43,18 @@ export class CosmMethodValue extends CosmValueBase {
   }
 
   override nativeProperty(name: string): CosmValue | undefined {
-    if (name === 'name') {
-      return new CosmStringValue(this.name);
+    const inherited = super.nativeProperty(name);
+    if (inherited !== undefined) {
+      return inherited;
     }
-    if (name === 'receiver') {
-      return this.receiver;
-    }
-    return undefined;
+    return manifestProperty(this, name, CosmMethodValue.manifest);
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
-    if (name !== 'call') {
-      return undefined;
+    const inherited = super.nativeMethod(name);
+    if (inherited) {
+      return inherited;
     }
-    return new CosmFunctionValue('call', (args, selfValue) => {
-      if (!(selfValue instanceof CosmMethodValue)) {
-        throw new Error('Type error: call expects a method receiver');
-      }
-      if (args.length < 0) {
-        throw new Error('Arity error: impossible');
-      }
-      if (selfValue.target.nativeCall) {
-        return selfValue.target.nativeCall(args, selfValue.receiver);
-      }
-      throw new Error(`Invalid method target: ${selfValue.name}`);
-    });
+    return manifestMethod(this, name, CosmMethodValue.manifest);
   }
 }

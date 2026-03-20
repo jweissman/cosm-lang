@@ -25,6 +25,8 @@ That notebook would let us:
 
 This is a good target because it exercises the language in a realistic way without forcing us to design a whole web framework too early.
 
+The first small host-facing step toward that target can be much narrower: a Bun-native `http` object that can start a tiny server and hand requests to Cosm callables. That is enough to begin proving the host boundary without pretending we already have a complete service framework.
+
 ## Why A Notebook First
 
 A notebook naturally pressures the right parts of the language/runtime:
@@ -61,6 +63,7 @@ The runtime should gradually move toward these principles:
 - instance/class-side dispatch
 - delegation and wrapper-style objects
 - mirrors and hologram-like readonly/presenter objects later
+- eventually a deeper metaobject layer where structures like `class` or stricter `data`-like forms could themselves be explained through templates/protocols rather than only fixed syntax
 
 ### 2. Standard Surface
 
@@ -98,5 +101,23 @@ Right now the most important work is:
 - clarifying dispatch ownership
 - continuing to harden metaclass and reflective semantics
 - growing `Kernel` and `cosm` into a real standard surface
+
+The narrow `0.2` milestone should keep consolidating that runtime core and standard surface:
+
+- one explicit TS-backed exposure protocol for the main runtime classes
+- stable send/invoke/reflection semantics
+- documented metaclass bootstrap behavior
+- a small but real standard surface through `Kernel`, `Namespace`, `cosm`, and `classes`
+- a first deliberate host boundary through `http`, `HttpRequest`, `HttpResponse`, and `HttpServer`
+
+That means the notebook, host/server layers, mirrors, holograms, and any `template`-style structure forms should stay visible as design targets, but land after the reflective core is stable enough to explain itself cleanly.
+
+The advanced OO research direction should stay visible while we do that:
+
+- make metaclass bootstrap rules explicit
+- define a clearer metaobject protocol for send/invoke/lookup
+- treat mirrors as reflective/control wrappers
+- treat holograms as readonly/presentational wrappers, especially for safe host or browser interop
+- only then explore higher-level template-driven structure forms
 
 That is the shortest path toward a notebook worth using.

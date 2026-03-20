@@ -17,6 +17,10 @@ export class CosmStringValue extends CosmValueBase {
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
+    const inherited = super.nativeMethod(name);
+    if (inherited && name !== 'eq') {
+      return inherited;
+    }
     if (name === 'plus') {
       return new CosmFunctionValue('plus', (args, selfValue) => {
         if (!(selfValue instanceof CosmStringValue)) {
@@ -43,6 +47,10 @@ export class CosmStringValue extends CosmValueBase {
   }
 
   override nativeProperty(name: string): CosmValue | undefined {
+    const inherited = super.nativeProperty(name);
+    if (inherited !== undefined) {
+      return inherited;
+    }
     if (name === 'length') {
       return new CosmNumberValue(this.value.length);
     }

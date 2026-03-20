@@ -11,6 +11,10 @@ export class CosmArrayValue extends CosmValueBase {
   }
 
   override nativeProperty(name: string): CosmValue | undefined {
+    const inherited = super.nativeProperty(name);
+    if (inherited !== undefined) {
+      return inherited;
+    }
     if (name === 'length') {
       return new CosmNumberValue(this.items.length);
     }

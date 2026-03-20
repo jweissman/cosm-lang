@@ -53,7 +53,7 @@ export class Construct {
   ): CosmClass {
     return new CosmClassValue(name, superclassName, slots, methods, classMethods, superclass, classRef);
   }
-  static nativeFunc(name: string, nativeCall: (args: CosmValue[], selfValue?: CosmValue) => CosmValue): CosmFunction {
+  static nativeFunc(name: string, nativeCall: (args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue): CosmFunction {
     return new CosmFunctionValue(name, nativeCall);
   }
   static method(name: string, receiver: CosmValue, target: CosmFunction): CosmMethod {

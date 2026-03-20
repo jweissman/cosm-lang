@@ -11,9 +11,13 @@ export class CosmHashValue extends CosmValueBase {
   }
 
   override nativeProperty(name: string): CosmValue | undefined {
+    const inherited = super.nativeProperty(name);
+    if (inherited !== undefined) {
+      return inherited;
+    }
     if (name === 'length') {
       return new CosmNumberValue(Object.keys(this.entries).length);
     }
-    return undefined;
+    return this.entries[name];
   }
 }

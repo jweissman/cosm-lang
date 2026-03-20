@@ -5,9 +5,15 @@ assert(1 + 1 == 2, "math still works");
 assert("co" + "sm" == "cosm", "string concatenation works");
 assert("co".plus("sm") == "cosm", "string instances can send plus directly");
 assert(3.send(:lt, 4) == true, "numeric comparison can flow through explicit message send");
+assert(5.neg() == -5, "numeric unary behavior can flow through direct message send");
 assert("co" == "co", "string equality still works through operator syntax");
 assert(:ok == :ok, "symbol equality still works through operator syntax");
 assert(true == true, "boolean equality still works through operator syntax");
+assert([1, 2] == [1, 2], "array equality now also flows through eq message send");
+assert({ answer: 42 } == { answer: 42 }, "hash equality now also flows through eq message send");
+assert(true.and(false) == false, "boolean instances can send and directly");
+assert(false.or(true) == true, "boolean instances can send or directly");
+assert(true.not() == false, "boolean instances can send not directly");
 assert("cosm".length == 4, "strings expose length as a property");
 assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property");
 assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property");
@@ -16,28 +22,58 @@ assert(Kernel.assert(true) == true, "Kernel exposes assert as an ambient service
 assert true;
 assert(Kernel.print("core print") == "core print", "Kernel exposes a basic print service");
 assert(Kernel.puts("core self-test output") == "core self-test output", "Kernel exposes a basic puts service");
+assert(Kernel.warn("core warning") == "core warning", "Kernel exposes a basic warn service");
 puts 'core bare puts';
 assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.1.0", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.2.0", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
+assert(Kernel.now() > 0, "Kernel exposes a simple time helper");
+assert(Kernel.random() >= 0, "Kernel exposes a simple randomness helper");
+assert(Kernel.random() < 1, "Kernel randomness stays in the expected JS range");
 assert(Kernel.send(1, :plus, 2) == 3, "Kernel can drive explicit message sends");
+assert(Kernel.expectEqual([1, 2], [1, 2]) == true, "Kernel exposes a tiny equality expectation helper");
 assert(classes.Kernel.send(:assert, true, "ok") == true, "class-object send can target introspected instance methods too");
 assert(Kernel.method(:assert).class.name == "Method", "bound methods are first-class method objects");
 assert(Kernel.method(:assert).name == "assert", "objects can introspect bound methods directly");
 assert(Kernel.method(:assert).call(true) == true, "method objects can be invoked explicitly through call");
 assert(classes.Kernel.method(:assert).name == "assert", "class objects can introspect instance methods directly");
 assert(classes.Kernel.method(:assert).call(true, "ok") == true, "class-side method introspection returns callable Method objects");
+assert(cosm.test.class.name == "Namespace", "cosm exposes a dedicated test namespace");
+assert(cosm.test.has(:test) == true, "test namespace exposes a test entry point");
+assert(cosm.test.has(:expectEqual) == true, "test namespace exposes a tiny equality helper");
+assert(require("cosm/test").class.name == "Namespace", "require can load the tiny test stdlib namespace");
 assert(cosm.classes.String.name == "String", "cosm exposes the reflective class repository");
+assert(http.class.name == "Http", "http is available as a reflective host-service object");
+assert(cosm.http.class.name == "Http", "cosm exposes the http service reflectively");
 assert(classes.class.name == "Namespace", "classes is a named reflective namespace object");
 assert(cosm.class.name == "Namespace", "cosm is a named reflective namespace object");
+assert(classes.Object.methods.send.name == "send", "Object reflects shared send through the runtime model");
+assert(classes.Object.methods.method.name == "method", "Object reflects shared method lookup through the runtime model");
+assert(classes.Class.methods.new.name == "new", "Class reflects constructor entry points through the runtime model");
+assert(classes.Function.methods.call.name == "call", "Function reflects call through the runtime model");
+assert(classes.Method.methods.call.name == "call", "Method reflects call through the runtime model");
+assert(classes.Symbol.methods.eq.name == "eq", "Symbol reflects eq through the runtime model");
+assert(classes.Symbol.classMethods.intern.name == "intern", "Symbol reflects intern on its metaclass");
+assert(classes.Namespace.methods.keys.name == "keys", "Namespace reflects enumerable helpers through the runtime model");
+assert(classes.Kernel.methods.assert.name == "assert", "Kernel reflects its ambient services through the runtime model");
+assert(classes.Http.methods.serve.name == "serve", "Http reflects Bun-native serving through the runtime model");
+assert(classes.HttpRequest.methods.bodyText.name == "bodyText", "HttpRequest reflects request access through the runtime model");
+assert(classes.HttpResponse.classMethods.text.name == "text", "HttpResponse reflects response construction through the runtime model");
+assert(classes.HttpResponse.classMethods.json.name == "json", "HttpResponse reflects JSON response construction through the runtime model");
+assert(classes.HttpServer.methods.stop.name == "stop", "HttpServer reflects lifecycle control through the runtime model");
+assert(HttpResponse.ok("ok").status == 200, "HttpResponse.ok creates a basic response object");
+assert(HttpResponse.text("made", 201).status == 201, "HttpResponse.text can override status");
+assert(HttpResponse.json({ answer: 42 }, 202).headers.get("content-type") == "application/json", "HttpResponse.json installs a JSON content type");
+assert(Kernel.inspect(HttpResponse.text("ok", 201)) == '#<HttpResponse 201 "ok">', "Kernel.inspect renders host response objects readably");
 assert(:status.class.name == "Symbol", "symbol literals create first-class runtime values");
 assert(:status == Symbol.intern("status"), "symbol literals reuse interned symbol values");
 assert(1.send(:plus, 2) == 3, "values can send messages through explicit symbolic dispatch");
+assert([1, 2].send(:eq, [1, 2]) == true, "structural equality can be driven through explicit eq send");
 assert("symbol=#{:ok}" == "symbol=:ok", "symbols format cleanly in interpolation");
 assert('#{1 + 1}' == '#{1 + 1}', "single-quoted strings do not interpolate");
 
@@ -105,6 +141,7 @@ assert(tuple.right == 2, "constructors assign later slot values in order");
 assert(tuple.label() == "1:2", "methods can use ivar shorthand for field provenance");
 assert(tuple.sum() == 3, "ivars behave like direct instance-field reads");
 assert(tuple.classname() == "Pair", "instances can send methods with self");
+assert(Pair.new(1, 2) == Pair.new(1, 2), "instance equality now also flows through runtime eq");
 
 # class-side methods and metaclass ownership
 class Checked do
@@ -134,10 +171,6 @@ assert(Greeter.label() == "Greeter!", "class objects can participate in method s
 assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
 assert(ChildLabel.metaclass.superclass.name == "BaseLabel class", "user metaclasses inherit through the class hierarchy");
 assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
-
-# tiny Cosm-native test harness sketch
-assert(test("core harness ok", ->() { assert(true) }) == true, "Kernel.test reports passing tests");
-assert(test("core harness sad", ->() { assert(false, "sad path") }) == false, "Kernel.test reports failing tests");
 
 # ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");

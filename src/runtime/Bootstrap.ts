@@ -1,0 +1,250 @@
+import { Construct } from "../Construct";
+import { CosmClass, CosmEnv, CosmFunction, CosmObject, CosmValue } from "../types";
+import { manifestClassMethods, manifestMethods } from "./RuntimeManifest";
+import { CosmClassValue } from "../values/CosmClassValue";
+import { CosmFunctionValue } from "../values/CosmFunctionValue";
+import { CosmKernelValue } from "../values/CosmKernelValue";
+import { CosmMethodValue } from "../values/CosmMethodValue";
+import { CosmNamespaceValue } from "../values/CosmNamespaceValue";
+import { CosmSymbolValue } from "../values/CosmSymbolValue";
+import { CosmValueBase } from "../values/CosmValueBase";
+import { CosmObjectValue } from "../values/CosmObjectValue";
+import { CosmHttpValue } from "../values/CosmHttpValue";
+import { CosmHttpRequestValue } from "../values/CosmHttpRequestValue";
+import { CosmHttpResponseValue } from "../values/CosmHttpResponseValue";
+import { CosmHttpServerValue } from "../values/CosmHttpServerValue";
+import { RuntimeDispatch } from "./RuntimeDispatch";
+import { RuntimeEquality } from "./RuntimeEquality";
+
+export type RuntimeRepository = {
+  globals: Record<string, CosmValue>;
+  classes: Record<string, CosmClass>;
+};
+
+type BootstrapRuntime = {
+  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  instantiateClass: (classValue: CosmClass, args: CosmValue[]) => CosmObject;
+  invokeSend: (receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]) => CosmValue;
+  classOf: (value: CosmValue) => CosmClass;
+  internSymbol: (name: string) => CosmValue;
+};
+
+export class Bootstrap {
+  static createRepository(runtime: BootstrapRuntime): RuntimeRepository {
+    this.installRuntimeHooks(runtime);
+
+    const classes = this.createCoreClasses();
+    this.installBootNativeMethods(classes, runtime);
+
+    const globals = this.createCoreGlobals(classes);
+    this.installKernelGlobals(globals, classes, runtime);
+
+    return { globals, classes };
+  }
+
+  private static installRuntimeHooks(runtime: BootstrapRuntime): void {
+    CosmKernelValue.installRuntimeHooks({
+      send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+    });
+    CosmFunctionValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+    });
+    CosmHttpValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+    });
+    CosmClassValue.installRuntimeHooks({
+      instantiate: (classValue, args) => runtime.instantiateClass(classValue, args),
+      lookupClassMethod: (classValue, message) => RuntimeDispatch.reflectClassMethod(classValue, message),
+    });
+    CosmMethodValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue) => runtime.invokeFunction(callee, args, selfValue),
+    });
+    CosmSymbolValue.installRuntimeHooks({
+      intern: (name) => runtime.internSymbol(name),
+    });
+    CosmValueBase.installRuntimeHooks({
+      send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
+      lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
+      classOf: (receiver) => runtime.classOf(receiver),
+      equal: (left, right) => RuntimeEquality.compare(left, right),
+    });
+  }
+
+  private static currentRepository?: RuntimeRepository;
+
+  private static createCoreClasses(): Record<string, CosmClass> {
+    const objectClass = Construct.class('Object');
+    const classClass = Construct.class('Class', 'Object', [], {}, {}, objectClass);
+    classClass.classRef = classClass;
+    objectClass.classRef = this.createMetaclass('Object', classClass, {}, classClass);
+
+    const classes: Record<string, CosmClass> = {
+      Class: classClass,
+      Object: objectClass,
+    };
+
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
+      classes[name] = this.createBootClass(name, objectClass, classClass);
+    }
+
+    return classes;
+  }
+
+  private static installBootNativeMethods(classes: Record<string, CosmClass>, _runtime: BootstrapRuntime): void {
+    Object.assign(classes.Object.methods, manifestMethods(
+      new CosmObjectValue('Object', {}, classes.Object),
+      CosmValueBase.manifest,
+    ));
+    Object.assign(classes.Class.methods, manifestMethods(classes.Class, CosmClassValue.manifest));
+    Object.assign(classes.Function.methods, manifestMethods(
+      new CosmFunctionValue('noop', () => Construct.bool(true)),
+      CosmFunctionValue.manifest,
+    ));
+    Object.assign(classes.Method.methods, manifestMethods(
+      Construct.method('noop', Construct.bool(true), new CosmFunctionValue('noop', () => Construct.bool(true))),
+      CosmMethodValue.manifest,
+    ));
+    Object.assign(classes.Symbol.methods, manifestMethods(
+      Construct.symbol('example'),
+      CosmSymbolValue.manifest,
+    ));
+    Object.assign(classes.Namespace.methods, manifestMethods(
+      new CosmNamespaceValue({}, classes.Namespace),
+      CosmNamespaceValue.manifest,
+    ));
+    Object.assign(classes.Kernel.methods, manifestMethods(
+      new CosmKernelValue({}, classes.Kernel),
+      CosmKernelValue.manifest,
+    ));
+    Object.assign(classes.Http.methods, manifestMethods(
+      new CosmHttpValue(
+        {},
+        classes.Http,
+        classes.HttpServer,
+        classes.Namespace,
+        classes.HttpRequest,
+        classes.HttpResponse,
+      ),
+      CosmHttpValue.manifest,
+    ));
+    Object.assign(classes.HttpRequest.methods, manifestMethods(
+      new CosmHttpRequestValue(
+        'GET',
+        'http://127.0.0.1:0/example',
+        '/example',
+        new CosmNamespaceValue({}, classes.Namespace),
+        new CosmNamespaceValue({}, classes.Namespace),
+        '',
+        classes.HttpRequest,
+      ),
+      CosmHttpRequestValue.manifest,
+    ));
+    Object.assign(classes.HttpResponse.methods, manifestMethods(
+      new CosmHttpResponseValue(200, Construct.string('ok'), new CosmNamespaceValue({}, classes.Namespace), classes.HttpResponse),
+      CosmHttpResponseValue.manifest,
+    ));
+    Object.assign(classes.HttpServer.methods, manifestMethods(
+      new CosmHttpServerValue(undefined, 0, "", classes.HttpServer),
+      CosmHttpServerValue.manifest,
+    ));
+    Object.assign(
+      classes.Symbol.classRef?.methods ?? {},
+      manifestClassMethods(CosmSymbolValue.manifest),
+    );
+    Object.assign(
+      classes.HttpResponse.classRef?.methods ?? {},
+      manifestClassMethods(CosmHttpResponseValue.manifest),
+    );
+  }
+
+  private static createCoreGlobals(classes: Record<string, CosmClass>): Record<string, CosmValue> {
+    return {
+      Class: classes.Class,
+      Object: classes.Object,
+      Number: classes.Number,
+      Boolean: classes.Boolean,
+      String: classes.String,
+      Symbol: classes.Symbol,
+      Array: classes.Array,
+      Hash: classes.Hash,
+      Function: classes.Function,
+      Method: classes.Method,
+      Namespace: classes.Namespace,
+      Http: classes.Http,
+      HttpRequest: classes.HttpRequest,
+      HttpResponse: classes.HttpResponse,
+      HttpServer: classes.HttpServer,
+    };
+  }
+
+  private static installKernelGlobals(
+    globals: Record<string, CosmValue>,
+    classes: Record<string, CosmClass>,
+    _runtime: BootstrapRuntime,
+  ): void {
+    const kernelMethods = classes.Kernel.methods;
+    const kernelObject = Construct.kernel({}, classes.Kernel);
+    const testNamespace = CosmKernelValue.createTestNamespace(kernelMethods, classes.Namespace);
+    const httpObject = new CosmHttpValue(
+      {},
+      classes.Http,
+      classes.HttpServer,
+      classes.Namespace,
+      classes.HttpRequest,
+      classes.HttpResponse,
+    );
+
+    globals.Kernel = kernelObject;
+    globals.http = httpObject;
+    globals.assert = kernelMethods.assert;
+    globals.print = kernelMethods.print;
+    globals.puts = kernelMethods.puts;
+    globals.warn = kernelMethods.warn;
+    globals.now = kernelMethods.now;
+    globals.random = kernelMethods.random;
+    globals.test = kernelMethods.test;
+    globals.expectEqual = kernelMethods.expectEqual;
+    globals.resetTests = kernelMethods.resetTests;
+    globals.testSummary = kernelMethods.testSummary;
+    globals.require = this.createRequireFunction(kernelMethods, testNamespace);
+  }
+
+  private static createRequireFunction(kernelMethods: Record<string, CosmFunction>, testNamespace: CosmObject): CosmFunction {
+    return Construct.nativeFunc('require', (args, _selfValue, env) => {
+      if (args.length !== 1) {
+        throw new Error(`Arity error: require expects 1 arguments, got ${args.length}`);
+      }
+      if (!env) {
+        throw new Error('Require runtime error: missing environment');
+      }
+      const [target] = args;
+      if (target.type !== 'string') {
+        throw new Error('Type error: require expects a string argument');
+      }
+      if (target.value === 'cosm/test') {
+        env.bindings.test = kernelMethods.test;
+        env.bindings.describe = testNamespace.fields.describe;
+        env.bindings.expectEqual = testNamespace.fields.expectEqual;
+        env.bindings.resetTests = kernelMethods.resetTests;
+        env.bindings.testSummary = kernelMethods.testSummary;
+        return testNamespace;
+      }
+      throw new Error(`Require error: unknown module '${target.value}'`);
+    });
+  }
+
+  private static createBootClass(name: string, superclass: CosmClass, classClass: CosmClass): CosmClass {
+    const classValue = Construct.class(name, superclass.name, [], {}, {}, superclass);
+    classValue.classRef = this.createMetaclass(name, superclass.classRef ?? classClass, {}, classClass);
+    return classValue;
+  }
+
+  static createMetaclass(name: string, superclassMeta: CosmClass, methods: Record<string, CosmFunction>, classClass: CosmClass): CosmClass {
+    return Construct.class(`${name} class`, superclassMeta.name, [], methods, {}, superclassMeta, classClass);
+  }
+
+  static setCurrentRepository(repository: RuntimeRepository): void {
+    this.currentRepository = repository;
+  }
+}

@@ -13,4 +13,12 @@ export class CosmObjectValue extends CosmValueBase {
   ) {
     super();
   }
+
+  override nativeProperty(name: string): CosmValue | undefined {
+    const inherited = super.nativeProperty(name);
+    if (inherited !== undefined) {
+      return inherited;
+    }
+    return this.fields[name];
+  }
 }
