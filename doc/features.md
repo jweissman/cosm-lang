@@ -22,7 +22,7 @@
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - Reflective method tables now also surface as `Namespace`-style objects rather than anonymous bags, which makes class reflection more consistent with the rest of the runtime.
 - The core reflective/runtime classes now expose their native surface through one explicit manifest-style protocol, so bootstrap class tables and runtime lookup are drawing from the same declarations instead of parallel hand wiring.
-- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `now`, `random`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model, and `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
+- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `now`, `random`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model. Host process concerns like `cwd()` and `env(name)` now live on a dedicated reflective `Process` object, and `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
 - `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` can load `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`.
@@ -56,7 +56,7 @@
 
 - Extend class-side dispatch semantics deliberately.
 - Move more operators and built-ins behind runtime/class dispatch.
-- Fill in more baseline language services: `Kernel.print`, stdio, math/random/time, and a tiny test harness.
+- Fill in more baseline language services: stdio, math/random/time/process helpers, and a tiny test harness.
 - Add explicit object-state setup/writes once assignment semantics exist.
 - Design the first reflective metaclass links.
 - Write down the intended metaclass-diamond/bootstrap rule before we add much richer class-side power.

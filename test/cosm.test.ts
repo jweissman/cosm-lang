@@ -57,6 +57,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Boolean.superclass.name")).toBe("Object");
   expect(cosmEval("classes.Class.name")).toBe("Class");
   expect(cosmEval("classes.Kernel.name")).toBe("Kernel");
+  expect(cosmEval("classes.Process.name")).toBe("Process");
   expect(cosmEval("classes.Method.name")).toBe("Method");
   expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
   expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
@@ -75,6 +76,8 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Symbol.classMethods.intern.name")).toBe("intern");
   expect(cosmEval("classes.Namespace.methods.keys.name")).toBe("keys");
   expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
+  expect(cosmEval("classes.Process.methods.cwd.name")).toBe("cwd");
+  expect(cosmEval("classes.Process.methods.env.name")).toBe("env");
   expect(cosmEval("classes.Http.methods.serve.name")).toBe("serve");
   expect(cosmEval("classes.HttpRequest.methods.bodyText.name")).toBe("bodyText");
   expect(cosmEval("classes.HttpResponse.classMethods.ok.name")).toBe("ok");
@@ -102,6 +105,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.test.has(:test)")).toBe(true);
   expect(cosmEval("cosm.test.has(:describe)")).toBe(true);
   expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
+  expect(cosmEval("Process.class.name")).toBe("Process");
+  expect(cosmEval("cosm.Process.class.name")).toBe("Process");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Namespace");
@@ -119,6 +124,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
   expect(cosmEval('Kernel.expectEqual([1, 2], [1, 2])')).toBe(true);
   expect(cosmEval("Kernel.now() > 0")).toBe(true);
+  expect(cosmEval("Process.cwd().length > 0")).toBe(true);
   expect(cosmEval("Kernel.random() >= 0 && Kernel.random() < 1")).toBe(true);
   expect(cosmEval('Kernel.inspect(cosm.test)')).toContain("#<Namespace");
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
@@ -134,6 +140,21 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.version")).toBe("0.2.0");
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
+});
+
+test("Process.env can read host environment strings", () => {
+  const previous = process.env.COSM_TEST_TEMP;
+  process.env.COSM_TEST_TEMP = "present";
+  try {
+    expect(cosmEval('Process.env("COSM_TEST_TEMP")')).toBe("present");
+    expect(cosmEval('Process.env("COSM_TEST_MISSING")')).toBe(false);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.COSM_TEST_TEMP;
+    } else {
+      process.env.COSM_TEST_TEMP = previous;
+    }
+  }
 });
 
 test("symbols are interned runtime values", () => {

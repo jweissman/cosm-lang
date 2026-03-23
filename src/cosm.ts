@@ -379,6 +379,7 @@ namespace Cosm {
     private static cosmObject(env: Env): CosmValue {
       return Construct.namespace({
         Kernel: this.repository.globals.Kernel,
+        Process: this.repository.globals.Process,
         http: this.repository.globals.http,
         classes: this.classesObject(env),
         test: Construct.namespace({

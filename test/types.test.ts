@@ -7,6 +7,7 @@ import { CosmKernelValue } from "../src/values/CosmKernelValue";
 import { CosmMethodValue } from "../src/values/CosmMethodValue";
 import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmObjectValue } from "../src/values/CosmObjectValue";
+import { CosmProcessValue } from "../src/values/CosmProcessValue";
 import { CosmSymbolValue } from "../src/values/CosmSymbolValue";
 import { CosmValueBase } from "../src/values/CosmValueBase";
 import { RuntimeEquality } from "../src/runtime/RuntimeEquality";
@@ -145,6 +146,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const classClass = new CosmClassValue("Class", "Object");
   const kernelClass = new CosmClassValue("Kernel", "Object");
   const namespaceClass = new CosmClassValue("Namespace", "Object");
+  const processClass = new CosmClassValue("Process", "Object");
   const httpRequestClass = new CosmClassValue("HttpRequest", "Object");
   const httpResponseClass = new CosmClassValue("HttpResponse", "Object");
 
@@ -170,6 +172,10 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const kernelMethods = manifestMethods(
     new CosmKernelValue({}, kernelClass),
     CosmKernelValue.manifest,
+  );
+  const processMethods = manifestMethods(
+    new CosmProcessValue({}, processClass),
+    CosmProcessValue.manifest,
   );
   const httpMethods = manifestMethods(
     new CosmHttpValue({}, new CosmClassValue("Http"), new CosmClassValue("HttpServer"), namespaceClass, httpRequestClass, httpResponseClass),
@@ -219,6 +225,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "testSummary",
     "warn",
   ]);
+  expect(Object.keys(processMethods).sort()).toEqual(["cwd", "env"]);
   expect(Object.keys(httpMethods)).toEqual(["serve"]);
   expect(Object.keys(httpRequestMethods)).toEqual(["bodyText"]);
   expect(Object.keys(httpResponseMethods)).toEqual([]);

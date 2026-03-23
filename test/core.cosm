@@ -31,8 +31,10 @@ assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys"
 assert(cosm.get(:version) == "0.2.0", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
+assert(Process.class.name == "Process", "Process is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
 assert(Kernel.now() > 0, "Kernel exposes a simple time helper");
+assert(Process.cwd().length > 0, "Process exposes the current working directory");
 assert(Kernel.random() >= 0, "Kernel exposes a simple randomness helper");
 assert(Kernel.random() < 1, "Kernel randomness stays in the expected JS range");
 assert(Kernel.send(1, :plus, 2) == 3, "Kernel can drive explicit message sends");
@@ -62,6 +64,7 @@ assert(classes.Symbol.methods.eq.name == "eq", "Symbol reflects eq through the r
 assert(classes.Symbol.classMethods.intern.name == "intern", "Symbol reflects intern on its metaclass");
 assert(classes.Namespace.methods.keys.name == "keys", "Namespace reflects enumerable helpers through the runtime model");
 assert(classes.Kernel.methods.assert.name == "assert", "Kernel reflects its ambient services through the runtime model");
+assert(classes.Process.methods.cwd.name == "cwd", "Process reflects current-working-directory access through the runtime model");
 assert(classes.Http.methods.serve.name == "serve", "Http reflects Bun-native serving through the runtime model");
 assert(classes.HttpRequest.methods.bodyText.name == "bodyText", "HttpRequest reflects request access through the runtime model");
 assert(classes.HttpResponse.classMethods.text.name == "text", "HttpResponse reflects response construction through the runtime model");

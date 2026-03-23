@@ -195,6 +195,10 @@ Class.class.name
   Writes one formatted line to stderr.
 - `Kernel.now()`
   Returns the current host timestamp in milliseconds since the Unix epoch.
+- `Process.cwd()`
+  Returns the current working directory as a string.
+- `Process.env(name)`
+  Returns the host environment variable string for `name`, or `false` if it is not present.
 - `Kernel.random()`
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
 - `Kernel.expectEqual(actual, expected, message?)`
@@ -256,10 +260,12 @@ Class.class.name
   Reflective object containing core classes.
 - `Kernel`
   Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
+- `Process`
+  Reflective object for host process access like `cwd()` and `env(name)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `cosm`
-  Reflective root object currently exposing `Kernel`, `http`, `classes`, `test`, and `version`.
+  Reflective root object currently exposing `Kernel`, `Process`, `http`, `classes`, `test`, and `version`.
   `cosm.length`, `cosm.keys()`, `cosm.values()`, `cosm.has(:name)`, and `cosm.get(:name)` now work through the `Namespace` runtime model.
 - `Symbol`
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
@@ -288,6 +294,8 @@ Kernel.inspect(Kernel)
 http.class.name
 cosm.http.class.name
 Kernel.now()
+Process.cwd()
+Process.env("HOME")
 Kernel.random()
 Kernel.expectEqual([1, 2], [1, 2])
 HttpResponse.text("ok", 201)

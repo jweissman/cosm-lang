@@ -23,8 +23,8 @@ class App do
   def hello(subject) do
     "Hello #{subject}"
   end
-end;
+end
 
-let app = App.new();
+let app = App.new()
 
-let server = http.serve(12345, app.method(:handle));
+let server = http.serve(12345, app.method(:handle))

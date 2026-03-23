@@ -6,6 +6,7 @@ import { CosmFunctionValue } from "../values/CosmFunctionValue";
 import { CosmKernelValue } from "../values/CosmKernelValue";
 import { CosmMethodValue } from "../values/CosmMethodValue";
 import { CosmNamespaceValue } from "../values/CosmNamespaceValue";
+import { CosmProcessValue } from "../values/CosmProcessValue";
 import { CosmSymbolValue } from "../values/CosmSymbolValue";
 import { CosmValueBase } from "../values/CosmValueBase";
 import { CosmObjectValue } from "../values/CosmObjectValue";
@@ -84,7 +85,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Process', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -116,6 +117,10 @@ export class Bootstrap {
     Object.assign(classes.Kernel.methods, manifestMethods(
       new CosmKernelValue({}, classes.Kernel),
       CosmKernelValue.manifest,
+    ));
+    Object.assign(classes.Process.methods, manifestMethods(
+      new CosmProcessValue({}, classes.Process),
+      CosmProcessValue.manifest,
     ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
@@ -171,6 +176,7 @@ export class Bootstrap {
       Function: classes.Function,
       Method: classes.Method,
       Namespace: classes.Namespace,
+      Process: classes.Process,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
@@ -185,6 +191,7 @@ export class Bootstrap {
   ): void {
     const kernelMethods = classes.Kernel.methods;
     const kernelObject = Construct.kernel({}, classes.Kernel);
+    const processObject = new CosmProcessValue({}, classes.Process);
     const testNamespace = CosmKernelValue.createTestNamespace(kernelMethods, classes.Namespace);
     const httpObject = new CosmHttpValue(
       {},
@@ -196,12 +203,12 @@ export class Bootstrap {
     );
 
     globals.Kernel = kernelObject;
+    globals.Process = processObject;
     globals.http = httpObject;
     globals.assert = kernelMethods.assert;
     globals.print = kernelMethods.print;
     globals.puts = kernelMethods.puts;
     globals.warn = kernelMethods.warn;
-    globals.now = kernelMethods.now;
     globals.random = kernelMethods.random;
     globals.test = kernelMethods.test;
     globals.expectEqual = kernelMethods.expectEqual;
