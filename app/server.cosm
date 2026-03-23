@@ -1,3 +1,16 @@
+# module HttpMethods
+#   def self.handle(method, path, &blk)
+#     @handles[method][path] = blk
+#   end
+#   def self.get(method, path, &) = handles(method, path, &)
+# end
+
+# module Html
+#   def does_not_understand(meth, *args, &blk)
+#     "<#{meth}>#{blk.call}</#{meth}>"
+#   end
+# end
+
 class App do
   def handle(req) do
     HttpResponse.text(respond(req), 200)

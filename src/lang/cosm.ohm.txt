@@ -26,7 +26,7 @@ Cosm {
     = "." name
 
   ClassStmt
-    = "class" ident ClassSuper? DoOpt ClassBody "end"
+    = kw_class ident ClassSuper? DoOpt ClassBody kw_end
 
   ClassSuper
     = "<" ident
@@ -38,26 +38,26 @@ Cosm {
     = ClassDefStmt ";"?
 
   ClassDefStmt
-    = "def" "self" "." ident "(" ParamList? ")" DoOpt StatementList "end"  -- class
-    | "def" ident "(" ParamList? ")" DoOpt StatementList "end"              -- instance
+    = kw_def kw_self "." ident "(" ParamList? ")" DoOpt StatementList kw_end  -- class
+    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end              -- instance
 
   DefStmt
-    = "def" ident "(" ParamList? ")" DoOpt StatementList "end"
+    = kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end
 
   LetStmt
-    = "let" ident "=" Exp
+    = kw_let ident "=" Exp
 
   RequireStmt
-    = "require" "(" string ")"  -- paren
+    = kw_require "(" string ")"  -- paren
 
   DoOpt
-    = "do"?
+    = kw_do?
 
   Exp
     = IfExp
 
   IfExp
-    = "if" Exp "then" StatementList "else" StatementList "end"  -- full
+    = kw_if Exp kw_then StatementList kw_else StatementList kw_end  -- full
     | OrExp
 
   OrExp
@@ -104,7 +104,7 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
-    | "do" StatementList "end"  -- block
+    | kw_do StatementList kw_end  -- block
     | "->" "(" ParamList? ")" "{" Exp "}"  -- lambda
     | "[" ArrayItems? "]"  -- array
     | "{" HashItems? "}"  -- hash
@@ -196,27 +196,41 @@ Cosm {
     | "t"   -- tab
 
   boolean
-    = "true"   -- true
-    | "false"  -- false
+    = kw_true   -- true
+    | kw_false  -- false
 
   self
-    = "self" ~alnum
+    = kw_self
+
+  kw_class = "class" ~alnum
+  kw_def = "def" ~alnum
+  kw_do = "do" ~alnum
+  kw_else = "else" ~alnum
+  kw_end = "end" ~alnum
+  kw_false = "false" ~alnum
+  kw_if = "if" ~alnum
+  kw_let = "let" ~alnum
+  kw_require = "require" ~alnum
+  kw_self = "self" ~alnum
+  kw_then = "then" ~alnum
+  kw_true = "true" ~alnum
 
   ivar
     = "@" ident
 
   keyword
-    = ("class"
-      | "def"
-      | "do"
-      | "else"
-      | "end"
-      | "false"
-      | "if"
-      | "let"
-      | "self"
-      | "then"
-      | "true") ~alnum
+    = kw_class
+    | kw_def
+    | kw_do
+    | kw_else
+    | kw_end
+    | kw_false
+    | kw_if
+    | kw_let
+    | kw_require
+    | kw_self
+    | kw_then
+    | kw_true
 
   ident  (an identifier)
     = ~keyword letter alnum*

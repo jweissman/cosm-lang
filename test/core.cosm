@@ -46,7 +46,8 @@ assert(classes.Kernel.method(:assert).call(true, "ok") == true, "class-side meth
 assert(cosm.test.class.name == "Namespace", "cosm exposes a dedicated test namespace");
 assert(cosm.test.has(:test) == true, "test namespace exposes a test entry point");
 assert(cosm.test.has(:expectEqual) == true, "test namespace exposes a tiny equality helper");
-assert(require("cosm/test").class.name == "Namespace", "require can load the tiny test stdlib namespace");
+require("cosm/test");
+assert(test.class.name == "Function", "require can load the tiny test stdlib namespace");
 assert(cosm.classes.String.name == "String", "cosm exposes the reflective class repository");
 assert(http.class.name == "Http", "http is available as a reflective host-service object");
 assert(cosm.http.class.name == "Http", "cosm exposes the http service reflectively");
@@ -107,6 +108,15 @@ def greet(name) do
   "hello " + name
 end;
 assert(greet("cosm") == "hello cosm", "def introduces named functions");
+class ImplicitDispatch do
+  def greet(name) do
+    "hello " + name
+  end
+  def relay(name) do
+    greet(name)
+  end
+end;
+assert(ImplicitDispatch.new().relay("cosm") == "hello cosm", "unresolved bare calls can dispatch through self");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");

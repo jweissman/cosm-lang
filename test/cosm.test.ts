@@ -246,6 +246,12 @@ test("user-defined functions work", () => {
   expect(cosmEval('let prefix = "co"; def joinDef(rest) do prefix + rest end; joinDef("sm")')).toBe("cosm");
 });
 
+test("implicit self dispatch works for unresolved bare calls", () => {
+  expect(cosmEval('class Greeter do def hello(name) do "hi " + name end; def callHello(name) do hello(name) end end; Greeter.new().callHello("cosm")')).toBe("hi cosm");
+  expect(cosmEval('class Greeter do def self.label() do "Greeter!" end; def self.callLabel() do label() end end; Greeter.callLabel()')).toBe("Greeter!");
+  expect(cosmEval('class Counter do def init(value) do true end; def current() do value end end; Counter.new(4).current()')).toBe(4);
+});
+
 test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Point do end; Point.name")).toBe("Point");
   expect(cosmEval("class Point do end; classes.Point.name")).toBe("Point");

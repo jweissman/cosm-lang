@@ -323,11 +323,37 @@ namespace Cosm {
           return localValue;
         }
       }
+      const selfValue = this.lookupImplicitSelf(name, env);
+      if (selfValue !== undefined) {
+        return selfValue;
+      }
       const value = this.repository.globals[name];
       if (value === undefined) {
         throw new Error(`Name error: unknown identifier '${name}'`);
       }
       return value;
+    }
+
+    private static lookupImplicitSelf(name: string, env: Env): CosmValue | undefined {
+      const selfValue = this.findSelfBinding(env);
+      if (!selfValue) {
+        return undefined;
+      }
+      try {
+        return RuntimeDispatch.resolveSendTarget(selfValue, name, this.repository);
+      } catch (error) {
+        if (
+          error instanceof Error
+          && (
+            error.message.includes(`has no property '${name}'`)
+            || error.message.includes(`has no instance method '${name}'`)
+            || error.message.includes(`has no class method '${name}'`)
+          )
+        ) {
+          return undefined;
+        }
+        throw error;
+      }
     }
 
     private static lookupClass(name: string, env: Env): CosmClass {
@@ -514,13 +540,7 @@ namespace Cosm {
     }
 
     private static lookupSelf(env: Env, ivarName?: string): CosmObject {
-      let selfValue: CosmValue | undefined;
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        if (Object.hasOwn(scope.bindings, 'self')) {
-          selfValue = scope.bindings.self;
-          break;
-        }
-      }
+      const selfValue = this.findSelfBinding(env);
       if (!selfValue) {
         const suffix = ivarName ? ` '@${ivarName}'` : '';
         throw new Error(`Name error: ivar access${suffix} requires self`);
@@ -530,6 +550,15 @@ namespace Cosm {
         throw new Error(`Type error: self must be an object instance${suffix}`);
       }
       return selfValue;
+    }
+
+    private static findSelfBinding(env: Env): CosmValue | undefined {
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        if (Object.hasOwn(scope.bindings, 'self')) {
+          return scope.bindings.self;
+        }
+      }
+      return undefined;
     }
 
     private static internSymbol(name: string): CosmValue {

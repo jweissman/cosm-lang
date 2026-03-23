@@ -18,6 +18,12 @@ test("parser accepts require and optional do elision", () => {
   expect(() => Parser.parse('class Greeter def label() "hi" end end; Greeter.name')).not.toThrow();
 });
 
+test("parser keeps keyword prefixes distinct from identifiers", () => {
+  expect(() => Parser.parse("do double() end")).not.toThrow();
+  expect(() => Parser.parse("do doThing() end")).not.toThrow();
+  expect(() => Parser.parse("let double = 1; do double end")).not.toThrow();
+});
+
 test("parser keeps bare-call sugar statement-oriented", () => {
   expect(() => Parser.parse("assert(assert true == true)")).toThrow("Parse error:");
   expect(() => Parser.parse("->() { assert true }")).toThrow("Parse error:");
