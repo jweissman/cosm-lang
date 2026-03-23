@@ -179,6 +179,10 @@ export class RuntimeDispatch {
   }
 
   private static lookupMissingMethodHandler(receiver: CosmValue, repository: RuntimeRepository): CosmValue | undefined {
+    const nativeFallback = receiver.nativeMethod('does_not_understand');
+    if (nativeFallback) {
+      return this.bindMethod(receiver, nativeFallback);
+    }
     const fallback = this.lookupMethod(this.classOf(receiver, repository.classes), 'does_not_understand');
     if (!fallback) {
       return undefined;

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
+import { CosmProcessValue } from "../src/values/CosmProcessValue";
 
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
@@ -89,6 +90,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Process.name")).toBe("Process");
   expect(cosmEval("classes.Time.name")).toBe("Time");
   expect(cosmEval("classes.Random.name")).toBe("Random");
+  expect(cosmEval("classes.Mirror.name")).toBe("Mirror");
   expect(cosmEval("classes.Method.name")).toBe("Method");
   expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
   expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
@@ -97,6 +99,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.HttpRequest.name")).toBe("HttpRequest");
   expect(cosmEval("classes.HttpResponse.name")).toBe("HttpResponse");
   expect(cosmEval("classes.HttpServer.name")).toBe("HttpServer");
+  expect(cosmEval("classes.HttpRouter.name")).toBe("HttpRouter");
   expect(cosmEval("classes.Number.class.name")).toBe("Number class");
   expect(cosmEval("classes.Object.methods.send.name")).toBe("send");
   expect(cosmEval("classes.Object.methods.method.name")).toBe("method");
@@ -110,6 +113,9 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Module.methods.get.name")).toBe("get");
   expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
   expect(cosmEval("classes.Process.methods.cwd.name")).toBe("cwd");
+  expect(cosmEval("classes.Process.methods.argv.name")).toBe("argv");
+  expect(cosmEval("classes.Process.methods.pid.name")).toBe("pid");
+  expect(cosmEval("classes.Process.methods.exit.name")).toBe("exit");
   expect(cosmEval("classes.Time.methods.now.name")).toBe("now");
   expect(cosmEval("classes.Time.methods.isoNow.name")).toBe("isoNow");
   expect(cosmEval("classes.Time.methods.iso.name")).toBe("iso");
@@ -119,9 +125,13 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Http.methods.serve.name")).toBe("serve");
   expect(cosmEval("classes.HttpRequest.methods.bodyText.name")).toBe("bodyText");
   expect(cosmEval("classes.HttpResponse.classMethods.ok.name")).toBe("ok");
+  expect(cosmEval("classes.HttpResponse.classMethods.html.name")).toBe("html");
   expect(cosmEval("classes.HttpResponse.classMethods.text.name")).toBe("text");
   expect(cosmEval("classes.HttpResponse.classMethods.json.name")).toBe("json");
   expect(cosmEval("classes.HttpServer.methods.stop.name")).toBe("stop");
+  expect(cosmEval("classes.HttpRouter.methods.get.name")).toBe("get");
+  expect(cosmEval("classes.HttpRouter.methods.draw.name")).toBe("draw");
+  expect(cosmEval("classes.Mirror.classMethods.reflect.name")).toBe("reflect");
   expect(cosmEval("cosm.classes.Number.name")).toBe("Number");
   expect(cosmEval("Number.name")).toBe("Number");
 });
@@ -145,19 +155,24 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
   expect(cosmEval("Process.class.name")).toBe("Process");
   expect(cosmEval("cosm.Process.class.name")).toBe("Process");
+  expect(cosmEval("Mirror.class.name")).toBe("Mirror class");
+  expect(cosmEval("HttpRouter.class.name")).toBe("HttpRouter class");
   expect(cosmEval("Time.class.name")).toBe("Time");
   expect(cosmEval("Random.class.name")).toBe("Random");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
   expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
+  expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
+  expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
+  expect(cosmEval('require("app/app.cosm"); app.App.build().class.name')).toBe("App");
   expect(cosmEval('require("cosm/test"); test.class.name')).toBe("Function");
   expect(cosmEval('require("cosm/test"); describe.class.name')).toBe("Function");
   expect(cosmEval('require("cosm/test"); expectEqual.class.name')).toBe("Function");
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.2.0");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.0");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
@@ -168,11 +183,14 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval('Time.iso(0)')).toBe("1970-01-01T00:00:00.000Z");
   expect(cosmEval("Time.isoNow().length >= 20")).toBe(true);
   expect(cosmEval("Process.cwd().length > 0")).toBe(true);
+  expect(cosmEval("Process.pid() > 0")).toBe(true);
   expect(cosmEval("Random.float() >= 0 && Random.float() < 1")).toBe(true);
   expect(cosmEval("Random.int(5) >= 0 && Random.int(5) < 5")).toBe(true);
   expect(cosmEval('Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('require("cosm/test"); Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
+  expect(cosmEval('Kernel.inspect(HttpRouter.new())')).toBe('#<HttpRouter routes: 0>');
+  expect(cosmEval('Kernel.inspect(Mirror.reflect([1, 2]))')).toBe('#<Mirror [1, 2]>');
   expect(cosmEval('Kernel.send(1, Symbol.intern("plus"), 2)')).toBe(3);
   expect(cosmEval("Kernel.method(:assert).class.name")).toBe("Method");
   expect(cosmEval("Kernel.method(:assert).name")).toBe("assert");
@@ -183,12 +201,35 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.2.0");
+  expect(cosmEval("cosm.version")).toBe("0.3.0");
+  expect(cosmEval("Process.argv().length >= 1")).toBe(true);
+  expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
+  expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('{ answer: 42 }');
+  expect(cosmEval("Mirror.reflect(Kernel).has(:assert)")).toBe(true);
+  expect(cosmEval("Mirror.reflect(Kernel).get(:assert).name")).toBe("assert");
+  expect(cosmEval("Mirror.reflect(Kernel).methods().has(:assert)")).toBe(true);
+  expect(cosmEval('Mirror.reflect(cosm.test).targetClass.name')).toBe("Module");
+  expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<HttpRouter routes: 0>');
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
   expect(() => cosmEval("Kernel.now()")).toThrow("Property error: object of class Kernel has no property 'now'");
   expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
   expect(() => cosmEval("Kernel.cwd")).toThrow("Property error: object of class Kernel has no property 'cwd'");
   expect(() => cosmEval('Kernel.env("HOME")')).toThrow("Property error: object of class Kernel has no property 'env'");
+});
+
+test("Process.exit can be hooked and validates codes", () => {
+  let exitedWith: number | undefined;
+  CosmProcessValue.installRuntimeHooks({
+    exit: (code?: number) => {
+      exitedWith = code;
+      throw new Error(`EXIT:${code ?? 0}`);
+    },
+  });
+
+  expect(() => cosmEval("Process.exit(3)")).toThrow("EXIT:3");
+  expect(exitedWith).toBe(3);
+  expect(() => cosmEval('Process.exit("nope")')).toThrow("Type error: exit expects a numeric code");
+  expect(() => cosmEval("Process.exit(1.5)")).toThrow("Type error: exit expects an integer code");
 });
 
 test("missing-method fallback supports explicit send and implicit self calls", () => {
@@ -272,6 +313,7 @@ test("string literals and concatenation work", () => {
   expect(cosmEval("'cosm'")).toBe("cosm");
   expect(cosmEval("'line\\nnext'")).toBe("line\nnext");
   expect(cosmEval("'#{1 + 1}'")).toBe("#{1 + 1}");
+  expect(cosmEval('let name = "cosm"; """<h1>Hello #{name}</h1>"""')).toBe("<h1>Hello cosm</h1>");
   expect(cosmEval('"cosm".length')).toBe(4);
   expect(cosmEval('"co" + "sm"')).toBe("cosm");
   expect(cosmEval('"co".plus("sm")')).toBe("cosm");
@@ -368,6 +410,7 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).call()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def kind() do self.class.name end end; let g = Greeter.new(); g.kind()')).toBe("Greeter");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.label()')).toBe("Greeter!");
+  expect(cosmEval('class Greeter\n  class << self\n    def label()\n      self.name + "!"\n    end\n  end\nend\nGreeter.label()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def self.kind() do self.class.name end end; Greeter.kind()')).toBe("Greeter class");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.label()')).toBe("base");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.metaclass.superclass.name')).toBe("Base class");
@@ -380,10 +423,40 @@ test("classes can be defined and reflected on", () => {
 test("http request and response runtime objects reflect cleanly", () => {
   expect(cosmEval('HttpResponse.ok("ok").class.name')).toBe("HttpResponse");
   expect(cosmEval('HttpResponse.ok("ok").status')).toBe(200);
+  expect(cosmEval('HttpResponse.html("<h1>ok</h1>", 203).status')).toBe(203);
+  expect(cosmEval('HttpResponse.html("<h1>ok</h1>", 203).headers.get("content-type")')).toBe("text/html; charset=utf-8");
   expect(cosmEval('HttpResponse.text("made", 201).status')).toBe(201);
   expect(cosmEval('HttpResponse.text("made", 201).body')).toBe("made");
   expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).status')).toBe(202);
   expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).headers.get("content-type")')).toBe("application/json");
+  expect(cosmEval('let router = HttpRouter.new(); router.get("/", ->(req) { HttpResponse.text("hi", 200) }); router.length')).toBe(1);
+  expect(cosmEval(`
+    let router = HttpRouter.new()
+    router.draw(->() {
+      get("/", ->(req) { HttpResponse.text("hi", 200) })
+      get("/health", ->(req) { HttpResponse.json({ ok: true }, 200) })
+    })
+    router.length
+  `)).toBe(2);
+  expect(cosmEval(`
+    let router = HttpRouter.new()
+    router.draw(->() {
+      get("/", ->(req) { HttpResponse.text("hi", 200) })
+    })
+    Kernel.inspect(router)
+  `)).toBe('#<HttpRouter routes: 1>');
+  expect(() => cosmEval(`
+    let router = HttpRouter.new()
+    router.draw(->() {
+      patch("/", ->(req) { HttpResponse.text("nope", 200) })
+    })
+  `)).toThrow("Property error: object of class HttpRouterDsl has no property 'patch'");
+  expect(() => cosmEval('let router = HttpRouter.new(); router.draw(1)')).toThrow(
+    "Type error: HttpRouter.draw expects a function or method",
+  );
+  expect(() => cosmEval('let router = HttpRouter.new(); router.get("/", 1)')).toThrow(
+    "Type error: router handlers must be functions, methods, or objects with handle(req)",
+  );
   expect(() => cosmEval("class Plain end\nhttp.serve(0, Plain.new())")).toThrow(
     "Type error: serve expects a function, method, or object with handle(req)",
   );

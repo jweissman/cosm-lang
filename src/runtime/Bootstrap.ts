@@ -17,8 +17,11 @@ import { CosmHttpValue } from "../values/CosmHttpValue";
 import { CosmHttpRequestValue } from "../values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "../values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "../values/CosmHttpServerValue";
+import { CosmHttpRouterValue } from "../values/CosmHttpRouterValue";
+import { CosmMirrorValue } from "../values/CosmMirrorValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
+import { basename } from "node:path";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -32,6 +35,7 @@ type BootstrapRuntime = {
   invokeSend: (receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]) => CosmValue;
   classOf: (value: CosmValue) => CosmClass;
   internSymbol: (name: string) => CosmValue;
+  loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
 };
 
 export class Bootstrap {
@@ -53,6 +57,7 @@ export class Bootstrap {
       send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
     });
+    CosmProcessValue.installRuntimeHooks({});
     CosmFunctionValue.installRuntimeHooks({
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
     });
@@ -60,9 +65,17 @@ export class Bootstrap {
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
       lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
     });
+    CosmHttpRouterValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+      lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
+    });
     CosmClassValue.installRuntimeHooks({
       instantiate: (classValue, args) => runtime.instantiateClass(classValue, args),
       lookupClassMethod: (classValue, message) => RuntimeDispatch.reflectClassMethod(classValue, message),
+    });
+    CosmMirrorValue.installRuntimeHooks({
+      classOf: (value) => runtime.classOf(value),
+      lookupProperty: (receiver, property) => RuntimeDispatch.lookupProperty(receiver, property, this.currentRepository!),
     });
     CosmMethodValue.installRuntimeHooks({
       invoke: (callee, args, selfValue) => runtime.invokeFunction(callee, args, selfValue),
@@ -91,7 +104,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -140,6 +153,10 @@ export class Bootstrap {
       new CosmRandomValue({}, classes.Random),
       CosmRandomValue.manifest,
     ));
+    Object.assign(classes.Mirror.methods, manifestMethods(
+      new CosmMirrorValue(Construct.bool(true), classes.Mirror),
+      CosmMirrorValue.manifest,
+    ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
         {},
@@ -171,6 +188,10 @@ export class Bootstrap {
       new CosmHttpServerValue(undefined, 0, "", classes.HttpServer),
       CosmHttpServerValue.manifest,
     ));
+    Object.assign(classes.HttpRouter.methods, manifestMethods(
+      new CosmHttpRouterValue({}, classes.HttpRouter, classes.HttpResponse, classes.Namespace),
+      CosmHttpRouterValue.manifest,
+    ));
     Object.assign(
       classes.Symbol.classRef?.methods ?? {},
       manifestClassMethods(CosmSymbolValue.manifest),
@@ -178,6 +199,10 @@ export class Bootstrap {
     Object.assign(
       classes.HttpResponse.classRef?.methods ?? {},
       manifestClassMethods(CosmHttpResponseValue.manifest),
+    );
+    Object.assign(
+      classes.Mirror.classRef?.methods ?? {},
+      CosmMirrorValue.bootClassMethods(),
     );
   }
 
@@ -198,10 +223,12 @@ export class Bootstrap {
       Process: classes.Process,
       Time: classes.Time,
       Random: classes.Random,
+      Mirror: classes.Mirror,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
       HttpServer: classes.HttpServer,
+      HttpRouter: classes.HttpRouter,
     };
   }
 
@@ -209,7 +236,7 @@ export class Bootstrap {
     globals: Record<string, CosmValue>,
     classes: Record<string, CosmClass>,
     modules: Record<string, CosmObject>,
-    _runtime: BootstrapRuntime,
+    runtime: BootstrapRuntime,
   ): void {
     const kernelMethods = classes.Kernel.methods;
     const kernelObject = Construct.kernel({}, classes.Kernel);
@@ -238,7 +265,7 @@ export class Bootstrap {
     globals.expectEqual = kernelMethods.expectEqual;
     globals.resetTests = kernelMethods.resetTests;
     globals.testSummary = kernelMethods.testSummary;
-    globals.require = this.createRequireFunction(modules);
+    globals.require = this.createRequireFunction(modules, runtime);
   }
 
   private static createCoreModules(classes: Record<string, CosmClass>): Record<string, CosmObject> {
@@ -257,7 +284,7 @@ export class Bootstrap {
     };
   }
 
-  private static createRequireFunction(modules: Record<string, CosmObject>): CosmFunction {
+  private static createRequireFunction(modules: Record<string, CosmObject>, runtime: BootstrapRuntime): CosmFunction {
     return Construct.nativeFunc('require', (args, _selfValue, env) => {
       if (args.length !== 1) {
         throw new Error(`Arity error: require expects 1 arguments, got ${args.length}`);
@@ -277,11 +304,23 @@ export class Bootstrap {
           env.bindings.expectEqual = loadedModule.fields.expectEqual;
           env.bindings.resetTests = loadedModule.fields.resetTests;
           env.bindings.testSummary = loadedModule.fields.testSummary;
+        } else {
+          env.bindings[this.moduleBindingName(target.value)] = loadedModule;
         }
         return loadedModule;
       }
+      const dynamicModule = runtime.loadModule(target.value, env);
+      if (dynamicModule) {
+        modules[target.value] = dynamicModule;
+        env.bindings[this.moduleBindingName(target.value)] = dynamicModule;
+        return dynamicModule;
+      }
       throw new Error(`Require error: unknown module '${target.value}'`);
     });
+  }
+
+  private static moduleBindingName(moduleName: string): string {
+    return basename(moduleName, '.cosm').replace(/[^A-Za-z0-9_]/g, '_');
   }
 
   private static createBootClass(name: string, superclass: CosmClass, classClass: CosmClass): CosmClass {

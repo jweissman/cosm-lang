@@ -28,7 +28,7 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.2.0", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.0", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
@@ -39,6 +39,8 @@ assert(Time.now() > 0, "Time exposes a simple time helper");
 assert(Time.iso(0) == "1970-01-01T00:00:00.000Z", "Time can render timestamps as ISO-8601 strings");
 assert(Time.isoNow().length >= 20, "Time exposes a convenient ISO-8601 helper for logging");
 assert(Process.cwd().length > 0, "Process exposes the current working directory");
+assert(Process.argv().length >= 1, "Process exposes host argv for service bootstrapping");
+assert(Process.pid() > 0, "Process exposes the host process id");
 assert(Random.float() >= 0, "Random exposes a simple floating-point helper");
 assert(Random.float() < 1, "Random float stays in the expected JS range");
 assert(Random.int(5) >= 0, "Random exposes a simple integer helper");
@@ -58,6 +60,9 @@ assert(cosm.test.has(:expectEqual) == true, "test namespace exposes a tiny equal
 assert(cosm.modules.test.class.name == "Module", "cosm exposes a module registry");
 require("cosm/test");
 assert(test.class.name == "Function", "require can load the tiny test stdlib namespace");
+require("app/app.cosm");
+assert(app.class.name == "Module", "require can load local service modules");
+assert(app.App.build().class.name == "App", "local service modules can expose application builders");
 assert(cosm.classes.String.name == "String", "cosm exposes the reflective class repository");
 assert(http.class.name == "Http", "http is available as a reflective host-service object");
 assert(cosm.http.class.name == "Http", "cosm exposes the http service reflectively");
@@ -74,24 +79,37 @@ assert(classes.Namespace.methods.keys.name == "keys", "Namespace reflects enumer
 assert(classes.Module.methods.get.name == "get", "Module reflects enumerable helpers through the runtime model");
 assert(classes.Kernel.methods.assert.name == "assert", "Kernel reflects its ambient services through the runtime model");
 assert(classes.Process.methods.cwd.name == "cwd", "Process reflects current-working-directory access through the runtime model");
+assert(classes.Process.methods.pid.name == "pid", "Process reflects process-id access through the runtime model");
+assert(classes.Process.methods.exit.name == "exit", "Process reflects process exit through the runtime model");
 assert(classes.Time.methods.now.name == "now", "Time reflects current time access through the runtime model");
 assert(classes.Time.methods.isoNow.name == "isoNow", "Time reflects ISO-8601 rendering through the runtime model");
 assert(classes.Random.methods.float.name == "float", "Random reflects floating-point sampling through the runtime model");
+assert(classes.Mirror.classMethods.reflect.name == "reflect", "Mirror exposes a reflective entry point");
 assert(classes.Http.methods.serve.name == "serve", "Http reflects Bun-native serving through the runtime model");
+assert(classes.HttpRouter.methods.get.name == "get", "HttpRouter reflects tiny routing helpers through the runtime model");
+assert(classes.HttpRouter.methods.draw.name == "draw", "HttpRouter reflects draw through the runtime model");
 assert(classes.HttpRequest.methods.bodyText.name == "bodyText", "HttpRequest reflects request access through the runtime model");
+assert(classes.HttpResponse.classMethods.html.name == "html", "HttpResponse reflects HTML response construction through the runtime model");
 assert(classes.HttpResponse.classMethods.text.name == "text", "HttpResponse reflects response construction through the runtime model");
 assert(classes.HttpResponse.classMethods.json.name == "json", "HttpResponse reflects JSON response construction through the runtime model");
 assert(classes.HttpServer.methods.stop.name == "stop", "HttpServer reflects lifecycle control through the runtime model");
 assert(HttpResponse.ok("ok").status == 200, "HttpResponse.ok creates a basic response object");
+assert(HttpResponse.html("<h1>ok</h1>", 203).headers.get("content-type") == "text/html; charset=utf-8", "HttpResponse.html installs an HTML content type");
 assert(HttpResponse.text("made", 201).status == 201, "HttpResponse.text can override status");
 assert(HttpResponse.json({ answer: 42 }, 202).headers.get("content-type") == "application/json", "HttpResponse.json installs a JSON content type");
 assert(Kernel.inspect(HttpResponse.text("ok", 201)) == '#<HttpResponse 201 "ok">', "Kernel.inspect renders host response objects readably");
+assert(Kernel.inspect(HttpRouter.new()) == '#<HttpRouter routes: 0>', "Kernel.inspect renders routers readably");
+assert(Kernel.inspect(Mirror.reflect([1, 2])) == '#<Mirror [1, 2]>', "Kernel.inspect renders mirror wrappers distinctly");
+assert(Mirror.reflect(Kernel).get(:assert).name == "assert", "Mirror can expose reflective property access without mutating the wrapped object");
+assert(Mirror.reflect(cosm.test).targetClass.name == "Module", "Mirror can wrap module values readably");
 assert(:status.class.name == "Symbol", "symbol literals create first-class runtime values");
 assert(:status == Symbol.intern("status"), "symbol literals reuse interned symbol values");
 assert(1.send(:plus, 2) == 3, "values can send messages through explicit symbolic dispatch");
 assert([1, 2].send(:eq, [1, 2]) == true, "structural equality can be driven through explicit eq send");
 assert("symbol=#{:ok}" == "symbol=:ok", "symbols format cleanly in interpolation");
 assert('#{1 + 1}' == '#{1 + 1}', "single-quoted strings do not interpolate");
+let heading = "Cosm";
+assert("""<h1>#{heading}</h1>""" == "<h1>Cosm</h1>", "triple-quoted strings can interpolate across multiple lines");
 
 # locals and data literals
 let greeting = "hello";
@@ -192,6 +210,13 @@ class Greeter do
     self.class.name
   end
 end;
+class MetaGreeter
+  class << self
+    def label()
+      self.name + "!"
+    end
+  end
+end;
 class BaseLabel do
   def self.label() do
     "base"
@@ -200,6 +225,7 @@ end;
 class ChildLabel < BaseLabel do end;
 assert(Checked.new(4).value == 4, "init signatures drive constructor arity and fields");
 assert(Greeter.classMethods.label.name == "label", "class methods reflect separately from instance methods");
+assert(MetaGreeter.label() == "MetaGreeter!", "class << self can define class-side methods explicitly");
 assert(Greeter.classMethod(:label).name == "label", "class objects can introspect bound class methods directly");
 assert(Greeter.classMethod(:label).call() == "Greeter!", "bound class methods can be invoked through call");
 assert(Greeter.label() == "Greeter!", "class objects can participate in method send when explicitly declared");
@@ -209,4 +235,10 @@ assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass in
 
 # ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
+let router = HttpRouter.new();
+router.draw(->() {
+  get("/", ->(req) { HttpResponse.html("<h1>ok</h1>", 200) })
+});
+assert(router.length == 1, "HttpRouter can register exact routes through draw");
+assert(Mirror.reflect(router).inspect() == '#<HttpRouter routes: 1>', "Mirror can inspect service-oriented runtime objects");
 classes.String.name

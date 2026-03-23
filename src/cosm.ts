@@ -3,6 +3,10 @@ import { Construct } from "./Construct";
 import { Parser } from './ast/parser';
 import { RuntimeDispatch } from './runtime/RuntimeDispatch';
 import { Bootstrap } from './runtime/Bootstrap';
+import { CosmHttpRouterValue } from './values/CosmHttpRouterValue';
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { CosmModuleValue } from './values/CosmModuleValue';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -125,6 +129,7 @@ namespace Cosm {
         invokeSend: (receiver, messageValue, args) => this.invokeSend(receiver, messageValue, args),
         classOf: (value) => this.classOf(value),
         internSymbol: (name) => this.internSymbol(name),
+        loadModule: (name, env) => this.loadModule(name, env),
       });
       Bootstrap.setCurrentRepository(repository);
       return repository;
@@ -149,6 +154,22 @@ namespace Cosm {
     private static evalRequire(ast: CoreNode, env: Env): CosmValue {
       const target = this.evalNode(this.expectChild(ast, 'require'), env);
       return this.invokeFunction(this.repository.globals.require, [target], undefined, env);
+    }
+
+    private static loadModule(name: string, _env: Env): CosmObject | undefined {
+      if (!name.endsWith(".cosm")) {
+        return undefined;
+      }
+      const cachedModule = this.repository.modules[name];
+      if (cachedModule instanceof CosmModuleValue) {
+        return cachedModule;
+      }
+      const source = readFileSync(resolve(process.cwd(), name), "utf8");
+      const moduleEnv = this.createEnv();
+      this.evalInEnv(source, moduleEnv);
+      const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, this.repository.classes.Module);
+      this.repository.modules[name] = loadedModule;
+      return loadedModule;
     }
 
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
@@ -383,6 +404,8 @@ namespace Cosm {
         Process: this.repository.globals.Process,
         Time: this.repository.globals.Time,
         Random: this.repository.globals.Random,
+        Mirror: this.repository.globals.Mirror,
+        HttpRouter: this.repository.globals.HttpRouter,
         http: this.repository.globals.http,
         modules: Construct.namespace({
           test: this.repository.modules["cosm/test"],
@@ -525,6 +548,9 @@ namespace Cosm {
     }
 
     private static buildInstance(classValue: CosmClass, args: CosmValue[]): CosmObject {
+      if (classValue.name === 'HttpRouter') {
+        return new CosmHttpRouterValue({}, classValue, this.repository.classes.HttpResponse, this.repository.classes.Namespace);
+      }
       const fields = Object.fromEntries(
         classValue.slots.map((slot, index) => [slot, args[index]]),
       );
@@ -601,6 +627,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.2.0";
+    export const version = "0.3.0";
 }
 export default Cosm;

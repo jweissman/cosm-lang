@@ -18,6 +18,8 @@ import { CosmHttpValue } from "../src/values/CosmHttpValue";
 import { CosmHttpRequestValue } from "../src/values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "../src/values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "../src/values/CosmHttpServerValue";
+import { CosmHttpRouterValue } from "../src/values/CosmHttpRouterValue";
+import { CosmMirrorValue } from "../src/values/CosmMirrorValue";
 
 test("type constructors build expected runtime values", () => {
   expect(Val.number(42)).toMatchObject({ type: "number", value: 42 });
@@ -155,6 +157,8 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const randomClass = new CosmClassValue("Random", "Object");
   const httpRequestClass = new CosmClassValue("HttpRequest", "Object");
   const httpResponseClass = new CosmClassValue("HttpResponse", "Object");
+  const httpRouterClass = new CosmClassValue("HttpRouter", "Object");
+  const mirrorClass = new CosmClassValue("Mirror", "Object");
 
   const objectMethods = manifestMethods(
     new CosmObjectValue("Object", {}, objectClass),
@@ -220,6 +224,15 @@ test("core runtime manifests expose a consistent boot surface", () => {
     new CosmHttpServerValue(undefined, 0, "", new CosmClassValue("HttpServer")),
     CosmHttpServerValue.manifest,
   );
+  const httpRouterMethods = manifestMethods(
+    new CosmHttpRouterValue({}, httpRouterClass, httpResponseClass, namespaceClass),
+    CosmHttpRouterValue.manifest,
+  );
+  const mirrorMethods = manifestMethods(
+    new CosmMirrorValue(Val.bool(true), mirrorClass),
+    CosmMirrorValue.manifest,
+  );
+  const mirrorClassMethods = manifestClassMethods(CosmMirrorValue.manifest);
 
   expect(Object.keys(objectMethods).sort()).toEqual(["eq", "method", "send"]);
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
@@ -242,12 +255,15 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "testSummary",
     "warn",
   ]);
-  expect(Object.keys(processMethods).sort()).toEqual(["cwd", "env"]);
+  expect(Object.keys(processMethods).sort()).toEqual(["argv", "cwd", "env", "exit", "pid"]);
   expect(Object.keys(timeMethods).sort()).toEqual(["iso", "isoNow", "now"]);
   expect(Object.keys(randomMethods).sort()).toEqual(["float", "int"]);
   expect(Object.keys(httpMethods)).toEqual(["serve"]);
   expect(Object.keys(httpRequestMethods)).toEqual(["bodyText"]);
   expect(Object.keys(httpResponseMethods)).toEqual([]);
-  expect(Object.keys(httpResponseClassMethods).sort()).toEqual(["json", "ok", "text"]);
+  expect(Object.keys(httpResponseClassMethods).sort()).toEqual(["html", "json", "ok", "text"]);
   expect(Object.keys(httpServerMethods)).toEqual(["stop"]);
+  expect(Object.keys(httpRouterMethods).sort()).toEqual(["delete", "draw", "get", "handle", "post", "put"]);
+  expect(Object.keys(mirrorMethods).sort()).toEqual(["get", "has", "inspect", "methods"]);
+  expect(Object.keys(mirrorClassMethods)).toEqual(["reflect"]);
 });

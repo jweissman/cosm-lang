@@ -8,11 +8,14 @@ import { CosmHashValue } from "./values/CosmHashValue";
 import { CosmFunctionValue } from "./values/CosmFunctionValue";
 import { CosmClassValue } from "./values/CosmClassValue";
 import { CosmObjectValue } from "./values/CosmObjectValue";
+import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
+import { CosmMirrorValue } from "./values/CosmMirrorValue";
 
 export type CoreNodeKind =
   | 'program'
   | 'block'
   | 'class'
+  | 'class_meta'
   | 'let'
   | 'require'
   | 'def'
@@ -80,13 +83,16 @@ export type CosmValue =
   | CosmObjectValue
   | CosmClassValue
   | CosmFunctionValue
-  | CosmMethodValue;
+  | CosmMethodValue
+  | CosmHttpRouterValue
+  | CosmMirrorValue;
 
 export type SurfaceNodeKind =
   | 'program'
   | 'statement_list'
   | 'statement'
   | 'class_stmt'
+  | 'class_meta_stmt'
   | 'def_stmt'
   | 'class_def_stmt'
   | 'class_super'

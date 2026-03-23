@@ -9,6 +9,7 @@ export class Parser {
       let lineBuffer = '';
       let inSingle = false;
       let inDouble = false;
+      let inTripleDouble = false;
       let escaped = false;
       let inComment = false;
 
@@ -31,6 +32,17 @@ export class Parser {
           } else {
             lineBuffer += char;
           }
+          continue;
+        }
+
+        if (inTripleDouble) {
+          if (input.slice(index, index + 3) === '"""') {
+            lineBuffer += '"""';
+            index += 2;
+            inTripleDouble = false;
+            continue;
+          }
+          lineBuffer += char;
           continue;
         }
 
@@ -60,6 +72,12 @@ export class Parser {
         if (char === '\'') {
           inSingle = true;
           lineBuffer += char;
+          continue;
+        }
+        if (input.slice(index, index + 3) === '"""') {
+          inTripleDouble = true;
+          lineBuffer += '"""';
+          index += 2;
           continue;
         }
         if (char === '"') {
@@ -184,9 +202,31 @@ export class Parser {
         ClassBody: (members) => ({
           kind: 'class_body',
           value: '',
+          children: members.children.flatMap((child) => {
+            const ast = child.ast();
+            return ast.kind === 'list' ? (ast.children ?? []) : [ast];
+          }),
+        }),
+        ClassMember_meta: (member, _semi) => member.ast(),
+        ClassMember_def: (member, _semi) => member.ast(),
+        ClassMetaStmt: (_class, _shift, _self, _do, body, _end) => ({
+          kind: 'list',
+          value: '',
+          children: Parser.listChildren(body.ast()),
+        }),
+        ClassMetaBody: (members) => ({
+          kind: 'list',
+          value: '',
           children: members.children.map((child) => child.ast()),
         }),
-        ClassMember: (member, _semi) => member.ast(),
+        ClassMetaMember: (member, _semi) => member.ast(),
+        ClassMetaDefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: Parser.paramNames(params.ast()),
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+        }),
         ClassDefStmt_class: (_def, _self, _dot, name, _open, params, _close, _do, body, _end) => ({
           kind: 'class_def_stmt',
           value: name.sourceString,
@@ -236,7 +276,7 @@ export class Parser {
           kind: 'lambda_expr',
           value: '<lambda>',
           params: Parser.paramNames(params.ast()),
-          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
         AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
@@ -332,15 +372,35 @@ export class Parser {
           kind: 'string',
           value: Parser.listChildren(parts.ast()).map((child) => child.value).join(''),
         }),
+        hstring: (_open, parts, _close) => {
+          const children = Parser.listChildren(parts.ast());
+          const isPlain = children.every((child) => child.kind === 'string' && !(child.children?.length));
+          if (isPlain) {
+            return {
+              kind: 'string',
+              value: children.map((child) => child.value).join(''),
+            };
+          }
+          return {
+            kind: 'string',
+            value: '',
+            children,
+          };
+        },
         stringPart_interp: (interpolation) => interpolation.ast(),
         stringPart_text: (text) => text.ast(),
         stringPart_escape: (_slash, escape) => escape.ast(),
         sstringPart_text: (text) => text.ast(),
         sstringPart_escape: (_slash, escape) => escape.ast(),
+        hstringPart_interp: (interpolation) => interpolation.ast(),
+        hstringPart_text: (text) => text.ast(),
+        hstringPart_escape: (_slash, escape) => escape.ast(),
         interpolation: (_open, expr, _close) => expr.ast(),
         stringText_plain: (char) => ({ kind: 'string', value: char.sourceString }),
         stringText_hash: (hash) => ({ kind: 'string', value: hash.sourceString }),
         sstringText: (char) => ({ kind: 'string', value: char.sourceString }),
+        hstringText_plain: (char) => ({ kind: 'string', value: char.sourceString }),
+        hstringText_hash: (hash) => ({ kind: 'string', value: hash.sourceString }),
         escape_quote: (_quote) => ({ kind: 'string', value: '"' }),
         escape_slash: (_slash) => ({ kind: 'string', value: "\\" }),
         escape_newline: (_newline) => ({ kind: 'string', value: "\n" }),

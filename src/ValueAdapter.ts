@@ -2,6 +2,8 @@ import { CosmValue } from "./types";
 import { CosmHttpRequestValue } from "./values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "./values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "./values/CosmHttpServerValue";
+import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
+import { CosmMirrorValue } from "./values/CosmMirrorValue";
 import { CosmModuleValue } from "./values/CosmModuleValue";
 import { CosmNamespaceValue } from "./values/CosmNamespaceValue";
 
@@ -63,6 +65,12 @@ export class ValueAdapter {
             url: value.url,
           };
         }
+        if (value instanceof CosmHttpRouterValue) {
+          return {
+            kind: "http_router",
+            length: value.nativeProperty("length") && this.cosmToJS(value.nativeProperty("length")!),
+          };
+        }
         if (value instanceof CosmHttpRequestValue) {
           return {
             kind: 'http_request',
@@ -79,6 +87,12 @@ export class ValueAdapter {
             status: value.status,
             body: this.cosmToJS(value.body),
             headers: this.cosmToJS(value.headers),
+          };
+        }
+        if (value instanceof CosmMirrorValue) {
+          return {
+            kind: "mirror",
+            targetClass: value.nativeProperty("targetClass") ? this.cosmToJS(value.nativeProperty("targetClass")!) : null,
           };
         }
         return Object.fromEntries(
@@ -130,11 +144,17 @@ export class ValueAdapter {
         if (value instanceof CosmHttpServerValue) {
           return `#<HttpServer url: ${JSON.stringify(value.url)}, port: ${value.port}>`;
         }
+        if (value instanceof CosmHttpRouterValue) {
+          return `#<HttpRouter routes: ${value.nativeProperty("length") ? this.format(value.nativeProperty("length")!) : "0"}>`;
+        }
         if (value instanceof CosmHttpRequestValue) {
           return `#<HttpRequest ${value.method} ${value.path}>`;
         }
         if (value instanceof CosmHttpResponseValue) {
           return `#<HttpResponse ${value.status} ${this.format(value.body)}>`;
+        }
+        if (value instanceof CosmMirrorValue) {
+          return `#<Mirror ${this.format(value.target)}>`;
         }
         const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
         if (value.className === 'Object') {

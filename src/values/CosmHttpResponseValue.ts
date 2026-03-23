@@ -30,6 +30,18 @@ export class CosmHttpResponseValue extends CosmObjectValue {
         const statusCode = status ? this.expectStatus(status, 'HttpResponse.text') : 200;
         return new CosmHttpResponseValue(statusCode, body, new CosmNamespaceValue({}));
       }),
+      html: () => new CosmFunctionValue('html', (args) => {
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: HttpResponse.html expects 1 or 2 arguments, got ${args.length}`);
+        }
+        const [body, status] = args;
+        const statusCode = status ? this.expectStatus(status, 'HttpResponse.html') : 200;
+        return new CosmHttpResponseValue(
+          statusCode,
+          body,
+          new CosmNamespaceValue({ "content-type": new CosmStringValue("text/html; charset=utf-8") }),
+        );
+      }),
       json: () => new CosmFunctionValue('json', (args) => {
         if (args.length < 1 || args.length > 2) {
           throw new Error(`Arity error: HttpResponse.json expects 1 or 2 arguments, got ${args.length}`);

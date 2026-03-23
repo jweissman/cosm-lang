@@ -1,0 +1,31 @@
+class App
+  def init(router)
+    true
+  end
+
+  def handle(req)
+    @router.handle(req)
+  end
+
+  class << self
+    def build()
+      let router = HttpRouter.new()
+
+      router.draw(->() {
+        get("/", ->(req) {
+          puts "[#{Time.isoNow()}] #{req.method} #{req.path}"
+          HttpResponse.html("""
+<h1>Cosm</h1>
+<p>Hello from #{req.path}</p>
+""", 200)
+        })
+
+        get("/health", ->(req) {
+          HttpResponse.json({ ok: true, path: req.path, pid: Process.pid() }, 200)
+        })
+      })
+
+      App.new(router)
+    end
+  end
+end

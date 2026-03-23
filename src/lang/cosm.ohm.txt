@@ -35,7 +35,20 @@ Cosm {
     = ClassMember*
 
   ClassMember
-    = ClassDefStmt ";"?
+    = ClassMetaStmt ";"?  -- meta
+    | ClassDefStmt ";"?   -- def
+
+  ClassMetaStmt
+    = kw_class "<<" kw_self DoOpt ClassMetaBody kw_end
+
+  ClassMetaBody
+    = ClassMetaMember*
+
+  ClassMetaMember
+    = ClassMetaDefStmt ";"?
+
+  ClassMetaDefStmt
+    = kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end
 
   ClassDefStmt
     = kw_def kw_self "." ident "(" ParamList? ")" DoOpt StatementList kw_end  -- class
@@ -105,9 +118,10 @@ Cosm {
   PriExp
     = "(" Exp ")"  -- paren
     | kw_do StatementList kw_end  -- block
-    | "->" "(" ParamList? ")" "{" Exp "}"  -- lambda
+    | "->" "(" ParamList? ")" "{" StatementList "}"  -- lambda
     | "[" ArrayItems? "]"  -- array
     | "{" HashItems? "}"  -- hash
+    | hstring
     | string
     | symbol
     | boolean
@@ -158,6 +172,9 @@ Cosm {
     = dstring
     | sstring
 
+  hstring
+    = "\"\"\"" hstringPart* "\"\"\""
+
   dstring
     = "\"" stringPart* "\""
 
@@ -173,6 +190,11 @@ Cosm {
     = sstringText   -- text
     | "\\" sescape  -- escape
 
+  hstringPart
+    = interpolation  -- interp
+    | hstringText    -- text
+    | "\\" escape    -- escape
+
   interpolation
     = "#{" applySyntactic<Exp> "}"
 
@@ -182,6 +204,10 @@ Cosm {
 
   sstringText
     = ~("\\" | "'") any
+
+  hstringText
+    = ~("\\" | "\"\"\"" | "#") any  -- plain
+    | "#" ~"{"                      -- hash
 
   escape
     = "\""  -- quote

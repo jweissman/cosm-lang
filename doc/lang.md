@@ -2,7 +2,7 @@
 
 ## Current Surface
 
-Cosm currently evaluates a small expression language with semicolon-separated programs, lexical blocks, `if` expressions, stabby lambdas, and named `def` functions.
+Cosm currently evaluates a small expression language with semicolon-separated programs, lexical blocks, `if` expressions, stabby lambdas, named `def` functions, and small reflective service/runtime objects.
 
 Programs also support lexical local bindings with `let`.
 There is also a small bootstrap `require("...")` statement form for loading ambient stdlib helpers into the current scope. It remains statement-shaped, but now evaluates to a real `Module` object.
@@ -14,6 +14,7 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 - Numbers: `1`, `2.5`
 - Booleans: `true`, `false`
 - Double-quoted strings: `"cosm"`, `"line\nbreak"`
+- Triple-quoted strings: `"""<h1>Hello #{name}</h1>"""`
 - Single-quoted strings: `'cosm'`, `'#{not interpolated}'`
 - Symbol literals: `:status`
 - Interned symbols: `Symbol.intern("status")`
@@ -37,6 +38,8 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 - Named defs: `def name(arg1, arg2) do ... end`
 - Named defs may also omit `do` when the body is already delimited by `end`: `def name(arg1) expr end`
 
+In `0.3`, stabby lambdas remain the only lambda form. Block-style lambda syntax such as `do |req| ... end` is intentionally deferred.
+
 ### Classes
 
 - `class Name do ... end`
@@ -49,6 +52,19 @@ Inside instance methods, `@name` is shorthand for reading the instance field nam
 Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
 Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` and `Point.metaclass.name` are both `Point class`, `Point.metaclass.class.name` is `Class`, and `Class.class.name` stays `Class`.
 At the moment, `.class` on a class object is intentionally the same reflective link as `.metaclass`. That is transparent, but still somewhat provisional; richer class-side authoring syntax may come later once the underlying model feels less surprising.
+Class bodies also now support an explicit class-side block form:
+
+```cosm
+class Thing
+  class << self
+    def label()
+      "Thing!"
+    end
+  end
+end
+```
+
+Inside `class << self ... end`, `self` is the class object, and defs become class-side methods. In `0.3`, this is equivalent to existing `def self.name(...)` behavior rather than a second metaclass semantics.
 
 ### Control Flow
 
@@ -102,6 +118,8 @@ Module objects currently support:
 
 `require("cosm/test")` still parses as a statement today, but it returns the same `Module` object exposed as `cosm.test` while also injecting bootstrap helpers like `test`, `describe`, and `expectEqual` into the current scope.
 
+Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3`, this injects a basename-style module binding into the current scope, so `require("app/app.cosm")` makes `app` available as a reflective `Module` object.
+
 ### Blocks and Conditionals
 
 Both `do ... end` and `if ... then ... else ... end` are expressions. Each block creates a new lexical scope and evaluates to the last value produced inside it.
@@ -130,7 +148,7 @@ end
 - `->(arg1, arg2) { expr }`
 - `def name(arg1, arg2) do ... end`
 
-Lambdas are one-line expression functions. `def` introduces named functions with `do ... end` bodies. Both capture outer lexical bindings, bind parameters in their call scope, and return the last value of their body.
+Lambdas are stabby functions whose bodies may now contain a full statement list. `def` introduces named functions with `do ... end` bodies. Both capture outer lexical bindings, bind parameters in their call scope, and return the last value of their body.
 
 Cosm also now has a small missing-method fallback for instance sends. If an object defines `does_not_understand(message, args)`, then missing sends on that object will call it with:
 
@@ -238,8 +256,14 @@ Class.class.name
   Returns the given numeric timestamp as an ISO-8601 UTC string.
 - `Process.cwd()`
   Returns the current working directory as a string.
+- `Process.argv()`
+  Returns the current host argv as an array of strings.
+- `Process.pid()`
+  Returns the current host process id as a number.
 - `Process.env(name)`
   Returns the host environment variable string for `name`, or `false` if it is not present.
+- `Process.exit(code?)`
+  Exits the current host process. `code` defaults to `0` and must be an integer when provided.
 - `Random.float()`
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
 - `Random.int(max)`
@@ -274,6 +298,15 @@ Class.class.name
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
   Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`.
+- `HttpRouter.new()`
+- `router.handle(method, path, handler)`
+- `router.handle(req)`
+- `router.get(path, handler)`
+- `router.post(path, handler)`
+- `router.put(path, handler)`
+- `router.delete(path, handler)`
+- `router.draw(->() { ... })`
+  Tiny exact-path router helpers. In `0.3`, routes match on exact method + exact path only. Unmatched routes return a plain `404` response, and invalid handler registration errors are raised immediately.
 - `HttpRequest.method`
 - `HttpRequest.url`
 - `HttpRequest.path`
@@ -281,6 +314,7 @@ Class.class.name
 - `HttpRequest.query`
 - `HttpRequest.bodyText()`
 - `HttpResponse.ok(body)`
+- `HttpResponse.html(body, status?)`
 - `HttpResponse.text(body, status?)`
 - `HttpResponse.json(value, status?)`
 - `HttpResponse.status`
@@ -290,6 +324,13 @@ Class.class.name
   Stops a server started through `http.serve(...)`.
 - `Kernel.send(receiver, message, ...args)`
   Performs an explicit message send where `message` is a string or symbol.
+- `Mirror.reflect(value)`
+  Returns a readonly reflective wrapper around `value`.
+- `mirror.targetClass`
+- `mirror.inspect()`
+- `mirror.methods()`
+- `mirror.get(name)`
+- `mirror.has(name)`
 - `value.method(message)`
   Returns a bound `Method` object for a method on a receiver. On class objects, this introspects instance methods.
 - `ClassValue.classMethod(message)`
@@ -304,23 +345,27 @@ Class.class.name
 - `Kernel`
   Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
 - `Process`
-  Reflective object for host process access like `cwd()` and `env(name)`.
+  Reflective object for host process access like `cwd()`, `argv()`, and `env(name)`.
 - `Time`
   Reflective object for host time access like `now()`.
 - `Random`
   Reflective object for host randomness like `float()` and `int(max)`.
 - `Module`
   Reflective class for loaded module objects like `cosm.test`.
+- `Mirror`
+  Reflective class for readonly mirror wrappers created through `Mirror.reflect(...)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
+- `HttpRouter`
+  Tiny exact-path router class for small service objects.
 - `cosm`
-  Reflective root object currently exposing `Kernel`, `Process`, `Time`, `Random`, `http`, `classes`, `modules`, `test`, and `version`.
+  Reflective root object currently exposing `Kernel`, `Process`, `Time`, `Random`, `Mirror`, `HttpRouter`, `http`, `classes`, `modules`, `test`, and `version`.
   `cosm.length`, `cosm.keys()`, `cosm.values()`, `cosm.has(:name)`, and `cosm.get(:name)` now work through the `Namespace` runtime model.
 - `Symbol`
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`
+  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
 
 Examples:
 
@@ -337,6 +382,8 @@ describe("smoke section", ->() { test("smoke", ->() { assert(true) }) })
 cosm.test.test("smoke", ->() { assert(true) })
 cosm.test.describe("more smoke", ->() { test("nested", ->() { assert(true) }) })
 cosm.test.expectEqual([1, 2], [1, 2])
+require("app/app.cosm")
+app.App.build().class.name
 cosm.test.summary()
 cosm.test.name
 cosm.modules.test.name
@@ -348,12 +395,20 @@ Time.now()
 Time.isoNow()
 Time.iso(0)
 Process.cwd()
+Process.argv()
 Process.env("HOME")
 Random.float()
 Random.int(10)
+Mirror.reflect({ answer: 42 }).inspect()
+Mirror.reflect(Kernel).get(:assert)
 Kernel.expectEqual([1, 2], [1, 2])
+HttpResponse.html("<h1>ok</h1>", 200)
 HttpResponse.text("ok", 201)
 HttpResponse.json({ ok: true }, 202)
+let router = HttpRouter.new()
+router.draw(->() {
+  get("/", ->(req) { HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) })
+})
 Kernel.send(1, Symbol.intern("plus"), 2)
 Kernel.method(:assert).name
 Kernel.method(:assert).call(true)
@@ -386,6 +441,8 @@ do let x = 1; x + 2 end
 ## Notes
 
 - Identifiers resolve lexically first, then fall back to the built-in/global repository.
+- Inside `router.draw(...)`, bare verb calls like `get(...)` and `post(...)` are handled through a tiny builder receiver that uses `does_not_understand(message, args)` under the hood. That keeps the first routing DSL object-first and runtime-backed rather than introducing route-specific syntax.
+- `router.draw(->() { ... })` is the intended `0.3` routing ergonomics boundary. Forms like `router.draw do ... end` and `get "/" do |req| ... end` are intentionally deferred.
 - Hash keys are currently identifier keys, not string keys.
 - Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
 - `self` is reserved for method bodies.
@@ -395,7 +452,9 @@ do let x = 1; x + 2 end
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
 - Single-quoted strings do not interpolate.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
+- Triple-quoted strings are the first simple multiline interpolated template form in `0.3`; raw/tagged heredoc variants are still deferred.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
+- `class << self ... end` is now available as an explicit class-side authoring form and is currently equivalent to `def self.name(...)`.
 - `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.
 - `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
 - `assert` still exists as a convenience global, but `Kernel.assert(...)` is the clearer long-term shape.
@@ -403,18 +462,21 @@ do let x = 1; x + 2 end
 - `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
 - `resetTests` and `testSummary` also exist as convenience global aliases, though `cosm.test.reset()` / `cosm.test.summary()` remain a better long-term shape.
 - `require("cosm/test")` still parses as a statement. It injects `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope and returns the same `Module` object exposed as `cosm.test`.
+- `require("path/to/file.cosm")` also parses as a statement. It returns a reflective `Module` object and injects a basename-style module binding such as `app` for `require("app/app.cosm")`.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
 - `Kernel.describe(...)` is the current lightweight grouping primitive for Cosm-native tests; it prints a section header and then invokes a callable.
 - `def` and `class` currently allow a small parser convenience where `do` may be omitted before `end`.
-- Statement separators are still semicolon-oriented today; newline-only program separation is still a future lowering/grammar pass.
+- Statement separators are still semicolon-oriented at the grammar level, but the parser now performs a conservative newline-to-semicolon normalization pass for common one-statement-per-line code.
 - Parenthesis-free call sugar is currently narrow and statement-oriented; it exists mainly for lightweight convenience calls such as `assert true` and `puts 'hello'`.
 - `:name` is syntax sugar for an interned symbol value, and `Symbol.intern("name")` exposes the same underlying TS runtime symbol model directly.
 - `send` is now available both as `Kernel.send(receiver, message, ...)` and `receiver.send(message, ...)`, which gives us a more explicit message-passing path while the broader dispatch model settles.
 - Missing instance sends can now fall back through `does_not_understand(message, args)` when an object defines it. This is the first small DSL-oriented dispatch hook, and it does not yet include splats or block capture.
 - `Kernel.inspect` and `Kernel.send` now live on the TS-backed `Kernel` runtime value rather than only being interpreter-installed helpers.
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
+- `HttpRouter` is intentionally exact-path and object-first in `0.3`; route params, wildcards, middleware, and route DSLs are still deferred.
+- `Mirror` is intentionally readonly and observational in `0.3`; it is not yet a JS bridge, proxy, or hologram-style presenter.
 - `methods` and `classMethods` currently return ordinary reflective objects, so dot access like `classes.Kernel.methods.assert` works. Bracket indexing like `methods[:assert]` is not implemented yet.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
@@ -424,3 +486,14 @@ do let x = 1; x + 2 end
 - `Module` is now a distinct runtime class from `Namespace`. `cosm.test` is a `Module`, while `cosm.modules` remains a `Namespace` that indexes module objects.
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.
+
+## Explicitly Not In 0.3
+
+- block-style lambdas like `do |req| ... end`
+- `router.draw do ... end`
+- route params, wildcards, middleware, and route macros
+- HTML tag-builder DSLs
+- notebook/browser runtime
+- Tailwind/frontend stack choices
+- JS interop mirrors/holograms
+- VM execution

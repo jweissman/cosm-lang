@@ -102,22 +102,23 @@ Right now the most important work is:
 - continuing to harden metaclass and reflective semantics
 - growing `Kernel` and `cosm` into a real standard surface
 
-The narrow `0.2` milestone should keep consolidating that runtime core and standard surface:
+The narrow `0.3` milestone should keep consolidating that runtime core while proving a tiny service slice:
 
 - one explicit TS-backed exposure protocol for the main runtime classes
 - stable send/invoke/reflection semantics
 - documented metaclass bootstrap behavior
 - a small but real standard surface through `Kernel`, `Namespace`, `cosm`, and `classes`
-- a first deliberate host boundary through `http`, `HttpRequest`, `HttpResponse`, and `HttpServer`
+- a first deliberate host boundary through `http`, `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter`
+- a first readonly reflective primitive through `Mirror`
 
-That means the notebook, host/server layers, mirrors, holograms, and any `template`-style structure forms should stay visible as design targets, but land after the reflective core is stable enough to explain itself cleanly.
+That means the notebook, richer host/server layers, holograms, and any `template`-style structure forms should stay visible as design targets, but land after the reflective core is stable enough to explain itself cleanly.
 
 The advanced OO research direction should stay visible while we do that:
 
 - make metaclass bootstrap rules explicit
 - define a clearer metaobject protocol for send/invoke/lookup
-- treat mirrors as reflective/control wrappers
-- treat holograms as readonly/presentational wrappers, especially for safe host or browser interop
+- treat mirrors as the first reflective/observational wrappers
+- treat holograms as a later readonly/presentational specialization, especially for safe host or browser interop
 - only then explore higher-level template-driven structure forms
 
 That is the shortest path toward a notebook worth using.

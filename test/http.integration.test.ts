@@ -119,3 +119,49 @@ httpTest("http handlers can reflect request properties and build json responses"
     Cosm.Interpreter.evalInEnv("server.stop()", env);
   }
 });
+
+httpTest("http router can serve exact routes and html responses", async () => {
+  const env = Cosm.Interpreter.createEnv();
+  startHttpServer(env, (port) => `
+    let router = HttpRouter.new()
+    router.draw(->() {
+      get("/", ->(req) { HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) })
+    })
+    let server = http.serve(${port}, router)
+  `);
+  const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
+
+  try {
+    const ok = await fetch(`${url}/`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(await ok.text()).toBe("<h1>Hello /</h1>");
+
+    const missing = await fetch(`${url}/missing`);
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).toContain("No route for GET /missing");
+
+    const methodMismatch = await fetch(`${url}/`, { method: "POST" });
+    expect(methodMismatch.status).toBe(404);
+    expect(await methodMismatch.text()).toContain("No route for POST /");
+  } finally {
+    Cosm.Interpreter.evalInEnv("server.stop()", env);
+  }
+});
+
+httpTest("http runtime can serve a router-backed app object", async () => {
+  const env = Cosm.Interpreter.createEnv();
+  startHttpServer(env, (port) => `
+    require("app/app.cosm")
+    let server = http.serve(${port}, app.App.build())
+  `);
+  const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
+
+  try {
+    const response = await fetch(`${url}/health`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ ok: true, path: "/health" });
+  } finally {
+    Cosm.Interpreter.evalInEnv("server.stop()", env);
+  }
+});
