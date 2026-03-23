@@ -1,0 +1,43 @@
+<main class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
+  <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div>
+      <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Notebook Demo</p>
+      <h1 class="mt-2 text-4xl font-black tracking-tight">Server-live Cosm session</h1>
+      <p class="mt-3 max-w-3xl text-base text-slate-300">
+        This stays server-side: one shared session per process, one eval endpoint, and a live output panel.
+      </p>
+    </div>
+    <a class="text-sm text-slate-300 underline decoration-cyan-400 underline-offset-4" href="/">Back home</a>
+  </div>
+
+  <div class="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
+    <section class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/40">
+      <form id="notebook-form" method="post" action="/notebook" class="space-y-4">
+        <label class="block text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Code</label>
+        <textarea id="notebook-code" name="code" class="min-h-[24rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-cyan-100 outline-none ring-0 placeholder:text-slate-600" spellcheck="false">#{code}</textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <button class="rounded-full bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300" type="submit">Run In Shared Session</button>
+          <button id="notebook-reset" class="rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-rose-400 hover:text-rose-200" type="button">Reset Session</button>
+          <p class="text-sm text-slate-400">Try: <code class="text-cyan-300">let answer = 41</code> then <code class="text-cyan-300">answer + 1</code></p>
+        </div>
+      </form>
+    </section>
+
+    <section class="space-y-4">
+      <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">Runtime</p>
+        <dl class="mt-4 grid gap-3 text-sm text-slate-300">
+          <div><dt class="font-semibold text-slate-100">Process</dt><dd>#{pid} on #{platform}/#{arch}</dd></div>
+          <div><dt class="font-semibold text-slate-100">Now</dt><dd>#{now}</dd></div>
+          <div><dt class="font-semibold text-slate-100">Shared Eval</dt><dd>Backed by <code class="text-cyan-300">Kernel.tryEval(...)</code></dd></div>
+          <div><dt class="font-semibold text-slate-100">Schemas</dt><dd>Use <code class="text-cyan-300">Schema.object(...)</code> and <code class="text-cyan-300">schema.validate(...)</code> in cells.</dd></div>
+          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code> and <code class="text-cyan-300">cosm.ai.cast(...)</code> are explicit runtime surfaces.</dd></div>
+        </dl>
+      </div>
+
+      <div id="notebook-output">
+        #{output}
+      </div>
+    </section>
+  </div>
+</main>

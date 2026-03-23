@@ -91,6 +91,12 @@ export class CosmClassValue extends CosmValueBase {
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
+    if (name === 'new') {
+      const classSideNew = this.lookupClassSideMethod(name);
+      if (classSideNew) {
+        return classSideNew;
+      }
+    }
     const inherited = super.nativeMethod(name);
     if (inherited) {
       return inherited;

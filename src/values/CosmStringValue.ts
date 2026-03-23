@@ -3,6 +3,7 @@ import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmValueBase } from "./CosmValueBase";
+import { CosmAiValue } from "./CosmAiValue";
 
 
 export class CosmStringValue extends CosmValueBase {
@@ -18,7 +19,7 @@ export class CosmStringValue extends CosmValueBase {
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
     const inherited = super.nativeMethod(name);
-    if (inherited && name !== 'eq') {
+    if (inherited && name !== 'eq' && name !== 'semanticEq') {
       return inherited;
     }
     if (name === 'plus') {
@@ -41,6 +42,20 @@ export class CosmStringValue extends CosmValueBase {
           throw new Error(`Arity error: method eq expects 1 arguments, got ${args.length}`);
         }
         return new CosmBoolValue(args[0] instanceof CosmStringValue && selfValue.value === args[0].value);
+      });
+    }
+    if (name === 'semanticEq') {
+      return new CosmFunctionValue('semanticEq', (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: semanticEq expects a string receiver');
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: method semanticEq expects 1 arguments, got ${args.length}`);
+        }
+        if (!(args[0] instanceof CosmStringValue)) {
+          throw new Error('Type error: semanticEq expects a string argument');
+        }
+        return CosmAiValue.compareStrings(selfValue.value, args[0].value, undefined, env);
       });
     }
     return undefined;

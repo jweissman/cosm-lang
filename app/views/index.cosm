@@ -1,0 +1,92 @@
+class HtmlView
+  class << self
+    def escape(value)
+      Kernel.escapeHtml(value)
+    end
+
+    def shell(title, body, extraHead, extraScript)
+      """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    #{extraHead}
+    <title>#{escape(title)}</title>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    #{body}
+    #{extraScript}
+  </body>
+</html>
+"""
+    end
+
+    def render(template, context)
+      template.render(context)
+    end
+
+    def headTemplate()
+      require("app/views/layout/head.ecosm")
+    end
+
+    def head()
+      render(headTemplate(), { })
+    end
+  end
+end
+
+class HomeView
+  class << self
+    def template()
+      require("app/views/home.ecosm")
+    end
+
+    def page(req)
+      let body = HtmlView.render(template(), { version: cosm.version, method: HtmlView.escape(req.method), path: HtmlView.escape(req.path), pid: Process.pid(), platform: HtmlView.escape(Process.platform()), arch: HtmlView.escape(Process.arch()) })
+      HtmlView.shell("Cosm " + cosm.version, body, HtmlView.head(), "")
+    end
+  end
+end
+
+class NotebookView
+  class << self
+    def pageTemplate()
+      require("app/views/notebook/page.ecosm")
+    end
+
+    def scriptTemplate()
+      require("app/views/notebook/script.ecosm")
+    end
+
+    def emptyTemplate()
+      require("app/views/notebook/empty.ecosm")
+    end
+
+    def resultTemplate()
+      require("app/views/notebook/result.ecosm")
+    end
+
+    def errorTemplate()
+      require("app/views/notebook/error.ecosm")
+    end
+
+    def page(code, evaluation)
+      let output = fragment(code, evaluation)
+      let body = HtmlView.render(pageTemplate(), { code: HtmlView.escape(code), output: output, pid: Process.pid(), platform: HtmlView.escape(Process.platform()), arch: HtmlView.escape(Process.arch()), now: HtmlView.escape(Time.isoNow()) })
+      HtmlView.shell("Cosm Notebook", body, HtmlView.head(), HtmlView.render(scriptTemplate(), { }))
+    end
+
+    def fragment(code, evaluation)
+      if evaluation == false then
+        HtmlView.render(emptyTemplate(), { })
+      else
+        if evaluation.ok then
+          HtmlView.render(resultTemplate(), { inspect: HtmlView.escape(evaluation.inspect) })
+        else
+          HtmlView.render(errorTemplate(), { message: HtmlView.escape(evaluation.error.message), backtrace: HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) })
+        end
+      end
+    end
+  end
+end

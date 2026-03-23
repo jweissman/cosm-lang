@@ -10,6 +10,10 @@ import { CosmClassValue } from "./values/CosmClassValue";
 import { CosmObjectValue } from "./values/CosmObjectValue";
 import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
+import { CosmErrorValue } from "./values/CosmErrorValue";
+import { CosmSchemaValue } from "./values/CosmSchemaValue";
+import { CosmPromptValue } from "./values/CosmPromptValue";
+import { CosmAiValue } from "./values/CosmAiValue";
 
 export type CoreNodeKind =
   | 'program'
@@ -42,6 +46,7 @@ export type CoreNodeKind =
   | 'or'
   | 'and'
   | 'eq'
+  | 'semantic_eq'
   | 'neq'
   | 'lt'
   | 'lte'
@@ -89,7 +94,11 @@ export type CosmValue =
   | CosmFunctionValue
   | CosmMethodValue
   | CosmHttpRouterValue
-  | CosmMirrorValue;
+  | CosmMirrorValue
+  | CosmErrorValue
+  | CosmSchemaValue
+  | CosmPromptValue
+  | CosmAiValue;
 
 export type SurfaceNodeKind =
   | 'program'
@@ -127,6 +136,7 @@ export type SurfaceNodeKind =
   | 'or'
   | 'and'
   | 'eq'
+  | 'semantic_eq'
   | 'neq'
   | 'lt'
   | 'lte'

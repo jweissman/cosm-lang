@@ -7,6 +7,8 @@ import { CosmHttpRouterValue } from './values/CosmHttpRouterValue';
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { CosmModuleValue } from './values/CosmModuleValue';
+import { CosmErrorValue } from './values/CosmErrorValue';
+import { CosmRaisedError } from './runtime/CosmRaisedError';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -108,6 +110,8 @@ namespace Cosm {
         }
         case 'eq':
           return Construct.bool(this.evalEquality(ast, true, env));
+        case 'semantic_eq':
+          return this.evalSemanticEquality(ast, env);
         case 'neq':
           return Construct.bool(this.evalEquality(ast, false, env));
         case 'lt':
@@ -132,6 +136,7 @@ namespace Cosm {
         internSymbol: (name) => this.internSymbol(name),
         loadModule: (name, env) => this.loadModule(name, env),
         evalSource: (source) => this.evalSharedKernelSource(source),
+        resetEvalSource: () => this.resetSharedKernelEnv(),
       });
       Bootstrap.setCurrentRepository(repository);
       return repository;
@@ -145,7 +150,11 @@ namespace Cosm {
       if (!this.sharedKernelEvalEnv) {
         this.sharedKernelEvalEnv = this.createEnv(undefined, { allowTopLevelRebinds: true });
       }
-      return this.evalInEnv(source, this.sharedKernelEvalEnv);
+      return this.withFrame('eval <shared>', () => this.evalInEnv(source, this.sharedKernelEvalEnv!));
+    }
+
+    private static resetSharedKernelEnv(): void {
+      this.sharedKernelEvalEnv = this.createEnv(undefined, { allowTopLevelRebinds: true });
     }
 
     private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
@@ -167,7 +176,26 @@ namespace Cosm {
 
     private static loadModule(name: string, _env: Env): CosmObject | undefined {
       if (!name.endsWith(".cosm")) {
-        return undefined;
+        if (!name.endsWith(".ecosm")) {
+          return undefined;
+        }
+        const cachedTemplate = this.repository.modules[name];
+        if (cachedTemplate instanceof CosmModuleValue) {
+          return cachedTemplate;
+        }
+        const source = readFileSync(resolve(process.cwd(), name), "utf8");
+        const templateModule = Construct.module(name, {
+          source: Construct.string(source),
+          render: Construct.nativeFunc("render", (args) => {
+            if (args.length > 1) {
+              throw new Error(`Arity error: render expects 0 or 1 arguments, got ${args.length}`);
+            }
+            const [context] = args;
+            return this.renderTemplateSource(source, context);
+          }),
+        }, this.repository.classes.Module);
+        this.repository.modules[name] = templateModule;
+        return templateModule;
       }
       const cachedModule = this.repository.modules[name];
       if (cachedModule instanceof CosmModuleValue) {
@@ -179,6 +207,121 @@ namespace Cosm {
       const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, this.repository.classes.Module);
       this.repository.modules[name] = loadedModule;
       return loadedModule;
+    }
+
+    private static renderTemplateSource(source: string, context?: CosmValue): CosmValue {
+      const env = this.createTemplateEnv(context);
+      let output = '';
+      let cursor = 0;
+
+      while (cursor < source.length) {
+        const interpolationStart = source.indexOf('#{', cursor);
+        if (interpolationStart === -1) {
+          output += source.slice(cursor);
+          break;
+        }
+        output += source.slice(cursor, interpolationStart);
+        const interpolationEnd = this.findTemplateExpressionEnd(source, interpolationStart + 2);
+        const expression = source.slice(interpolationStart + 2, interpolationEnd).trim();
+        const value = expression.length === 0
+          ? Construct.string("")
+          : this.evalInEnv(expression, env);
+        output += value.toCosmString('interpolate');
+        cursor = interpolationEnd + 1;
+      }
+
+      return Construct.string(output);
+    }
+
+    private static createTemplateEnv(context?: CosmValue): Env {
+      const env = this.createEnv();
+      if (!context) {
+        return env;
+      }
+      env.bindings.context = context;
+      switch (context.type) {
+        case 'hash':
+          Object.assign(env.bindings, context.entries);
+          break;
+        case 'object':
+          Object.assign(env.bindings, context.fields);
+          break;
+      }
+      return env;
+    }
+
+    private static findTemplateExpressionEnd(source: string, startIndex: number): number {
+      let index = startIndex;
+      let depth = 1;
+      let inSingle = false;
+      let inDouble = false;
+      let inTripleDouble = false;
+      let escaped = false;
+
+      while (index < source.length) {
+        const nextThree = source.slice(index, index + 3);
+        const char = source[index];
+
+        if (inTripleDouble) {
+          if (nextThree === '"""') {
+            inTripleDouble = false;
+            index += 3;
+            continue;
+          }
+          index += 1;
+          continue;
+        }
+
+        if (inSingle || inDouble) {
+          if (escaped) {
+            escaped = false;
+            index += 1;
+            continue;
+          }
+          if (char === '\\') {
+            escaped = true;
+            index += 1;
+            continue;
+          }
+          if (inSingle && char === '\'') {
+            inSingle = false;
+          } else if (inDouble && char === '"') {
+            inDouble = false;
+          }
+          index += 1;
+          continue;
+        }
+
+        if (nextThree === '"""') {
+          inTripleDouble = true;
+          index += 3;
+          continue;
+        }
+        if (char === '\'') {
+          inSingle = true;
+          index += 1;
+          continue;
+        }
+        if (char === '"') {
+          inDouble = true;
+          index += 1;
+          continue;
+        }
+        if (source.slice(index, index + 2) === '#{') {
+          depth += 1;
+          index += 2;
+          continue;
+        }
+        if (char === '}') {
+          depth -= 1;
+          if (depth === 0) {
+            return index;
+          }
+        }
+        index += 1;
+      }
+
+      throw new Error("Template parse error: missing closing } for interpolation");
     }
 
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
@@ -325,6 +468,13 @@ namespace Cosm {
       return result;
     }
 
+    private static evalSemanticEquality(ast: CoreNode, env: Env): CosmValue {
+      const [leftAst, rightAst] = this.expectChildren(ast, 'semantic_eq');
+      const left = this.evalNode(leftAst, env);
+      const right = this.evalNode(rightAst, env);
+      return this.send(left, 'semanticEq', [right]);
+    }
+
     private static coerceToString(value: CosmValue, context: 'concatenate' | 'interpolate'): string {
       return value.toCosmString(context);
     }
@@ -414,7 +564,11 @@ namespace Cosm {
         Time: this.repository.globals.Time,
         Random: this.repository.globals.Random,
         Mirror: this.repository.globals.Mirror,
+        Error: this.repository.globals.Error,
+        Schema: this.repository.globals.Schema,
+        Prompt: this.repository.globals.Prompt,
         HttpRouter: this.repository.globals.HttpRouter,
+        ai: this.repository.globals.ai,
         http: this.repository.globals.http,
         modules: Construct.namespace({
           test: this.repository.modules["cosm/test"],
@@ -426,43 +580,47 @@ namespace Cosm {
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
-      const receiver = this.evalNode(this.expectChild(ast, 'access'), env);
-      return this.lookupProperty(receiver, ast.value);
+      return this.withFrame(`access ${this.describeCallTarget(ast)}`, () => {
+        const receiver = this.evalNode(this.expectChild(ast, 'access'), env);
+        return this.lookupProperty(receiver, ast.value);
+      });
     }
 
     private static evalCall(ast: CoreNode, env: Env): CosmValue {
       const calleeAst = this.expectChild(ast, 'call');
-      const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
-      if (calleeAst.kind === 'access') {
-        const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
-        try {
-          const callee = this.lookupProperty(receiver, calleeAst.value);
-          return this.invokeFunction(callee, args, undefined, env);
-        } catch (error) {
-          if (
-            receiver.type !== 'class'
-            && error instanceof Error
-            && error.message.includes(`has no property '${calleeAst.value}'`)
-          ) {
-            return this.send(receiver, calleeAst.value, args);
+      return this.withFrame(`call ${this.describeCallTarget(calleeAst)}`, () => {
+        const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
+        if (calleeAst.kind === 'access') {
+          const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
+          try {
+            const callee = this.lookupProperty(receiver, calleeAst.value);
+            return this.invokeFunction(callee, args, undefined, env);
+          } catch (error) {
+            if (
+              receiver.type !== 'class'
+              && error instanceof Error
+              && error.message.includes(`has no property '${calleeAst.value}'`)
+            ) {
+              return this.send(receiver, calleeAst.value, args);
+            }
+            throw error;
           }
-          throw error;
         }
-      }
-      if (calleeAst.kind === 'ident') {
-        try {
-          const callee = this.lookupName(calleeAst.value, env);
-          return this.invokeFunction(callee, args, undefined, env);
-        } catch (error) {
-          const selfValue = this.findSelfBinding(env);
-          if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${calleeAst.value}'`) {
-            return this.send(selfValue, calleeAst.value, args);
+        if (calleeAst.kind === 'ident') {
+          try {
+            const callee = this.lookupName(calleeAst.value, env);
+            return this.invokeFunction(callee, args, undefined, env);
+          } catch (error) {
+            const selfValue = this.findSelfBinding(env);
+            if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${calleeAst.value}'`) {
+              return this.send(selfValue, calleeAst.value, args);
+            }
+            throw error;
           }
-          throw error;
         }
-      }
-      const callee = this.evalNode(calleeAst, env);
-      return this.invokeFunction(callee, args, undefined, env);
+        const callee = this.evalNode(calleeAst, env);
+        return this.invokeFunction(callee, args, undefined, env);
+      });
     }
 
     private static evalIvar(ast: CoreNode, env: Env): CosmValue {
@@ -475,32 +633,34 @@ namespace Cosm {
     }
 
     private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env): CosmValue {
-      if (callee.type === 'method') {
-        return this.invokeFunction(callee.target, args, callee.receiver, env);
-      }
-      if (callee.type !== 'function') {
-        throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
-      }
-      if (callee.nativeCall) {
-        return callee.nativeCall(args, selfValue, env);
-      }
-      if (!callee.params || !callee.body || !callee.env) {
-        throw new Error(`Invalid function: ${callee.name}`);
-      }
-      if (args.length !== callee.params.length) {
-        throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${args.length}`);
-      }
-      const callEnv = this.createEnv(callee.env);
-      if (selfValue) {
-        callEnv.bindings.self = selfValue;
-      }
-      for (const [index, param] of callee.params.entries()) {
-        if (Object.hasOwn(callEnv.bindings, param)) {
-          throw new Error(`Name error: duplicate parameter '${param}'`);
+      return this.withFrame(`invoke ${this.describeCallable(callee, selfValue)}`, () => {
+        if (callee.type === 'method') {
+          return this.invokeFunction(callee.target, args, callee.receiver, env);
         }
-        callEnv.bindings[param] = args[index];
-      }
-      return this.evalStatements(callee.body.children ?? [], callEnv);
+        if (callee.type !== 'function') {
+          throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
+        }
+        if (callee.nativeCall) {
+          return callee.nativeCall(args, selfValue, env);
+        }
+        if (!callee.params || !callee.body || !callee.env) {
+          throw new Error(`Invalid function: ${callee.name}`);
+        }
+        if (args.length !== callee.params.length) {
+          throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${args.length}`);
+        }
+        const callEnv = this.createEnv(callee.env);
+        if (selfValue) {
+          callEnv.bindings.self = selfValue;
+        }
+        for (const [index, param] of callee.params.entries()) {
+          if (Object.hasOwn(callEnv.bindings, param)) {
+            throw new Error(`Name error: duplicate parameter '${param}'`);
+          }
+          callEnv.bindings[param] = args[index];
+        }
+        return this.evalStatements(callee.body.children ?? [], callEnv);
+      });
     }
 
     private static lookupProperty(receiver: CosmValue, property: string): CosmValue {
@@ -512,7 +672,7 @@ namespace Cosm {
     }
 
     static evalInEnv(input: string, env: Env): CosmValue {
-      return this.evalNode(Parser.parse(input), env);
+      return this.withFrame('eval <input>', () => this.evalNode(Parser.parse(input), env));
     }
 
     static eval(input: string): CosmValue {
@@ -592,15 +752,80 @@ namespace Cosm {
     }
 
     private static send(receiver: CosmValue, message: string, args: CosmValue[]): CosmValue {
-      return RuntimeDispatch.send(receiver, message, args, this.repository, (callee, invokeArgs, selfValue, env) =>
-        this.invokeFunction(callee, invokeArgs, selfValue, env)
+      return this.withFrame(`send ${this.describeValue(receiver)}.${message}`, () =>
+        RuntimeDispatch.send(receiver, message, args, this.repository, (callee, invokeArgs, selfValue, env) =>
+          this.invokeFunction(callee, invokeArgs, selfValue, env)
+        )
       );
     }
 
     private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]): CosmValue {
-      return RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repository, (callee, invokeArgs, selfValue, env) =>
-        this.invokeFunction(callee, invokeArgs, selfValue, env)
+      return this.withFrame(`send ${this.describeValue(receiver)}.${RuntimeDispatch.messageName(messageValue)}`, () =>
+        RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repository, (callee, invokeArgs, selfValue, env) =>
+          this.invokeFunction(callee, invokeArgs, selfValue, env)
+        )
       );
+    }
+
+    private static withFrame<T>(frame: string, fn: () => T): T {
+      try {
+        return fn();
+      } catch (error) {
+        throw this.wrapWithFrame(error, frame);
+      }
+    }
+
+    private static wrapWithFrame(error: unknown, frame: string): CosmRaisedError {
+      const cosmError = CosmErrorValue.fromUnknown(error, this.repository.classes.Error);
+      if (cosmError.backtraceItems[cosmError.backtraceItems.length - 1] !== frame) {
+        cosmError.backtraceItems.push(frame);
+      }
+      return new CosmRaisedError(cosmError);
+    }
+
+    private static describeCallTarget(ast: CoreNode): string {
+      if (ast.kind === 'ident') {
+        return ast.value;
+      }
+      if (ast.kind === 'access') {
+        return `${this.describeCallTarget(this.expectChild(ast, 'access'))}.${ast.value}`;
+      }
+      if (ast.kind === 'call') {
+        return this.describeCallTarget(this.expectChild(ast, 'call'));
+      }
+      return `<${ast.kind}>`;
+    }
+
+    private static describeCallable(callee: CosmValue, selfValue?: CosmValue): string {
+      if (callee.type === 'method') {
+        return `${this.describeValue(callee.receiver)}.${callee.name}`;
+      }
+      if (callee.type === 'function') {
+        if (selfValue) {
+          return `${this.describeValue(selfValue)}.${callee.name}`;
+        }
+        return callee.name;
+      }
+      return callee.type;
+    }
+
+    private static describeValue(value: CosmValue): string {
+      switch (value.type) {
+        case 'class':
+          return value.name;
+        case 'object':
+          return value.className;
+        case 'function':
+          return value.name;
+        case 'method':
+          return `${this.describeValue(value.receiver)}.${value.name}`;
+        case 'string':
+          return JSON.stringify(value.value);
+        case 'symbol':
+          return `:${value.name}`;
+        default:
+          return value.type;
+      }
     }
 
     private static lookupSelf(env: Env, ivarName?: string): CosmObject {
@@ -636,6 +861,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.2";
+    export const version = "0.3.4";
 }
 export default Cosm;

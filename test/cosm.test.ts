@@ -186,6 +186,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
   expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
+  expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
   expect(cosmEval('require("app/app.cosm"); app.App.build().class.name')).toBe("App");
   expect(cosmEval('require("cosm/test"); test.class.name')).toBe("Function");
@@ -194,12 +195,14 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.2");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.4");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
+  expect(cosmEval('Symbol.intern("ok").inspect()')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
+  expect(cosmEval("Kernel.inspect(Kernel) == Kernel.inspect()")).toBe(true);
   expect(cosmEval('Kernel.escapeHtml("<tag> & \'quote\'")')).toBe("&lt;tag&gt; &amp; &#39;quote&#39;");
   expect(cosmEval('Kernel.expectEqual([1, 2], [1, 2])')).toBe(true);
   expect(cosmEval("Time.now() > 0")).toBe(true);
@@ -228,15 +231,36 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.2");
+  expect(cosmEval("cosm.version")).toBe("0.3.4");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
+  expect(cosmEval("Error.class.name")).toBe("Error class");
+  expect(cosmEval("Schema.class.name")).toBe("Schema class");
+  expect(cosmEval("Prompt.class.name")).toBe("Prompt class");
+  expect(cosmEval("ai.class.name")).toBe("Ai");
+  expect(cosmEval("cosm.ai.class.name")).toBe("Ai");
+  expect(cosmEval('Prompt.text("hi").source')).toBe("hi");
+  expect(cosmEval('Error.new("boom").message')).toBe("boom");
+  expect(cosmEval('Error.new("boom").inspect()')).toBe('#<Error "boom">');
+  expect(cosmEval('Schema.string().describe()')).toBe("Schema.string()");
+  expect(cosmEval('Schema.string().inspect()')).toBe("Schema.string()");
+  expect(cosmEval('Schema.number().cast("42")')).toBe(42);
+  expect(cosmEval('Schema.boolean().cast("true")')).toBe(true);
+  expect(cosmEval('Schema.enum("a", "b").validate("a")')).toBe(true);
+  expect(cosmEval('Schema.object({ answer: Schema.number() }).cast({ answer: "42" }).answer')).toBe(42);
+  expect(cosmEval('Kernel.try(->() { 1 + 2 }).ok')).toBe(true);
+  expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).ok')).toBe(false);
+  expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).error.message')).toBe("boom");
+  expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.message')).toContain("Schema validation failed");
+  expect(cosmEval('Kernel.try(->() { cosm.ai.complete("hi") }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEval('Kernel.try(->() { cosm.ai.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEval('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
-  expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('{ answer: 42 }');
+  expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('#<Mirror { answer: 42 }>');
   expect(cosmEval("Mirror.reflect(Kernel).has(:assert)")).toBe(true);
   expect(cosmEval("Mirror.reflect(Kernel).get(:assert).name")).toBe("assert");
   expect(cosmEval("Mirror.reflect(Kernel).methods().has(:assert)")).toBe(true);
   expect(cosmEval('Mirror.reflect(cosm.test).targetClass.name')).toBe("Module");
-  expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<HttpRouter routes: 0>');
+  expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
   expect(() => cosmEval("Kernel.now()")).toThrow("Property error: object of class Kernel has no property 'now'");
   expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
@@ -268,7 +292,18 @@ test("Kernel.eval and Kernel.tryEval share a tiny process-wide session", () => {
   expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").ok')).toBe(true);
   expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").inspect')).toBe("2");
   expect(cosmEval('Kernel.tryEval("let = 1").ok')).toBe(false);
-  expect(cosmEval('Kernel.tryEval("let = 1").error.length > 0')).toBe(true);
+  expect(cosmEval('Kernel.tryEval("let = 1").error.message.length > 0')).toBe(true);
+  expect(cosmEval("Kernel.resetSession()")).toBe(true);
+  expect(cosmEval(`Kernel.tryEval("${sharedName}").ok`)).toBe(false);
+});
+
+test("structured errors expose Cosm backtraces instead of TypeScript stacks", () => {
+  const error = cosmEval('Kernel.tryEval("Prompt.complete").error') as { message: string; backtrace: string[] };
+  expect(error.message).toContain("Property error");
+  expect(error.backtrace.length).toBeGreaterThan(0);
+  expect(error.backtrace[0]).toContain("access Prompt.complete");
+  expect(error.backtrace.some((frame) => frame.includes("src/runtime/"))).toBe(false);
+  expect(error.backtrace.some((frame) => frame.includes("src/cosm.ts"))).toBe(false);
 });
 
 test("missing-method fallback supports explicit send and implicit self calls", () => {
@@ -578,7 +613,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const homeHeaders = home.nativeProperty?.("headers");
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.2");
+  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.4");
 
   const notebook = dispatchService(`
     require("app/app.cosm")
@@ -586,6 +621,23 @@ test("module-organized app can be exercised as a request spec without listen", (
   `, "POST", "/notebook/eval", "code=1%20%2B%202");
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"))).toContain("3");
+});
+
+test(".ecosm templates can be required and rendered directly", () => {
+  expect(cosmEval('require("app/views/notebook/result.ecosm"); result.render({ inspect: "42" })')).toContain("42");
+  expect(cosmEval('require("app/views/layout/head.ecosm"); head.render({})')).toContain("tailwindcss");
+});
+
+test("web-layer request specs render Cosm backtraces for notebook errors", () => {
+  const notebook = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/notebook/eval", "code=Prompt.complete");
+  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
+  expect(body).toContain("Property error");
+  expect(body).toContain("access Prompt.complete");
+  expect(body).not.toContain("src/runtime/");
+  expect(body).not.toContain("src/cosm.ts");
 });
 
 test("type errors stay explicit", () => {

@@ -19,6 +19,10 @@ import { CosmHttpResponseValue } from "../values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "../values/CosmHttpServerValue";
 import { CosmHttpRouterValue } from "../values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "../values/CosmMirrorValue";
+import { CosmErrorValue } from "../values/CosmErrorValue";
+import { CosmSchemaValue } from "../values/CosmSchemaValue";
+import { CosmPromptValue } from "../values/CosmPromptValue";
+import { CosmAiValue } from "../values/CosmAiValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
 import { basename } from "node:path";
@@ -37,6 +41,7 @@ type BootstrapRuntime = {
   internSymbol: (name: string) => CosmValue;
   loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
   evalSource: (source: string) => CosmValue;
+  resetEvalSource?: () => void;
 };
 
 export class Bootstrap {
@@ -58,6 +63,8 @@ export class Bootstrap {
       send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
       eval: (source) => runtime.evalSource(source),
+      resetEval: () => runtime.resetEvalSource?.(),
+      wrapError: (error) => CosmErrorValue.fromUnknown(error, this.currentRepository?.classes.Error),
     });
     CosmProcessValue.installRuntimeHooks({});
     CosmFunctionValue.installRuntimeHooks({
@@ -91,6 +98,7 @@ export class Bootstrap {
       classOf: (receiver) => runtime.classOf(receiver),
       equal: (left, right) => RuntimeEquality.compare(left, right),
     });
+    CosmAiValue.installRuntimeHooks({});
   }
 
   private static currentRepository?: RuntimeRepository;
@@ -106,7 +114,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -159,6 +167,22 @@ export class Bootstrap {
       new CosmMirrorValue(Construct.bool(true), classes.Mirror),
       CosmMirrorValue.manifest,
     ));
+    Object.assign(classes.Error.methods, manifestMethods(
+      new CosmErrorValue("example", [], Construct.bool(false), classes.Error),
+      CosmErrorValue.manifest,
+    ));
+    Object.assign(classes.Schema.methods, manifestMethods(
+      new CosmSchemaValue("string", {}, classes.Schema, classes.Error),
+      CosmSchemaValue.manifest,
+    ));
+    Object.assign(classes.Prompt.methods, manifestMethods(
+      new CosmPromptValue("example", classes.Prompt),
+      CosmPromptValue.manifest,
+    ));
+    Object.assign(classes.Ai.methods, manifestMethods(
+      new CosmAiValue({}, classes.Ai, classes.Error),
+      CosmAiValue.manifest,
+    ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
         {},
@@ -206,6 +230,18 @@ export class Bootstrap {
       classes.Mirror.classRef?.methods ?? {},
       CosmMirrorValue.bootClassMethods(),
     );
+    Object.assign(
+      classes.Error.classRef?.methods ?? {},
+      CosmErrorValue.bootClassMethods(),
+    );
+    Object.assign(
+      classes.Schema.classRef?.methods ?? {},
+      CosmSchemaValue.bootClassMethods(),
+    );
+    Object.assign(
+      classes.Prompt.classRef?.methods ?? {},
+      CosmPromptValue.bootClassMethods(),
+    );
   }
 
   private static createCoreGlobals(classes: Record<string, CosmClass>): Record<string, CosmValue> {
@@ -226,6 +262,10 @@ export class Bootstrap {
       Time: classes.Time,
       Random: classes.Random,
       Mirror: classes.Mirror,
+      Error: classes.Error,
+      Schema: classes.Schema,
+      Prompt: classes.Prompt,
+      Ai: classes.Ai,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
@@ -245,6 +285,7 @@ export class Bootstrap {
     const processObject = new CosmProcessValue({}, classes.Process);
     const timeObject = new CosmTimeValue({}, classes.Time);
     const randomObject = new CosmRandomValue({}, classes.Random);
+    const aiObject = new CosmAiValue({}, classes.Ai, classes.Error);
     const httpObject = new CosmHttpValue(
       {},
       classes.Http,
@@ -258,6 +299,7 @@ export class Bootstrap {
     globals.Process = processObject;
     globals.Time = timeObject;
     globals.Random = randomObject;
+    globals.ai = aiObject;
     globals.http = httpObject;
     globals.assert = kernelMethods.assert;
     globals.print = kernelMethods.print;
@@ -322,7 +364,12 @@ export class Bootstrap {
   }
 
   private static moduleBindingName(moduleName: string): string {
-    return basename(moduleName, '.cosm').replace(/[^A-Za-z0-9_]/g, '_');
+    const normalized = moduleName.replace(/\\/g, "/");
+    const stripped = basename(moduleName).replace(/\.(cosm|ecosm)$/u, '');
+    const parts = normalized.split("/");
+    const parent = parts.length > 1 ? parts[parts.length - 2] : stripped;
+    const binding = stripped === "index" ? parent : stripped;
+    return binding.replace(/[^A-Za-z0-9_]/g, '_');
   }
 
   private static createBootClass(name: string, superclass: CosmClass, classClass: CosmClass): CosmClass {

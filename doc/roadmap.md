@@ -77,7 +77,7 @@ What still feels missing or provisional:
 - Browser-side Cosm execution and broader host/browser runtime decisions.
 - Final CLI/dev-loop polish is much better now, but broader project/module watch semantics are still intentionally deferred.
 
-What is deliberately not part of `0.3.2` even if it is attractive:
+What is deliberately not part of `0.3.4` even if it is attractive:
 
 - ampersand block capture/passing
 - notebook UI beyond the tiny shared-session demo page
@@ -102,9 +102,9 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 
 This is the current center of gravity.
 
-### v0.3.2 Target
+### v0.3.4 Target
 
-v0.3.2 should mean:
+v0.3.4 should mean:
 
 - a stable reflective runtime core
 - clearer TS-backed ownership for the main runtime classes
@@ -113,16 +113,18 @@ v0.3.2 should mean:
 - router-level middleware and a clearer app/view module split for small services
 - trailing `do ... end` block passing as narrow final-argument sugar, now with block params on trailing call blocks
 - one tiny server-rendered notebook demo page with live-ish partial updates backed by shared server-side eval
+- a real `inspect()` protocol across runtime values
+- `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
 
-v0.3.2 intentionally does not include:
+v0.3.4 intentionally does not include:
 
 - ampersand block capture/passing
 - a notebook app beyond the tiny shared-session demo page
 - a framework/router layer
 - Slack/webhook integration
-- `cosm.ai`
+- automatic prompt literals or ambient AI semantics
 - VM execution
 - holograms or JS-host mirror bridges
 - `template` / `data` syntax
@@ -153,7 +155,7 @@ Current focus:
 - Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
 - Reflective module objects and a first minimal `does_not_understand(message, args)` fallback now exist as the bridge toward future DSL work. The first concrete payoff is a tiny `router.draw(...)` builder path for route registration, while lexical `module ... end`, splats, and block capture remain deliberately deferred.
 - The next useful consolidation step is to make the app/module split feel canonical, so `app/server.cosm` reads like a boot entry and `app/app.cosm` reads like the service module.
-- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.2`; we should not broaden the release into full Ruby-shaped block syntax.
+- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.4`; we should not broaden the release into full Ruby-shaped block syntax.
 - A narrow `cosm --watch <file>` loop now exists as a child-process restart convenience; the remaining CLI work is mainly polish around argument parsing, help, and error handling.
 
 Questions this track should answer:
@@ -166,7 +168,7 @@ Questions this track should answer:
 - How should future wrapper concepts like mirrors and holograms relate to ordinary objects, metaclasses, and host interop boundaries?
 - If Cosm eventually gains `template`-style structure definitions, what metaobject protocol should those forms lower onto?
 
-### v0.3.2 Definition Of Done
+### v0.3.4 Definition Of Done
 
 - Core reflective/runtime classes keep one explicit exposure protocol.
 - `cosm.ts` is not the main declaration site for runtime surfaces.
@@ -189,7 +191,7 @@ Concrete next construction ideas:
 - Keep the near-term web-service path intentionally object-oriented: `http.serve(port, App.new())` should feel like the canonical minimal service shape before any route DSLs appear.
 - Keep the routing DSL runtime-backed and narrow for now: `router.draw(...)` can smooth over bare verb calls, but route params, wildcards, middleware, and route macros should stay deferred.
 - Make `Mirror` the first readonly reflective wrapper before reaching for richer hologram/delegation concepts.
-- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.2`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
+- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.4`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
@@ -199,7 +201,7 @@ Concrete next construction ideas:
 
 Recommended next slice:
 
-- Treat `0.3.2` as the end of the current tiny service/runtime slice.
+- Treat `0.3.4` as the point where the runtime starts describing itself more honestly and the app layer starts looking like a real authoring surface instead of a demo blob.
 - Use the immediate next track to deepen the notebook shell from the new module/app/views + middleware structure rather than adding more syntax first.
 - Then decide browser/runtime exposure from that stronger server-side notebook footing.
 - Leave ampersand block capture, variadics, and richer callable/block syntax for after those two steps.

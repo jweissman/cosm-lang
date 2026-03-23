@@ -4,22 +4,23 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.2` is aimed at a service-structure and notebook-usability follow-up on that first small web-service slice:
+`0.3.4` is aimed at a runtime-protocol and authoring-surface cleanup on top of that tiny service and notebook slice:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
 - router-level middleware through `HttpRouter.use(...)`
 - trailing `do ... end` block passing with block params on calls
 - HTML-friendly responses through `HttpResponse.html(...)`
-- triple-quoted interpolated strings for small templates
+- first-class `inspect()` behavior across the runtime
+- `.ecosm` templates for real app views under `app/views/...`
 - the first readonly reflective primitive through `Mirror.reflect(...)`
 - a clearer class-side authoring path through `class << self`
 - split view modules for app rendering
 - a server-live notebook demo page with shared server-side eval
 
-This is intentionally still below a full notebook product or framework layer. `0.3.2` is about making the runtime and service surface feel steadier to build on while proving one tiny interactive page.
+This is intentionally still below a full notebook product or framework layer. `0.3.4` is about making the runtime feel more self-describing and the demo app less one-off: object inspection, stronger structured errors, and a real template layer.
 
-Explicitly not in `0.3.2`:
+Explicitly not in `0.3.4`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - notebook persistence or multi-user isolation
@@ -31,11 +32,11 @@ Explicitly not in `0.3.2`:
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3.2` should now be organized as:
+Small services in `0.3.4` should now be organized as:
 
 - a boot entry like `app/server.cosm`
 - an app/service module like `app/app.cosm`
-- one or more view modules like `app/views.cosm`
+- one or more view modules like `app/views/index.cosm`
 - object-first service classes that still own `handle(req)` and router setup
 
 ## Current Examples
@@ -108,7 +109,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.2`: it is lambda sugar, not a full Ruby block system. The useful new step is block params on trailing blocks, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.4`: it is lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks, so service code can now use:
 
 ```cosm
 router.draw do
@@ -142,7 +143,7 @@ The demo app now also exposes a small `/notebook` page plus a live-ish `/noteboo
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.2
+## After 0.3.4
 
 The immediate next track is:
 

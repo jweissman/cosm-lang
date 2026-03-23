@@ -1,0 +1,27 @@
+<script>
+  const form = document.getElementById("notebook-form");
+  const output = document.getElementById("notebook-output");
+  const reset = document.getElementById("notebook-reset");
+  const code = document.getElementById("notebook-code");
+  if (form && output) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      output.innerHTML = '<div class="rounded-3xl border border-slate-700 bg-slate-900/60 p-6 text-slate-300">Running...</div>';
+      const response = await fetch("/notebook/eval", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams(new FormData(form)).toString()
+      });
+      output.innerHTML = await response.text();
+    });
+  }
+  if (reset && output && code) {
+    reset.addEventListener("click", async () => {
+      await fetch("/notebook/reset", { method: "POST" });
+      code.value = "";
+      output.innerHTML = '<div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300">Run some Cosm code to inspect the shared server-side session.</div>';
+    });
+  }
+</script>

@@ -11,6 +11,7 @@ import { CosmHttpServerValue } from "./CosmHttpServerValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
+import { CosmErrorValue } from "./CosmErrorValue";
 
 export class CosmHttpValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
@@ -180,10 +181,7 @@ export class CosmHttpValue extends CosmObjectValue {
   }
 
   private renderServerError(error: unknown): string {
-    if (error instanceof Error) {
-      return error.stack ?? error.message;
-    }
-    return String(error);
+    return CosmErrorValue.fromUnknown(error, this.responseClassRef?.classRef).toDisplayString();
   }
 
   private normalizeHandler(handler: CosmValue): CosmValue {

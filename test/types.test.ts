@@ -20,6 +20,10 @@ import { CosmHttpResponseValue } from "../src/values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "../src/values/CosmHttpServerValue";
 import { CosmHttpRouterValue } from "../src/values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "../src/values/CosmMirrorValue";
+import { CosmErrorValue } from "../src/values/CosmErrorValue";
+import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
+import { CosmPromptValue } from "../src/values/CosmPromptValue";
+import { CosmAiValue } from "../src/values/CosmAiValue";
 
 test("type constructors build expected runtime values", () => {
   expect(Val.number(42)).toMatchObject({ type: "number", value: 42 });
@@ -159,6 +163,10 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const httpResponseClass = new CosmClassValue("HttpResponse", "Object");
   const httpRouterClass = new CosmClassValue("HttpRouter", "Object");
   const mirrorClass = new CosmClassValue("Mirror", "Object");
+  const errorClass = new CosmClassValue("Error", "Object");
+  const schemaClass = new CosmClassValue("Schema", "Object");
+  const promptClass = new CosmClassValue("Prompt", "Object");
+  const aiClass = new CosmClassValue("Ai", "Object");
 
   const objectMethods = manifestMethods(
     new CosmObjectValue("Object", {}, objectClass),
@@ -233,8 +241,27 @@ test("core runtime manifests expose a consistent boot surface", () => {
     CosmMirrorValue.manifest,
   );
   const mirrorClassMethods = manifestClassMethods(CosmMirrorValue.manifest);
+  const errorMethods = manifestMethods(
+    new CosmErrorValue("boom", [], Val.bool(false), errorClass),
+    CosmErrorValue.manifest,
+  );
+  const errorClassMethods = manifestClassMethods(CosmErrorValue.manifest);
+  const schemaMethods = manifestMethods(
+    new CosmSchemaValue("string", {}, schemaClass, errorClass),
+    CosmSchemaValue.manifest,
+  );
+  const schemaClassMethods = manifestClassMethods(CosmSchemaValue.manifest);
+  const promptMethods = manifestMethods(
+    new CosmPromptValue("hello", promptClass),
+    CosmPromptValue.manifest,
+  );
+  const promptClassMethods = manifestClassMethods(CosmPromptValue.manifest);
+  const aiMethods = manifestMethods(
+    new CosmAiValue({}, aiClass, errorClass),
+    CosmAiValue.manifest,
+  );
 
-  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "method", "send"]);
+  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "send"]);
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
   expect(Object.keys(functionMethods)).toEqual(["call"]);
   expect(Object.keys(methodMethods)).toEqual(["call"]);
@@ -251,11 +278,14 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "inspect",
     "print",
     "puts",
+    "raise",
+    "resetSession",
     "resetTests",
     "send",
     "sleep",
     "test",
     "testSummary",
+    "try",
     "tryEval",
     "warn",
   ]);
@@ -270,4 +300,11 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(httpRouterMethods).sort()).toEqual(["delete", "draw", "get", "handle", "post", "put", "use"]);
   expect(Object.keys(mirrorMethods).sort()).toEqual(["get", "has", "inspect", "methods"]);
   expect(Object.keys(mirrorClassMethods)).toEqual(["reflect"]);
+  expect(Object.keys(errorMethods).sort()).toEqual(["inspect"]);
+  expect(Object.keys(errorClassMethods)).toEqual(["new"]);
+  expect(Object.keys(schemaMethods).sort()).toEqual(["cast", "describe", "inspect", "validate"]);
+  expect(Object.keys(schemaClassMethods).sort()).toEqual(["array", "boolean", "enum", "number", "object", "optional", "string"]);
+  expect(Object.keys(promptMethods)).toEqual([]);
+  expect(Object.keys(promptClassMethods)).toEqual(["text"]);
+  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete"]);
 });

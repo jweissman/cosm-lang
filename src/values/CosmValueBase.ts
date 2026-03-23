@@ -2,6 +2,8 @@ import { CosmValue } from "../types";
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
+import { CosmStringValue } from "./CosmStringValue";
+import { RuntimeInspect } from "../runtime/RuntimeInspect";
 
 
 export abstract class CosmValueBase {
@@ -70,6 +72,15 @@ export abstract class CosmValueBase {
         }
         const [messageValue, ...messageArgs] = args;
         return CosmValueBase.sendHandler(selfValue, messageValue, messageArgs);
+      }),
+      inspect: () => new CosmFunctionValue('inspect', (args, selfValue) => {
+        if (!selfValue) {
+          throw new Error('Type error: inspect expects a receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method inspect expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(RuntimeInspect.format(selfValue));
       }),
     },
   };

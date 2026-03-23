@@ -26,6 +26,10 @@ import { CosmNumberValue } from "./values/CosmNumberValue";
 import { CosmSymbolValue } from "./values/CosmSymbolValue";
 import { CosmMethodValue } from "./values/CosmMethodValue";
 import { CosmModuleValue } from "./values/CosmModuleValue";
+import { CosmErrorValue } from "./values/CosmErrorValue";
+import { CosmSchemaValue } from "./values/CosmSchemaValue";
+import { CosmPromptValue } from "./values/CosmPromptValue";
+import { CosmAiValue } from "./values/CosmAiValue";
 
 export class Construct {
   static number(value: number): CosmNumber { return new CosmNumberValue(value); }
@@ -45,6 +49,18 @@ export class Construct {
   }
   static module(name: string, fields: Record<string, CosmValue>, classRef?: CosmClass): CosmObject {
     return new CosmModuleValue(name, fields, classRef);
+  }
+  static error(message: string, backtrace: string[] = [], details: CosmValue = this.bool(false), classRef?: CosmClass): CosmObject {
+    return new CosmErrorValue(message, backtrace, details, classRef);
+  }
+  static schema(kind: "string" | "number" | "boolean" | "array" | "enum" | "object" | "optional", state: Record<string, CosmValue> = {}, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
+    return new CosmSchemaValue(kind, state, classRef, errorClassRef);
+  }
+  static prompt(source: string, classRef?: CosmClass): CosmObject {
+    return new CosmPromptValue(source, classRef);
+  }
+  static ai(fields: Record<string, CosmValue>, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
+    return new CosmAiValue(fields, classRef, errorClassRef);
   }
   static class(
     name: string,

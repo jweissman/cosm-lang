@@ -33,7 +33,7 @@ export class CosmMirrorValue extends CosmObjectValue {
         if (args.length !== 0) {
           throw new Error(`Arity error: Mirror.inspect expects 0 arguments, got ${args.length}`);
         }
-        return new CosmStringValue(ValueAdapter.format(selfValue.target));
+        return new CosmStringValue(ValueAdapter.format(selfValue));
       }),
       methods: () => new CosmFunctionValue("methods", (args, selfValue) => {
         if (!(selfValue instanceof CosmMirrorValue)) {
@@ -119,7 +119,7 @@ export class CosmMirrorValue extends CosmObjectValue {
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {
     const inherited = super.nativeMethod(name);
-    if (inherited) {
+    if (inherited && name !== "inspect") {
       return inherited;
     }
     return manifestMethod(this, name, CosmMirrorValue.manifest);

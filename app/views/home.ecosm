@@ -1,0 +1,29 @@
+<main class="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
+  <div class="space-y-4">
+    <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm #{version}</p>
+    <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
+    <p class="max-w-2xl text-lg text-slate-300">
+      Object-first routing, router middleware, `.ecosm` templates, and a live-ish shared-session notebook.
+    </p>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-cyan-400" href="/notebook">
+      <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Notebook</p>
+      <h2 class="mt-3 text-2xl font-bold">Shared Eval Session</h2>
+      <p class="mt-2 text-sm text-slate-300">Run Cosm on the server and update the output panel without a full page reload.</p>
+    </a>
+
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-emerald-400" href="/health">
+      <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Health</p>
+      <h2 class="mt-3 text-2xl font-bold">JSON Status</h2>
+      <p class="mt-2 text-sm text-slate-300">Inspect a tiny runtime-backed JSON response with process metadata.</p>
+    </a>
+
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+      <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Request</p>
+      <h2 class="mt-3 text-2xl font-bold">#{method} #{path}</h2>
+      <p class="mt-2 text-sm text-slate-300">Current pid #{pid} on #{platform}/#{arch}.</p>
+    </div>
+  </div>
+</main>

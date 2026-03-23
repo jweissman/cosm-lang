@@ -83,7 +83,8 @@ Cosm {
     | CmpExp
 
   CmpExp
-    = AddExp "==" AddExp  -- eq
+    = AddExp "~=" AddExp  -- semanticEq
+    | AddExp "==" AddExp  -- eq
     | AddExp "!=" AddExp  -- neq
     | AddExp "<=" AddExp  -- lte
     | AddExp "<" AddExp   -- lt

@@ -1,4 +1,4 @@
-require("app/views.cosm")
+require("app/views/index.cosm")
 
 class App
   def init(router)
@@ -41,6 +41,11 @@ class App
           let code = App.notebookCode(req)
           let evaluation = App.notebookEvaluation(code)
           HttpResponse.html(views.NotebookView.fragment(code, evaluation), 200)
+        end
+
+        post "/notebook/reset" do |req|
+          Kernel.resetSession()
+          HttpResponse.html(views.NotebookView.fragment("", false), 200)
         end
       end
 

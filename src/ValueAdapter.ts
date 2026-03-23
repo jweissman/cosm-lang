@@ -6,6 +6,11 @@ import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
 import { CosmModuleValue } from "./values/CosmModuleValue";
 import { CosmNamespaceValue } from "./values/CosmNamespaceValue";
+import { CosmErrorValue } from "./values/CosmErrorValue";
+import { CosmSchemaValue } from "./values/CosmSchemaValue";
+import { CosmPromptValue } from "./values/CosmPromptValue";
+import { CosmAiValue } from "./values/CosmAiValue";
+import { RuntimeInspect } from "./runtime/RuntimeInspect";
 
 type JsValue =
   | number
@@ -95,6 +100,31 @@ export class ValueAdapter {
             targetClass: value.nativeProperty("targetClass") ? this.cosmToJS(value.nativeProperty("targetClass")!) : null,
           };
         }
+        if (value instanceof CosmErrorValue) {
+          return {
+            kind: "error",
+            message: value.messageText,
+            backtrace: value.backtraceItems,
+            details: value.detailsValue.type === "bool" && value.detailsValue.value === false ? false : this.cosmToJS(value.detailsValue),
+          };
+        }
+        if (value instanceof CosmSchemaValue) {
+          return {
+            kind: "schema",
+            description: value.nativeMethod("describe")?.nativeCall?.([], value) ? this.cosmToJS(value.nativeMethod("describe")!.nativeCall!([], value)) : null,
+          };
+        }
+        if (value instanceof CosmPromptValue) {
+          return {
+            kind: "prompt",
+            source: value.sourceText,
+          };
+        }
+        if (value instanceof CosmAiValue) {
+          return {
+            kind: "ai",
+          };
+        }
         return Object.fromEntries(
           Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),
         );
@@ -111,57 +141,6 @@ export class ValueAdapter {
   }
 
   static format(value: CosmValue): string {
-    switch (value.type) {
-      case 'number':
-        return String(value.value);
-      case 'bool':
-        return String(value.value);
-      case 'string':
-        return JSON.stringify(value.value);
-      case 'symbol':
-        return `:${value.name}`;
-      case 'array':
-        return `[${value.items.map((item) => this.format(item)).join(', ')}]`;
-      case 'hash':
-        return `{ ${Object.entries(value.entries).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ')} }`;
-      case 'function':
-        return `<function ${value.name}>`;
-      case 'method':
-        return `<method ${value.name}>`;
-      case 'class':
-        return value.name;
-      case 'object': {
-        if (value instanceof CosmNamespaceValue) {
-          const namespaceEntries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
-          return namespaceEntries.length > 0 ? `#<Namespace ${namespaceEntries}>` : "#<Namespace>";
-        }
-        if (value instanceof CosmModuleValue) {
-          const moduleEntries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
-          return moduleEntries.length > 0
-            ? `#<Module ${JSON.stringify(value.moduleName)} ${moduleEntries}>`
-            : `#<Module ${JSON.stringify(value.moduleName)}>`;
-        }
-        if (value instanceof CosmHttpServerValue) {
-          return `#<HttpServer url: ${JSON.stringify(value.url)}, port: ${value.port}>`;
-        }
-        if (value instanceof CosmHttpRouterValue) {
-          return `#<HttpRouter routes: ${value.nativeProperty("length") ? this.format(value.nativeProperty("length")!) : "0"}>`;
-        }
-        if (value instanceof CosmHttpRequestValue) {
-          return `#<HttpRequest ${value.method} ${value.path}>`;
-        }
-        if (value instanceof CosmHttpResponseValue) {
-          return `#<HttpResponse ${value.status} ${this.format(value.body)}>`;
-        }
-        if (value instanceof CosmMirrorValue) {
-          return `#<Mirror ${this.format(value.target)}>`;
-        }
-        const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
-        if (value.className === 'Object') {
-          return `{ ${entries} }`;
-        }
-        return entries.length > 0 ? `#<${value.className} ${entries}>` : `#<${value.className}>`;
-      }
-    }
+    return RuntimeInspect.format(value);
   }
 }

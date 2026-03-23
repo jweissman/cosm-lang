@@ -28,13 +28,15 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.2", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.4", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
 assert(Time.class.name == "Time", "Time is now a real object with its own class");
 assert(Random.class.name == "Random", "Random is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
+assert(Kernel.inspect(Kernel) == Kernel.inspect(), "Kernel.inspect delegates to the in-language inspect protocol");
+assert(Symbol.intern("ok").inspect() == ":ok", "primitive values expose inspect directly");
 assert(Kernel.escapeHtml("<tag> & 'quote'") == "&lt;tag&gt; &amp; &#39;quote&#39;", "Kernel can escape HTML-sensitive text for views");
 assert(Time.now() > 0, "Time exposes a simple time helper");
 assert(Time.iso(0) == "1970-01-01T00:00:00.000Z", "Time can render timestamps as ISO-8601 strings");
@@ -172,8 +174,26 @@ assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallba
 assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
 assert(Kernel.tryEval("1 + 2").ok == true, "Kernel.tryEval exposes structured eval success");
 assert(Kernel.tryEval("1 + 2").inspect == "3", "Kernel.tryEval returns inspected result text");
+assert(Kernel.try(->() { 1 + 2 }).ok == true, "Kernel.try exposes structured callable success");
+assert(Kernel.try(->() { Kernel.raise("boom") }).error.message == "boom", "Kernel.try wraps raised Cosm errors");
 Kernel.eval("let notebookSeed = 41");
 assert(Kernel.eval("notebookSeed + 1") == 42, "Kernel.eval keeps a tiny shared server-side session");
+Kernel.resetSession();
+assert(Kernel.tryEval("notebookSeed").ok == false, "Kernel.resetSession clears the shared notebook session");
+assert(Kernel.tryEval("let = 1").error.message.length > 0, "Kernel.tryEval now returns structured Error objects");
+assert(Error.new("boom").message == "boom", "Error is a first-class runtime object");
+assert(Error.new("boom").inspect() == '#<Error "boom">', "Error exposes inspect directly");
+assert(Schema.string().validate("ok") == true, "Schema can validate primitive values");
+assert(Schema.string().inspect() == "Schema.string()", "Schema exposes inspect directly");
+assert(Schema.number().cast("42") == 42, "Schema can cast simple numeric strings");
+assert(Schema.boolean().cast("true") == true, "Schema can cast simple boolean strings");
+let Reason = Schema.object({ answer: Schema.string(), choice: Schema.enum("yes", "no"), nested: Schema.optional(Schema.array(Schema.number())) });
+assert(Reason.cast({ answer: "hi", choice: "yes", nested: [1, "2"] }).nested.length == 2, "Schema can cast nested object structures");
+assert(Prompt.text("hello").source == "hello", "Prompt is an explicit first-class runtime object");
+assert(Kernel.try(->() { cosm.ai.complete("hello") }).error.message.length > 0, "cosm.ai surfaces a structured missing-backend error");
+assert(Kernel.try(->() { "cats" ~= "felines" }).error.message.length > 0, "semantic comparison currently fails clearly without an AI backend");
+require("app/views/layout/head.ecosm");
+assert(head.render({}).length > 0, ".ecosm templates can be required and rendered directly");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");
@@ -259,5 +279,5 @@ router.draw do
   end
 end;
 assert(router.length == 1, "HttpRouter can register exact routes through draw");
-assert(Mirror.reflect(router).inspect() == '#<HttpRouter routes: 1>', "Mirror can inspect service-oriented runtime objects");
+assert(Mirror.reflect(router).inspect() == '#<Mirror #<HttpRouter routes: 1>>', "Mirror can inspect service-oriented runtime objects");
 classes.String.name
