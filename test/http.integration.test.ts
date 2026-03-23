@@ -124,9 +124,9 @@ httpTest("http router can serve exact routes and html responses", async () => {
   const env = Cosm.Interpreter.createEnv();
   startHttpServer(env, (port) => `
     let router = HttpRouter.new()
-    router.draw(->() {
+    router.draw do
       get("/", ->(req) { HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) })
-    })
+    end
     let server = http.serve(${port}, router)
   `);
   const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
@@ -161,6 +161,31 @@ httpTest("http runtime can serve a router-backed app object", async () => {
     const response = await fetch(`${url}/health`);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ ok: true, path: "/health" });
+
+    const notebook = await fetch(`${url}/notebook`);
+    expect(notebook.status).toBe(200);
+    expect(await notebook.text()).toContain("Server-side Cosm session");
+
+    const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const first = await fetch(`${url}/notebook`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ code: `let ${sharedName} = 41` }).toString(),
+    });
+    expect(first.status).toBe(200);
+    expect(await first.text()).toContain("Result");
+
+    const second = await fetch(`${url}/notebook`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ code: `${sharedName} + 1` }).toString(),
+    });
+    expect(second.status).toBe(200);
+    expect(await second.text()).toContain("42");
   } finally {
     Cosm.Interpreter.evalInEnv("server.stop()", env);
   }

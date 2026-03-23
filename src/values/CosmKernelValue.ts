@@ -15,15 +15,18 @@ import { RuntimeEquality } from "../runtime/RuntimeEquality";
 export class CosmKernelValue extends CosmObjectValue {
   private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static evalHandler?: (source: string) => CosmValue;
   private static testPassed = 0;
   private static testFailed = 0;
 
   static installRuntimeHooks(hooks: {
     send: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
     invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    eval?: (source: string) => CosmValue;
   }): void {
     this.sendHandler = hooks.send;
     this.invokeHandler = hooks.invoke;
+    this.evalHandler = hooks.eval;
   }
 
   constructor(fields: Record<string, CosmValue>, classRef?: CosmClassValue) {
@@ -83,6 +86,62 @@ export class CosmKernelValue extends CosmObjectValue {
           throw new Error(`Arity error: inspect expects 1 arguments, got ${args.length}`);
         }
         return new CosmStringValue(ValueAdapter.format(args[0]));
+      }),
+      eval: () => new CosmFunctionValue('eval', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: eval expects 1 arguments, got ${args.length}`);
+        }
+        if (!CosmKernelValue.evalHandler) {
+          throw new Error('Kernel runtime error: eval handler is not installed');
+        }
+        const [source] = args;
+        if (!(source instanceof CosmStringValue)) {
+          throw new Error('Type error: eval expects a string source');
+        }
+        return CosmKernelValue.evalHandler(source.value);
+      }),
+      tryEval: () => new CosmFunctionValue('tryEval', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: tryEval expects 1 arguments, got ${args.length}`);
+        }
+        if (!CosmKernelValue.evalHandler) {
+          throw new Error('Kernel runtime error: eval handler is not installed');
+        }
+        const [source] = args;
+        if (!(source instanceof CosmStringValue)) {
+          throw new Error('Type error: tryEval expects a string source');
+        }
+        try {
+          const value = CosmKernelValue.evalHandler(source.value);
+          return new CosmNamespaceValue({
+            ok: new CosmBoolValue(true),
+            value,
+            inspect: new CosmStringValue(ValueAdapter.format(value)),
+            error: new CosmBoolValue(false),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return new CosmNamespaceValue({
+            ok: new CosmBoolValue(false),
+            value: new CosmBoolValue(false),
+            inspect: new CosmBoolValue(false),
+            error: new CosmStringValue(message),
+          });
+        }
+      }),
+      sleep: () => new CosmFunctionValue('sleep', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: sleep expects 1 arguments, got ${args.length}`);
+        }
+        const [milliseconds] = args;
+        if (!(milliseconds instanceof CosmNumberValue) || !Number.isFinite(milliseconds.value) || milliseconds.value < 0) {
+          throw new Error('Type error: sleep expects a non-negative numeric duration in milliseconds');
+        }
+        const start = Date.now();
+        while (Date.now() - start < milliseconds.value) {
+          // Busy-waiting is acceptable for the tiny synchronous runtime surface in 0.3.1.
+        }
+        return milliseconds;
       }),
       send: () => new CosmFunctionValue('send', (args) => {
         if (args.length < 2) {

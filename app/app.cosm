@@ -11,21 +11,175 @@ class App
     def build()
       let router = HttpRouter.new()
 
-      router.draw(->() {
+      router.draw do
         get("/", ->(req) {
-          puts "[#{Time.isoNow()}] #{req.method} #{req.path}"
-          HttpResponse.html("""
-<h1>Cosm</h1>
-<p>Hello from #{req.path}</p>
-""", 200)
+          App.log(req)
+          App.homePage(req)
         })
 
         get("/health", ->(req) {
-          HttpResponse.json({ ok: true, path: req.path, pid: Process.pid() }, 200)
+          App.log(req)
+          App.healthResponse(req)
         })
-      })
+
+        get("/notebook", ->(req) {
+          App.log(req)
+          App.notebookPage("", false)
+        })
+
+        post("/notebook", ->(req) {
+          App.log(req)
+          App.notebookSubmit(req)
+        })
+      end
 
       App.new(router)
+    end
+
+    def log(req)
+      puts "[#{Time.isoNow()}] #{req.method} #{req.path}"
+    end
+
+    def homePage(req)
+      HttpResponse.html("""
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Cosm 0.3.1</title>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <main class="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
+      <div class="space-y-4">
+        <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm 0.3.1</p>
+        <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
+        <p class="max-w-2xl text-lg text-slate-300">
+          Tiny object-first routing, class-side builders, shared-session notebook eval, and Tailwind only in the app layer.
+        </p>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-cyan-400" href="/notebook">
+          <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Notebook</p>
+          <h2 class="mt-3 text-2xl font-bold">Shared Eval Session</h2>
+          <p class="mt-2 text-sm text-slate-300">Run Cosm on the server and keep bindings alive for the life of this process.</p>
+        </a>
+
+        <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-emerald-400" href="/health">
+          <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Health</p>
+          <h2 class="mt-3 text-2xl font-bold">JSON Status</h2>
+          <p class="mt-2 text-sm text-slate-300">Inspect a tiny runtime-backed JSON response with process metadata.</p>
+        </a>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+          <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Request</p>
+          <h2 class="mt-3 text-2xl font-bold">#{req.method} #{req.path}</h2>
+          <p class="mt-2 text-sm text-slate-300">Current pid #{Process.pid()} on #{Process.platform()}/#{Process.arch()}.</p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+""", 200)
+    end
+
+    def healthResponse(req)
+      HttpResponse.json({
+        ok: true,
+        path: req.path,
+        pid: Process.pid(),
+        platform: Process.platform(),
+        arch: Process.arch() }, 200)
+    end
+
+    def notebookSubmit(req)
+      let form = req.form()
+      let codeValue = form.get("code")
+      let code = if codeValue == false then "" else codeValue end
+      let evaluation = if code == "" then false else Kernel.tryEval(code) end
+      notebookPage(code, evaluation)
+    end
+
+    def notebookOutput(evaluation)
+      if evaluation == false then
+        """
+<div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300">
+  Run some Cosm code to inspect the shared server-side session.
+</div>
+"""
+      else
+        if evaluation.ok then
+          """
+<div class="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">Result</p>
+  <pre class="mt-3 overflow-x-auto whitespace-pre-wrap text-sm text-emerald-50">#{evaluation.inspect}</pre>
+</div>
+"""
+        else
+          """
+<div class="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">Error</p>
+  <pre class="mt-3 overflow-x-auto whitespace-pre-wrap text-sm text-rose-50">#{evaluation.error}</pre>
+</div>
+"""
+        end
+      end
+    end
+
+    def notebookPage(code, evaluation)
+      HttpResponse.html("""
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Cosm Notebook</title>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <main class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
+      <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Notebook Demo</p>
+          <h1 class="mt-2 text-4xl font-black tracking-tight">Server-side Cosm session</h1>
+          <p class="mt-3 max-w-3xl text-base text-slate-300">
+            This is intentionally tiny: one shared session per process, one form submit, one inspected result panel.
+          </p>
+        </div>
+        <a class="text-sm text-slate-300 underline decoration-cyan-400 underline-offset-4" href="/">Back home</a>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
+        <section class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/40">
+          <form method="post" action="/notebook" class="space-y-4">
+            <label class="block text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Code</label>
+            <textarea name="code" class="min-h-[24rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-cyan-100 outline-none ring-0 placeholder:text-slate-600" spellcheck="false">#{code}</textarea>
+            <div class="flex flex-wrap items-center gap-3">
+              <button class="rounded-full bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300" type="submit">Run In Shared Session</button>
+              <p class="text-sm text-slate-400">Try: <code class="text-cyan-300">let answer = 41</code> then <code class="text-cyan-300">answer + 1</code></p>
+            </div>
+          </form>
+        </section>
+
+        <section class="space-y-4">
+          <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">Runtime</p>
+            <dl class="mt-4 grid gap-3 text-sm text-slate-300">
+              <div><dt class="font-semibold text-slate-100">Process</dt><dd>#{Process.pid()} on #{Process.platform()}/#{Process.arch()}</dd></div>
+              <div><dt class="font-semibold text-slate-100">Now</dt><dd>#{Time.isoNow()}</dd></div>
+              <div><dt class="font-semibold text-slate-100">Shared Eval</dt><dd>Backed by <code class="text-cyan-300">Kernel.tryEval(...)</code></dd></div>
+            </dl>
+          </div>
+
+          #{notebookOutput(evaluation)}
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
+""", 200)
     end
   end
 end

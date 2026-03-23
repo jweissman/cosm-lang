@@ -26,6 +26,7 @@ namespace Cosm {
   export class Interpreter {
     private static readonly repository = this.createRepository();
     private static readonly symbolTable = new Map<string, CosmValue>();
+    private static sharedKernelEvalEnv?: Env;
 
     static evalNode(ast: CoreNode, env: Env): CosmValue {
       switch (ast.kind) {
@@ -130,6 +131,7 @@ namespace Cosm {
         classOf: (value) => this.classOf(value),
         internSymbol: (name) => this.internSymbol(name),
         loadModule: (name, env) => this.loadModule(name, env),
+        evalSource: (source) => this.evalSharedKernelSource(source),
       });
       Bootstrap.setCurrentRepository(repository);
       return repository;
@@ -137,6 +139,13 @@ namespace Cosm {
 
     static createEnv(parent?: Env): Env {
       return { bindings: {}, parent };
+    }
+
+    private static evalSharedKernelSource(source: string): CosmValue {
+      if (!this.sharedKernelEvalEnv) {
+        this.sharedKernelEvalEnv = this.createEnv();
+      }
+      return this.evalInEnv(source, this.sharedKernelEvalEnv);
     }
 
     private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
@@ -627,6 +636,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.0";
+    export const version = "0.3.1";
 }
 export default Cosm;

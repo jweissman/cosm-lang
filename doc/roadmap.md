@@ -78,13 +78,14 @@ What still feels missing or provisional:
 - Service/module organization is still young: we can now split boot files from app modules, but the canonical structure still wants tightening.
 - Final CLI/dev-loop polish so the watch/test/help flows feel principled rather than ad hoc.
 
-What is deliberately not part of `0.3` even if it is attractive:
+What is deliberately not part of `0.3.1` even if it is attractive:
 
-- block-style lambdas like `do |req| ... end`
-- `router.draw do ... end`
+- block-style lambdas with parameters like `do |req| ... end`
+- `get "/" do |req| ... end`
+- ampersand block capture/passing
 - notebook UI
 - browser-side Cosm runtime
-- Tailwind/frontend stack decisions
+- Tailwind/frontend stack decisions as language/runtime commitments
 - route DSL syntax
 - lexical `module ... end`
 - HTML tag-builder DSLs
@@ -104,21 +105,24 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 
 This is the current center of gravity.
 
-### v0.3 Target
+### v0.3.1 Target
 
-v0.3 should mean:
+v0.3.1 should mean:
 
 - a stable reflective runtime core
 - clearer TS-backed ownership for the main runtime classes
 - a steadier standard surface through `Kernel`, `Namespace`, `cosm`, and `classes`
 - a first deliberate service layer through `http`, `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter`
+- trailing `do ... end` block passing as narrow final-argument sugar
+- one tiny server-rendered notebook demo page backed by shared server-side eval
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
 
-v0.3 intentionally does not include:
+v0.3.1 intentionally does not include:
 
-- block-style lambdas like `do |req| ... end`
-- `router.draw do ... end`
+- block-style lambdas with parameters like `do |req| ... end`
+- `get "/" do |req| ... end`
+- ampersand block capture/passing
 - a notebook app
 - a framework/router layer
 - Slack/webhook integration
@@ -153,7 +157,7 @@ Current focus:
 - Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
 - Reflective module objects and a first minimal `does_not_understand(message, args)` fallback now exist as the bridge toward future DSL work. The first concrete payoff is a tiny `router.draw(...)` builder path for route registration, while lexical `module ... end`, splats, and block capture remain deliberately deferred.
 - The next useful consolidation step is to make the app/module split feel canonical, so `app/server.cosm` reads like a boot entry and `app/app.cosm` reads like the service module.
-- `router.draw(->() { ... })` is enough to count as the first routing ergonomics step in `0.3`; we should not broaden the release into Ruby-shaped block syntax.
+- `router.draw do ... end` is enough to count as the first routing ergonomics step in `0.3.1`; we should not broaden the release into Ruby-shaped block syntax.
 - A narrow `cosm --watch <file>` loop now exists as a child-process restart convenience; the remaining CLI work is mainly polish around argument parsing, help, and error handling.
 
 Questions this track should answer:
@@ -166,13 +170,15 @@ Questions this track should answer:
 - How should future wrapper concepts like mirrors and holograms relate to ordinary objects, metaclasses, and host interop boundaries?
 - If Cosm eventually gains `template`-style structure definitions, what metaobject protocol should those forms lower onto?
 
-### v0.3 Definition Of Done
+### v0.3.1 Definition Of Done
 
 - Core reflective/runtime classes keep one explicit exposure protocol.
 - `cosm.ts` is not the main declaration site for runtime surfaces.
 - `Kernel`, `Namespace`, `Mirror`, and the reflective roots cover the everyday "tie your shoes" surface more comfortably.
 - `Process` covers the basic host boot/lifecycle surface needed for tiny services: `cwd`, `env`, `argv`, `pid`, and `exit`.
+- `Process`, `Kernel`, and `Time` cover the additional tiny comfort surface needed for service/notebook work: `platform`, `arch`, `sleep`, and `fromIso`.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are documented and test-covered.
+- The canonical app demonstrates `router.draw do ... end` and a tiny `/notebook` route without introducing full block semantics or browser execution.
 - The self-test, tiny test harness, REPL, CLI, and default Bun suite remain green and stable.
 
 Concrete next construction ideas:
@@ -187,7 +193,7 @@ Concrete next construction ideas:
 - Keep the near-term web-service path intentionally object-oriented: `http.serve(port, App.new())` should feel like the canonical minimal service shape before any route DSLs appear.
 - Keep the routing DSL runtime-backed and narrow for now: `router.draw(...)` can smooth over bare verb calls, but route params, wildcards, middleware, and route macros should stay deferred.
 - Make `Mirror` the first readonly reflective wrapper before reaching for richer hologram/delegation concepts.
-- Keep stabby lambdas as the only lambda form in `0.3`; route-handler ergonomics should come from statement-list bodies and runtime polish rather than new callable syntax families.
+- Keep stabby lambdas as the only parameterized lambda form in `0.3.1`; route-handler ergonomics should come from statement-list bodies and narrow trailing-block sugar rather than new callable syntax families.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
@@ -197,9 +203,9 @@ Concrete next construction ideas:
 
 Recommended next slice:
 
-- Treat `0.3` as the end of the current tiny service/runtime slice.
-- Use the remaining `0.3` tightening to normalize the module/app organization story.
-- Make module/app organization the immediate next track after `0.3` only in the sense of refinement, not as a new syntax layer.
+- Treat `0.3.1` as the end of the current tiny service/runtime slice.
+- Use the remaining `0.3.1` tightening to normalize the module/app organization story.
+- Make module/app organization the immediate next track after `0.3.1` only in the sense of refinement, not as a new syntax layer.
 - Then build a tiny server-side notebook shell on top of that module/app structure.
 - Leave browser/runtime decisions and richer callable/block syntax for after those two steps.
 

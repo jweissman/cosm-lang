@@ -28,7 +28,7 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.0", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.1", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
@@ -38,9 +38,13 @@ assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime object
 assert(Time.now() > 0, "Time exposes a simple time helper");
 assert(Time.iso(0) == "1970-01-01T00:00:00.000Z", "Time can render timestamps as ISO-8601 strings");
 assert(Time.isoNow().length >= 20, "Time exposes a convenient ISO-8601 helper for logging");
+assert(Time.fromIso("1970-01-01T00:00:00.000Z") == 0, "Time can parse ISO-8601 strings back into timestamps");
 assert(Process.cwd().length > 0, "Process exposes the current working directory");
 assert(Process.argv().length >= 1, "Process exposes host argv for service bootstrapping");
 assert(Process.pid() > 0, "Process exposes the host process id");
+assert(Process.platform().length > 0, "Process exposes the host platform");
+assert(Process.arch().length > 0, "Process exposes the host architecture");
+assert(Kernel.sleep(0) == 0, "Kernel exposes a tiny synchronous sleep helper");
 assert(Random.float() >= 0, "Random exposes a simple floating-point helper");
 assert(Random.float() < 1, "Random float stays in the expected JS range");
 assert(Random.int(5) >= 0, "Random exposes a simple integer helper");
@@ -80,15 +84,19 @@ assert(classes.Module.methods.get.name == "get", "Module reflects enumerable hel
 assert(classes.Kernel.methods.assert.name == "assert", "Kernel reflects its ambient services through the runtime model");
 assert(classes.Process.methods.cwd.name == "cwd", "Process reflects current-working-directory access through the runtime model");
 assert(classes.Process.methods.pid.name == "pid", "Process reflects process-id access through the runtime model");
+assert(classes.Process.methods.platform.name == "platform", "Process reflects host platform access through the runtime model");
+assert(classes.Process.methods.arch.name == "arch", "Process reflects host architecture access through the runtime model");
 assert(classes.Process.methods.exit.name == "exit", "Process reflects process exit through the runtime model");
 assert(classes.Time.methods.now.name == "now", "Time reflects current time access through the runtime model");
 assert(classes.Time.methods.isoNow.name == "isoNow", "Time reflects ISO-8601 rendering through the runtime model");
+assert(classes.Time.methods.fromIso.name == "fromIso", "Time reflects ISO-8601 parsing through the runtime model");
 assert(classes.Random.methods.float.name == "float", "Random reflects floating-point sampling through the runtime model");
 assert(classes.Mirror.classMethods.reflect.name == "reflect", "Mirror exposes a reflective entry point");
 assert(classes.Http.methods.serve.name == "serve", "Http reflects Bun-native serving through the runtime model");
 assert(classes.HttpRouter.methods.get.name == "get", "HttpRouter reflects tiny routing helpers through the runtime model");
 assert(classes.HttpRouter.methods.draw.name == "draw", "HttpRouter reflects draw through the runtime model");
 assert(classes.HttpRequest.methods.bodyText.name == "bodyText", "HttpRequest reflects request access through the runtime model");
+assert(classes.HttpRequest.methods.form.name == "form", "HttpRequest reflects form parsing through the runtime model");
 assert(classes.HttpResponse.classMethods.html.name == "html", "HttpResponse reflects HTML response construction through the runtime model");
 assert(classes.HttpResponse.classMethods.text.name == "text", "HttpResponse reflects response construction through the runtime model");
 assert(classes.HttpResponse.classMethods.json.name == "json", "HttpResponse reflects JSON response construction through the runtime model");
@@ -160,6 +168,10 @@ class MissingExample
 end;
 assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallback can handle explicit sends");
 assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
+assert(Kernel.tryEval("1 + 2").ok == true, "Kernel.tryEval exposes structured eval success");
+assert(Kernel.tryEval("1 + 2").inspect == "3", "Kernel.tryEval returns inspected result text");
+Kernel.eval("let notebookSeed = 41");
+assert(Kernel.eval("notebookSeed + 1") == 42, "Kernel.eval keeps a tiny shared server-side session");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");
@@ -236,9 +248,9 @@ assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass in
 # ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 let router = HttpRouter.new();
-router.draw(->() {
+router.draw do
   get("/", ->(req) { HttpResponse.html("<h1>ok</h1>", 200) })
-});
+end;
 assert(router.length == 1, "HttpRouter can register exact routes through draw");
 assert(Mirror.reflect(router).inspect() == '#<HttpRouter routes: 1>', "Mirror can inspect service-oriented runtime objects");
 classes.String.name

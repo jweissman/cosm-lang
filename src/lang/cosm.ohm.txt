@@ -17,7 +17,8 @@ Cosm {
     | Exp
 
   BareCallStmt
-    = BareCallee BareCallArgs
+    = BareCallee BareCallArgs TrailingBlock?  -- args
+    | BareCallee TrailingBlock                -- block
 
   BareCallee
     = ident BareCalleeTail*
@@ -112,7 +113,7 @@ Cosm {
 
   PostExp
     = PostExp "." name  -- access
-    | PostExp "(" CallArgs? ")"  -- call
+    | PostExp "(" CallArgs? ")" TrailingBlock?  -- call
     | PriExp
 
   PriExp
@@ -135,6 +136,9 @@ Cosm {
 
   CallArgs
     = Exp ("," Exp)*
+
+  TrailingBlock
+    = kw_do StatementList kw_end
 
   BareCallArgs
     = BareArg ("," BareArg)*

@@ -25,6 +25,20 @@ export class CosmHttpRequestValue extends CosmObjectValue {
         }
         return new CosmStringValue(selfValue.bodyTextValue);
       }),
+      form: () => new CosmFunctionValue('form', (args, selfValue) => {
+        if (!(selfValue instanceof CosmHttpRequestValue)) {
+          throw new Error('Type error: form expects an HttpRequest receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method form expects 0 arguments, got ${args.length}`);
+        }
+        const params = new URLSearchParams(selfValue.bodyTextValue);
+        const entries: Record<string, CosmValue> = {};
+        for (const [key, value] of params.entries()) {
+          entries[key] = new CosmStringValue(value);
+        }
+        return new CosmNamespaceValue(entries);
+      }),
     },
   };
 

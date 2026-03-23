@@ -4,6 +4,25 @@ import { SurfaceNode, CoreNode } from "../types";
 import { Lowerer } from "./lowerer";
 
 export class Parser {
+    private static appendTrailingBlock(callNode: SurfaceNode, trailingBlockAst: SurfaceNode): SurfaceNode {
+      const blockChildren = trailingBlockAst.kind === 'list' ? (trailingBlockAst.children ?? []) : [trailingBlockAst];
+      const lambdaAst: SurfaceNode = {
+        kind: 'lambda_expr',
+        value: '<lambda>',
+        params: [],
+        children: [{
+          kind: 'block_expr',
+          value: '',
+          children: blockChildren,
+        }],
+      };
+
+      return {
+        ...callNode,
+        children: [...(callNode.children ?? []), lambdaAst],
+      };
+    }
+
     private static normalizeInput(input: string): string {
       let output = '';
       let lineBuffer = '';
@@ -171,12 +190,28 @@ export class Parser {
           value: '',
           left: statement.ast(),
         }),
-        BareCallStmt: (callee, args) => ({
-          kind: 'call',
-          value: '',
-          left: callee.ast(),
-          children: Parser.listChildren(args.ast()),
-        }),
+        BareCallStmt_args: (callee, args, trailingBlock) => {
+          const callNode: SurfaceNode = {
+            kind: 'call',
+            value: '',
+            left: callee.ast(),
+            children: Parser.listChildren(args.ast()),
+          };
+          const trailingAst = trailingBlock.ast();
+          if (trailingAst.kind === 'list' && (trailingAst.children?.length ?? 0) === 0) {
+            return callNode;
+          }
+          return Parser.appendTrailingBlock(callNode, trailingAst);
+        },
+        BareCallStmt_block: (callee, trailingBlock) => {
+          const callNode: SurfaceNode = {
+            kind: 'call',
+            value: '',
+            left: callee.ast(),
+            children: [],
+          };
+          return Parser.appendTrailingBlock(callNode, trailingBlock.ast());
+        },
         BareCallee: (head, tails) => tails.children.reduce((receiver, tail) => ({
           kind: 'access',
           value: tail.ast().value,
@@ -295,12 +330,19 @@ export class Parser {
         UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
         UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
         PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
-        PostExp_call: (callee, _open, args, _close) => ({
-          kind: 'call',
-          value: '',
-          left: callee.ast(),
-          children: Parser.listChildren(args.ast()),
-        }),
+        PostExp_call: (callee, _open, args, _close, trailingBlock) => {
+          const callNode: SurfaceNode = {
+            kind: 'call',
+            value: '',
+            left: callee.ast(),
+            children: Parser.listChildren(args.ast()),
+          };
+          const trailingAst = trailingBlock.ast();
+          if (trailingAst.kind === 'list' && (trailingAst.children?.length ?? 0) === 0) {
+            return callNode;
+          }
+          return Parser.appendTrailingBlock(callNode, trailingAst);
+        },
         PriExp_paren: (_open, exp, _close) => exp.ast(),
         PriExp_array: (_open, items, _close) => ({
           kind: 'array',
@@ -320,6 +362,11 @@ export class Parser {
           kind: 'list',
           value: '',
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        TrailingBlock: (_do, body, _end) => ({
+          kind: 'block_expr',
+          value: '',
+          children: Parser.listChildren(body.ast()),
         }),
         BareCallArgs: (first, _seps, rest) => ({
           kind: 'list',

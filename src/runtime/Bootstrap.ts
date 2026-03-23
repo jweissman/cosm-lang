@@ -36,6 +36,7 @@ type BootstrapRuntime = {
   classOf: (value: CosmValue) => CosmClass;
   internSymbol: (name: string) => CosmValue;
   loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
+  evalSource: (source: string) => CosmValue;
 };
 
 export class Bootstrap {
@@ -56,6 +57,7 @@ export class Bootstrap {
     CosmKernelValue.installRuntimeHooks({
       send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+      eval: (source) => runtime.evalSource(source),
     });
     CosmProcessValue.installRuntimeHooks({});
     CosmFunctionValue.installRuntimeHooks({

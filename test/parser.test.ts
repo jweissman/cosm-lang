@@ -43,6 +43,13 @@ test("parser accepts multi-statement lambdas with bare calls", () => {
   expect(() => Parser.parse('->(req) { puts "#{Time.isoNow()}"; HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) }')).not.toThrow();
 });
 
+test("parser lowers trailing do-end blocks on calls", () => {
+  expect(() => Parser.parse('router.draw do get("/", ->(req) { HttpResponse.text("hi", 200) }) end')).not.toThrow();
+  expect(() => Parser.parse('describe("smoke") do test("ok", ->() { assert(true) }) end')).not.toThrow();
+  expect(() => Parser.parse('do let x = 1; x end')).not.toThrow();
+  expect(() => Parser.parse('router.draw do |req| req end')).toThrow("Parse error:");
+});
+
 test("parser keeps bare-call sugar statement-oriented", () => {
   expect(() => Parser.parse("assert(assert true == true)")).toThrow("Parse error:");
   expect(() => Parser.parse("->() { assert true }")).not.toThrow();

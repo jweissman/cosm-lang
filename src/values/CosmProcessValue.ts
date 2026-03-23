@@ -47,6 +47,18 @@ export class CosmProcessValue extends CosmObjectValue {
         }
         return new CosmNumberValue(process.pid);
       }),
+      platform: () => new CosmFunctionValue('platform', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: platform expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(process.platform);
+      }),
+      arch: () => new CosmFunctionValue('arch', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: arch expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(process.arch);
+      }),
       exit: () => new CosmFunctionValue('exit', (args) => {
         if (args.length > 1) {
           throw new Error(`Arity error: exit expects 0 or 1 arguments, got ${args.length}`);

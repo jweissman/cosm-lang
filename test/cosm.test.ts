@@ -172,7 +172,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.0");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.1");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
@@ -182,8 +182,12 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Time.now() > 0")).toBe(true);
   expect(cosmEval('Time.iso(0)')).toBe("1970-01-01T00:00:00.000Z");
   expect(cosmEval("Time.isoNow().length >= 20")).toBe(true);
+  expect(cosmEval('Time.fromIso("1970-01-01T00:00:00.000Z")')).toBe(0);
   expect(cosmEval("Process.cwd().length > 0")).toBe(true);
   expect(cosmEval("Process.pid() > 0")).toBe(true);
+  expect(cosmEval("Process.platform().length > 0")).toBe(true);
+  expect(cosmEval("Process.arch().length > 0")).toBe(true);
+  expect(cosmEval("Kernel.sleep(0)")).toBe(0);
   expect(cosmEval("Random.float() >= 0 && Random.float() < 1")).toBe(true);
   expect(cosmEval("Random.int(5) >= 0 && Random.int(5) < 5")).toBe(true);
   expect(cosmEval('Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
@@ -201,7 +205,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.0");
+  expect(cosmEval("cosm.version")).toBe("0.3.1");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
   expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
   expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('{ answer: 42 }');
@@ -230,6 +234,15 @@ test("Process.exit can be hooked and validates codes", () => {
   expect(exitedWith).toBe(3);
   expect(() => cosmEval('Process.exit("nope")')).toThrow("Type error: exit expects a numeric code");
   expect(() => cosmEval("Process.exit(1.5)")).toThrow("Type error: exit expects an integer code");
+});
+
+test("Kernel.eval and Kernel.tryEval share a tiny process-wide session", () => {
+  const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+  expect(cosmEval(`Kernel.eval("let ${sharedName} = 41"); Kernel.eval("${sharedName} + 1")`)).toBe(42);
+  expect(cosmEval('Kernel.tryEval("1 + 2").ok')).toBe(true);
+  expect(cosmEval('Kernel.tryEval("1 + 2").inspect')).toBe("3");
+  expect(cosmEval('Kernel.tryEval("let = 1").ok')).toBe(false);
+  expect(cosmEval('Kernel.tryEval("let = 1").error.length > 0')).toBe(true);
 });
 
 test("missing-method fallback supports explicit send and implicit self calls", () => {
@@ -432,24 +445,24 @@ test("http request and response runtime objects reflect cleanly", () => {
   expect(cosmEval('let router = HttpRouter.new(); router.get("/", ->(req) { HttpResponse.text("hi", 200) }); router.length')).toBe(1);
   expect(cosmEval(`
     let router = HttpRouter.new()
-    router.draw(->() {
+    router.draw do
       get("/", ->(req) { HttpResponse.text("hi", 200) })
       get("/health", ->(req) { HttpResponse.json({ ok: true }, 200) })
-    })
+    end
     router.length
   `)).toBe(2);
   expect(cosmEval(`
     let router = HttpRouter.new()
-    router.draw(->() {
+    router.draw do
       get("/", ->(req) { HttpResponse.text("hi", 200) })
-    })
+    end
     Kernel.inspect(router)
   `)).toBe('#<HttpRouter routes: 1>');
   expect(() => cosmEval(`
     let router = HttpRouter.new()
-    router.draw(->() {
+    router.draw do
       patch("/", ->(req) { HttpResponse.text("nope", 200) })
-    })
+    end
   `)).toThrow("Property error: object of class HttpRouterDsl has no property 'patch'");
   expect(() => cosmEval('let router = HttpRouter.new(); router.draw(1)')).toThrow(
     "Type error: HttpRouter.draw expects a function or method",

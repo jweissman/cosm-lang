@@ -4,23 +4,26 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3` is aimed at the first small but real web-service slice:
+`0.3.1` is aimed at a callable/block ergonomics follow-up on that first small but real web-service slice:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
+- trailing `do ... end` block passing as final-argument sugar
 - HTML-friendly responses through `HttpResponse.html(...)`
 - triple-quoted interpolated strings for small templates
 - the first readonly reflective primitive through `Mirror.reflect(...)`
 - a clearer class-side authoring path through `class << self`
+- a tiny server-rendered notebook demo page with shared server-side eval
 
-This is intentionally still below a notebook app or framework layer. `0.3` is about making the runtime and service surface feel steady enough to build on.
+This is intentionally still below a full notebook product or framework layer. `0.3.1` is about making the runtime and service surface feel steady enough to build on while proving one tiny interactive page.
 
-Explicitly not in `0.3`:
-- block-style lambdas like `do |req| ... end`
-- `router.draw do ... end`
-- notebook UI
+Explicitly not in `0.3.1`:
+- block-style lambdas with parameters like `do |req| ... end`
+- `get "/" do |req| ... end`
+- ampersand block capture or forwarding
 - browser-side Cosm runtime
-- Tailwind/frontend stack choices
+- notebook persistence or multi-user isolation
+- Tailwind or any frontend styling stack as a language/runtime commitment
 - broader route DSL syntax or router macros
 - HTML tag-builder DSLs
 - JS interop mirrors/holograms
@@ -28,7 +31,7 @@ Explicitly not in `0.3`:
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3` should now be organized as:
+Small services in `0.3.1` should now be organized as:
 
 - a boot entry like `app/server.cosm`
 - one or more required `.cosm` modules like `app/app.cosm`
@@ -81,11 +84,11 @@ class App
   class << self
     def build()
       let router = HttpRouter.new()
-      router.draw(->() {
+      router.draw do
         get("/", ->(req) {
           HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200)
         })
-      })
+      end
       App.new(router)
     end
   end
@@ -100,7 +103,15 @@ class App
 end
 ```
 
-That `router.draw(->() { ... })` shape is the intended `0.3` boundary: the builder is runtime-backed through `does_not_understand(...)`, but richer block syntax is intentionally deferred.
+Trailing `do ... end` on calls is intentionally narrow in `0.3.1`: it is just sugar for a final zero-argument lambda argument, which is enough to make `router.draw do ... end` feel natural without committing to full block semantics.
+
+```cosm
+router.draw do
+  get("/", ->(req) { HttpResponse.html("<h1>Hello</h1>", 200) })
+end
+```
+
+The demo app also now exposes a tiny `/notebook` page with Tailwind via CDN, server-side evaluation, and one shared session per running process. That page is an app-layer proof, not a runtime/browser commitment.
 
 ## Dev Commands
 
@@ -124,7 +135,7 @@ That `router.draw(->() { ... })` shape is the intended `0.3` boundary: the build
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3
+## After 0.3.1
 
 The immediate next track is:
 

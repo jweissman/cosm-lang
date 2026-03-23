@@ -30,6 +30,20 @@ export class CosmTimeValue extends CosmObjectValue {
         }
         return new CosmStringValue(new Date(value.value).toISOString());
       }),
+      fromIso: () => new CosmFunctionValue('fromIso', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: fromIso expects 1 arguments, got ${args.length}`);
+        }
+        const [value] = args;
+        if (!(value instanceof CosmStringValue)) {
+          throw new Error('Type error: fromIso expects a string');
+        }
+        const timestamp = Date.parse(value.value);
+        if (Number.isNaN(timestamp)) {
+          throw new Error('Value error: fromIso expects a valid ISO-8601 timestamp');
+        }
+        return new CosmNumberValue(timestamp);
+      }),
     },
   };
 
