@@ -72,6 +72,7 @@ What still feels missing or provisional:
 - Assignment / ivar writes / richer object-state setup.
 - Syntax lowering for omitted semicolons or implicit local binding.
 - Modules/namespaces as a first-class language form rather than only ambient reflective objects.
+- Variadic args, block capture, and a missing-method/delegation protocol that higher-level DSLs can build on.
 
 That suggests the next "tie your shoes" work should stay close to standard-surface basics, not just deep runtime theory.
 
@@ -126,6 +127,7 @@ Current focus:
 - The metaclass chain mirroring ordinary class inheritance closely enough to inspect and test from inside Cosm.
 - Enough object-state semantics to make later JS interop and delegation rest on something real.
 - A tiny Cosm-native test surface that is pleasant enough to drive real build targets like an HTTP notebook without immediately hard-coding framework ideas into the language.
+- Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
 
 Questions this track should answer:
 
@@ -151,6 +153,8 @@ Concrete next construction ideas:
 - Grow `Kernel` into the home for inspect/print/stdio, time, randomness, and other tie-your-shoes functionality.
 - Keep moving small harness/runtime services like `describe`, `send`, and callable protocol onto TS-backed runtime values rather than interpreter special cases.
 - Deepen the HTTP host boundary through request/response objects rather than jumping to a framework/router abstraction.
+- Add a conservative newline-to-semicolon lowering pass once we have a design we trust.
+- Stage callable growth in small pieces: variadics, then block capture, then missing-method/delegation hooks.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
@@ -215,6 +219,7 @@ Only after that should we reach for synchronized browser/server UI state or a hi
 ## Ordering Notes
 
 - Syntax sugar like semicolon omission or implicit `let` should ideally arrive via lowering once the core execution model is stable, rather than complicating the main grammar early.
+- Splat args, block capture, and method-missing style hooks should likewise arrive in staged protocol/lowering work, not all at once through Ruby-shaped surface syntax.
 - Loops still remain a later feature until reassignment or a stronger immutable iteration story exists.
 - A full object-dispatch replacement for evaluator type checks should wait until class and method lookup semantics are stable.
 - Web-service layers and JS interop are important goals, but they should land on top of a runtime that already explains object identity, dispatch, and reflection coherently.

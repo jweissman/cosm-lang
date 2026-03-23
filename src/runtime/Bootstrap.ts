@@ -7,7 +7,9 @@ import { CosmKernelValue } from "../values/CosmKernelValue";
 import { CosmMethodValue } from "../values/CosmMethodValue";
 import { CosmNamespaceValue } from "../values/CosmNamespaceValue";
 import { CosmProcessValue } from "../values/CosmProcessValue";
+import { CosmRandomValue } from "../values/CosmRandomValue";
 import { CosmSymbolValue } from "../values/CosmSymbolValue";
+import { CosmTimeValue } from "../values/CosmTimeValue";
 import { CosmValueBase } from "../values/CosmValueBase";
 import { CosmObjectValue } from "../values/CosmObjectValue";
 import { CosmHttpValue } from "../values/CosmHttpValue";
@@ -85,7 +87,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Process', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Process', 'Time', 'Random', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -121,6 +123,14 @@ export class Bootstrap {
     Object.assign(classes.Process.methods, manifestMethods(
       new CosmProcessValue({}, classes.Process),
       CosmProcessValue.manifest,
+    ));
+    Object.assign(classes.Time.methods, manifestMethods(
+      new CosmTimeValue({}, classes.Time),
+      CosmTimeValue.manifest,
+    ));
+    Object.assign(classes.Random.methods, manifestMethods(
+      new CosmRandomValue({}, classes.Random),
+      CosmRandomValue.manifest,
     ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
@@ -177,6 +187,8 @@ export class Bootstrap {
       Method: classes.Method,
       Namespace: classes.Namespace,
       Process: classes.Process,
+      Time: classes.Time,
+      Random: classes.Random,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
@@ -192,6 +204,8 @@ export class Bootstrap {
     const kernelMethods = classes.Kernel.methods;
     const kernelObject = Construct.kernel({}, classes.Kernel);
     const processObject = new CosmProcessValue({}, classes.Process);
+    const timeObject = new CosmTimeValue({}, classes.Time);
+    const randomObject = new CosmRandomValue({}, classes.Random);
     const testNamespace = CosmKernelValue.createTestNamespace(kernelMethods, classes.Namespace);
     const httpObject = new CosmHttpValue(
       {},
@@ -204,12 +218,13 @@ export class Bootstrap {
 
     globals.Kernel = kernelObject;
     globals.Process = processObject;
+    globals.Time = timeObject;
+    globals.Random = randomObject;
     globals.http = httpObject;
     globals.assert = kernelMethods.assert;
     globals.print = kernelMethods.print;
     globals.puts = kernelMethods.puts;
     globals.warn = kernelMethods.warn;
-    globals.random = kernelMethods.random;
     globals.test = kernelMethods.test;
     globals.expectEqual = kernelMethods.expectEqual;
     globals.resetTests = kernelMethods.resetTests;

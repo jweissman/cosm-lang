@@ -193,14 +193,20 @@ Class.class.name
   Writes formatted output to stdout without a trailing newline.
 - `Kernel.warn(value)`
   Writes one formatted line to stderr.
-- `Kernel.now()`
+- `Time.now()`
   Returns the current host timestamp in milliseconds since the Unix epoch.
+- `Time.isoNow()`
+  Returns the current time as an ISO-8601 UTC string.
+- `Time.iso(ms)`
+  Returns the given numeric timestamp as an ISO-8601 UTC string.
 - `Process.cwd()`
   Returns the current working directory as a string.
 - `Process.env(name)`
   Returns the host environment variable string for `name`, or `false` if it is not present.
-- `Kernel.random()`
+- `Random.float()`
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
+- `Random.int(max)`
+  Returns a host integer `0 <= n < max`.
 - `Kernel.expectEqual(actual, expected, message?)`
   Tiny bootstrap equality helper for tests. Raises if the two values are not equal under Cosm equality.
 - `Kernel.test(name, fn)`
@@ -262,6 +268,10 @@ Class.class.name
   Reflective object for ambient services. `Kernel.class.name` is `Kernel`, and `classes.Kernel` is the reflective class object behind it.
 - `Process`
   Reflective object for host process access like `cwd()` and `env(name)`.
+- `Time`
+  Reflective object for host time access like `now()`.
+- `Random`
+  Reflective object for host randomness like `float()` and `int(max)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `cosm`
@@ -293,10 +303,13 @@ Kernel.class.name
 Kernel.inspect(Kernel)
 http.class.name
 cosm.http.class.name
-Kernel.now()
+Time.now()
+Time.isoNow()
+Time.iso(0)
 Process.cwd()
 Process.env("HOME")
-Kernel.random()
+Random.float()
+Random.int(10)
 Kernel.expectEqual([1, 2], [1, 2])
 HttpResponse.text("ok", 201)
 HttpResponse.json({ ok: true }, 202)

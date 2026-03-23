@@ -11,17 +11,22 @@
 #   end
 # end
 
-class App do
-  def handle(req) do
+class App
+  def handle(req)
     HttpResponse.text(respond(req), 200)
   end
 
-  def respond(req) do
+  def respond(req)
+    log(req)
     hello(req.path)
   end
 
-  def hello(subject) do
+  def hello(subject)
     "Hello #{subject}"
+  end
+
+  def log(req)
+    puts "[#{Time.isoNow()}] #{req.method} #{req.path}"
   end
 end
 

@@ -380,6 +380,8 @@ namespace Cosm {
       return Construct.namespace({
         Kernel: this.repository.globals.Kernel,
         Process: this.repository.globals.Process,
+        Time: this.repository.globals.Time,
+        Random: this.repository.globals.Random,
         http: this.repository.globals.http,
         classes: this.classesObject(env),
         test: Construct.namespace({

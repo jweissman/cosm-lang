@@ -8,7 +8,9 @@ import { CosmMethodValue } from "../src/values/CosmMethodValue";
 import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmObjectValue } from "../src/values/CosmObjectValue";
 import { CosmProcessValue } from "../src/values/CosmProcessValue";
+import { CosmRandomValue } from "../src/values/CosmRandomValue";
 import { CosmSymbolValue } from "../src/values/CosmSymbolValue";
+import { CosmTimeValue } from "../src/values/CosmTimeValue";
 import { CosmValueBase } from "../src/values/CosmValueBase";
 import { RuntimeEquality } from "../src/runtime/RuntimeEquality";
 import { CosmHttpValue } from "../src/values/CosmHttpValue";
@@ -147,6 +149,8 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const kernelClass = new CosmClassValue("Kernel", "Object");
   const namespaceClass = new CosmClassValue("Namespace", "Object");
   const processClass = new CosmClassValue("Process", "Object");
+  const timeClass = new CosmClassValue("Time", "Object");
+  const randomClass = new CosmClassValue("Random", "Object");
   const httpRequestClass = new CosmClassValue("HttpRequest", "Object");
   const httpResponseClass = new CosmClassValue("HttpResponse", "Object");
 
@@ -176,6 +180,14 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const processMethods = manifestMethods(
     new CosmProcessValue({}, processClass),
     CosmProcessValue.manifest,
+  );
+  const timeMethods = manifestMethods(
+    new CosmTimeValue({}, timeClass),
+    CosmTimeValue.manifest,
+  );
+  const randomMethods = manifestMethods(
+    new CosmRandomValue({}, randomClass),
+    CosmRandomValue.manifest,
   );
   const httpMethods = manifestMethods(
     new CosmHttpValue({}, new CosmClassValue("Http"), new CosmClassValue("HttpServer"), namespaceClass, httpRequestClass, httpResponseClass),
@@ -215,10 +227,8 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "describe",
     "expectEqual",
     "inspect",
-    "now",
     "print",
     "puts",
-    "random",
     "resetTests",
     "send",
     "test",
@@ -226,6 +236,8 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "warn",
   ]);
   expect(Object.keys(processMethods).sort()).toEqual(["cwd", "env"]);
+  expect(Object.keys(timeMethods).sort()).toEqual(["iso", "isoNow", "now"]);
+  expect(Object.keys(randomMethods).sort()).toEqual(["float", "int"]);
   expect(Object.keys(httpMethods)).toEqual(["serve"]);
   expect(Object.keys(httpRequestMethods)).toEqual(["bodyText"]);
   expect(Object.keys(httpResponseMethods)).toEqual([]);

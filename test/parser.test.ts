@@ -16,6 +16,14 @@ test("parser accepts require and optional do elision", () => {
   expect(() => Parser.parse('require("cosm/test")')).not.toThrow();
   expect(() => Parser.parse('def greet(name) "hi " + name end; greet("cosm")')).not.toThrow();
   expect(() => Parser.parse('class Greeter def label() "hi" end end; Greeter.name')).not.toThrow();
+  expect(() => Parser.parse('class App\n  def handle(req)\n    HttpResponse.text(respond(req), 200)\n  end\n  def respond(req)\n    hello(req.path)\n  end\n  def hello(subject)\n    "Hello #{subject}"\n  end\nend; let app = App.new();')).not.toThrow();
+});
+
+test("parser treats significant newlines like semicolons", () => {
+  expect(() => Parser.parse("let a = 1\nlet b = 2\nb")).not.toThrow();
+  expect(() => Parser.parse("class A\nend\nA.name")).not.toThrow();
+  expect(() => Parser.parse("def f() 1 end\ndef g() 2 end\ng()")).not.toThrow();
+  expect(() => Parser.parse("1 +\n2")).not.toThrow();
 });
 
 test("parser keeps keyword prefixes distinct from identifiers", () => {

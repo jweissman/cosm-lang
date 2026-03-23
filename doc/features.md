@@ -22,7 +22,7 @@
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - Reflective method tables now also surface as `Namespace`-style objects rather than anonymous bags, which makes class reflection more consistent with the rest of the runtime.
 - The core reflective/runtime classes now expose their native surface through one explicit manifest-style protocol, so bootstrap class tables and runtime lookup are drawing from the same declarations instead of parallel hand wiring.
-- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `now`, `random`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model. Host process concerns like `cwd()` and `env(name)` now live on a dedicated reflective `Process` object, and `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
+- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model. Host concerns are getting split into clearer homes: `Process` owns `cwd()` / `env(name)`, `Time` owns `now()`, `isoNow()`, and `iso(ms)`, and `Random` owns `float()` / `int(max)`. `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
 - `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` can load `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`.
@@ -41,6 +41,7 @@
 - Moving generic `send` and callable behavior like `Method.call(...)` out of interpreter special cases and into TS-backed runtime value classes.
 - Deciding how far TS runtime values versus built-in Cosm classes should own primitive behavior during bootstrap, now that both sides exist.
 - Extending the current bootstrap `Class` object into a fuller metaclass/class-of-class story.
+- Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
 ## v0.2 Definition Of Done
@@ -57,6 +58,8 @@
 - Extend class-side dispatch semantics deliberately.
 - Move more operators and built-ins behind runtime/class dispatch.
 - Fill in more baseline language services: stdio, math/random/time/process helpers, and a tiny test harness.
+- Add a disciplined newline/semicolon lowering pass rather than baking more ambiguity into the grammar.
+- Stage callable growth explicitly: variadic args first, block capture later, and missing-method protocol after that.
 - Add explicit object-state setup/writes once assignment semantics exist.
 - Design the first reflective metaclass links.
 - Write down the intended metaclass-diamond/bootstrap rule before we add much richer class-side power.

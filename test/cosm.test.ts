@@ -58,6 +58,8 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Class.name")).toBe("Class");
   expect(cosmEval("classes.Kernel.name")).toBe("Kernel");
   expect(cosmEval("classes.Process.name")).toBe("Process");
+  expect(cosmEval("classes.Time.name")).toBe("Time");
+  expect(cosmEval("classes.Random.name")).toBe("Random");
   expect(cosmEval("classes.Method.name")).toBe("Method");
   expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
   expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
@@ -77,6 +79,11 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Namespace.methods.keys.name")).toBe("keys");
   expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
   expect(cosmEval("classes.Process.methods.cwd.name")).toBe("cwd");
+  expect(cosmEval("classes.Time.methods.now.name")).toBe("now");
+  expect(cosmEval("classes.Time.methods.isoNow.name")).toBe("isoNow");
+  expect(cosmEval("classes.Time.methods.iso.name")).toBe("iso");
+  expect(cosmEval("classes.Random.methods.float.name")).toBe("float");
+  expect(cosmEval("classes.Random.methods.int.name")).toBe("int");
   expect(cosmEval("classes.Process.methods.env.name")).toBe("env");
   expect(cosmEval("classes.Http.methods.serve.name")).toBe("serve");
   expect(cosmEval("classes.HttpRequest.methods.bodyText.name")).toBe("bodyText");
@@ -94,8 +101,6 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.method(:print).name")).toBe("print");
   expect(cosmEval("Kernel.method(:puts).name")).toBe("puts");
   expect(cosmEval("Kernel.method(:warn).name")).toBe("warn");
-  expect(cosmEval("Kernel.method(:now).name")).toBe("now");
-  expect(cosmEval("Kernel.method(:random).name")).toBe("random");
   expect(cosmEval("Kernel.method(:test).name")).toBe("test");
   expect(cosmEval("Kernel.method(:describe).name")).toBe("describe");
   expect(cosmEval("Kernel.method(:expectEqual).name")).toBe("expectEqual");
@@ -107,6 +112,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
   expect(cosmEval("Process.class.name")).toBe("Process");
   expect(cosmEval("cosm.Process.class.name")).toBe("Process");
+  expect(cosmEval("Time.class.name")).toBe("Time");
+  expect(cosmEval("Random.class.name")).toBe("Random");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Namespace");
@@ -123,9 +130,12 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
   expect(cosmEval('Kernel.expectEqual([1, 2], [1, 2])')).toBe(true);
-  expect(cosmEval("Kernel.now() > 0")).toBe(true);
+  expect(cosmEval("Time.now() > 0")).toBe(true);
+  expect(cosmEval('Time.iso(0)')).toBe("1970-01-01T00:00:00.000Z");
+  expect(cosmEval("Time.isoNow().length >= 20")).toBe(true);
   expect(cosmEval("Process.cwd().length > 0")).toBe(true);
-  expect(cosmEval("Kernel.random() >= 0 && Kernel.random() < 1")).toBe(true);
+  expect(cosmEval("Random.float() >= 0 && Random.float() < 1")).toBe(true);
+  expect(cosmEval("Random.int(5) >= 0 && Random.int(5) < 5")).toBe(true);
   expect(cosmEval('Kernel.inspect(cosm.test)')).toContain("#<Namespace");
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
   expect(cosmEval('Kernel.send(1, Symbol.intern("plus"), 2)')).toBe(3);
@@ -140,6 +150,10 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.version")).toBe("0.2.0");
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
+  expect(() => cosmEval("Kernel.now()")).toThrow("Property error: object of class Kernel has no property 'now'");
+  expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
+  expect(() => cosmEval("Kernel.cwd")).toThrow("Property error: object of class Kernel has no property 'cwd'");
+  expect(() => cosmEval('Kernel.env("HOME")')).toThrow("Property error: object of class Kernel has no property 'env'");
 });
 
 test("Process.env can read host environment strings", () => {

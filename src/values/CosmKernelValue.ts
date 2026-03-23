@@ -84,18 +84,6 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         return new CosmStringValue(ValueAdapter.format(args[0]));
       }),
-      now: () => new CosmFunctionValue('now', (args) => {
-        if (args.length !== 0) {
-          throw new Error(`Arity error: now expects 0 arguments, got ${args.length}`);
-        }
-        return new CosmNumberValue(Date.now());
-      }),
-      random: () => new CosmFunctionValue('random', (args) => {
-        if (args.length !== 0) {
-          throw new Error(`Arity error: random expects 0 arguments, got ${args.length}`);
-        }
-        return new CosmNumberValue(Math.random());
-      }),
       send: () => new CosmFunctionValue('send', (args) => {
         if (args.length < 2) {
           throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);

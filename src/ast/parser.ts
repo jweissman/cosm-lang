@@ -4,6 +4,114 @@ import { SurfaceNode, CoreNode } from "../types";
 import { Lowerer } from "./lowerer";
 
 export class Parser {
+    private static normalizeInput(input: string): string {
+      let output = '';
+      let lineBuffer = '';
+      let inSingle = false;
+      let inDouble = false;
+      let escaped = false;
+      let inComment = false;
+
+      const flushLine = (newline = '') => {
+        const lineWithoutComment = inComment ? lineBuffer.replace(/#.*$/, '') : lineBuffer;
+        output += lineBuffer;
+        if (newline) {
+          output += this.shouldInsertSemicolon(lineWithoutComment) ? `;${newline}` : newline;
+        }
+        lineBuffer = '';
+        inComment = false;
+      };
+
+      for (let index = 0; index < input.length; index += 1) {
+        const char = input[index];
+
+        if (inComment) {
+          if (char === '\n') {
+            flushLine('\n');
+          } else {
+            lineBuffer += char;
+          }
+          continue;
+        }
+
+        if (inSingle || inDouble) {
+          lineBuffer += char;
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (char === '\\') {
+            escaped = true;
+            continue;
+          }
+          if (inSingle && char === '\'') {
+            inSingle = false;
+          } else if (inDouble && char === '"') {
+            inDouble = false;
+          }
+          continue;
+        }
+
+        if (char === '#') {
+          inComment = true;
+          lineBuffer += char;
+          continue;
+        }
+        if (char === '\'') {
+          inSingle = true;
+          lineBuffer += char;
+          continue;
+        }
+        if (char === '"') {
+          inDouble = true;
+          lineBuffer += char;
+          continue;
+        }
+        if (char === '\n') {
+          flushLine('\n');
+          continue;
+        }
+        lineBuffer += char;
+      }
+
+      flushLine();
+      return output;
+    }
+
+    private static shouldInsertSemicolon(line: string): boolean {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return false;
+      }
+      if (trimmed.endsWith(';')) {
+        return false;
+      }
+      if (
+        /^class\b/.test(trimmed)
+        && !/\bend\s*$/.test(trimmed)
+      ) {
+        return false;
+      }
+      if (
+        /^def\b/.test(trimmed)
+        && !/\bend\s*$/.test(trimmed)
+      ) {
+        return false;
+      }
+      if (
+        trimmed === 'do'
+        || trimmed === 'else'
+        || /\bthen\s*$/.test(trimmed)
+        || /\bdo\s*$/.test(trimmed)
+      ) {
+        return false;
+      }
+      if (/[+\-*/^.,=<>!&|([{:]$/.test(trimmed)) {
+        return false;
+      }
+      return true;
+    }
+
     private static listChildren(node: SurfaceNode): SurfaceNode[] {
       const children = node.children ?? [];
       if (children[0]?.kind === 'list') {
@@ -253,7 +361,7 @@ export class Parser {
         ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
       });
 
-      const matchResult = grammar.match(input);
+      const matchResult = grammar.match(this.normalizeInput(input));
       if (matchResult.succeeded()) {
         return semantics(matchResult).ast();
       }
