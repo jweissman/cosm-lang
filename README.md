@@ -10,9 +10,10 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 - a tiny router/service story through `HttpRouter`
 - router-level middleware through `HttpRouter.use(...)`
 - trailing `do ... end` block passing with block params on calls
+- real narrow `yield(...)` for invoking the current implicit trailing block
 - HTML-friendly responses through `HttpResponse.html(...)`
 - first-class `inspect()` behavior across the runtime
-- `.ecosm` templates for real app views under `app/views/...`
+- `.ecosm` templates for real app views under `app/views/...`, now aligned with narrow `yield()`-based layout composition
 - the first readonly reflective primitive through `Mirror.reflect(...)`
 - a clearer class-side authoring path through `class << self`
 - split view modules for app rendering
@@ -30,6 +31,8 @@ Explicitly not in `0.3.4`:
 - JS interop mirrors/holograms
 - VM execution
 
+In `0.3.4`, `yield(...)` is now a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
+
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
 Small services in `0.3.4` should now be organized as:
@@ -37,6 +40,7 @@ Small services in `0.3.4` should now be organized as:
 - a boot entry like `app/server.cosm`
 - an app/service module like `app/app.cosm`
 - one or more view modules like `app/views/index.cosm`
+- page/layout/fragment templates under `app/views/...`
 - object-first service classes that still own `handle(req)` and router setup
 
 ## Current Examples
@@ -109,13 +113,23 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.4`: it is lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.4`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
   get "/" do |req|
     HttpResponse.html("<h1>Hello</h1>", 200)
   end
+end
+```
+
+```cosm
+def around(value)
+  yield(value + 1)
+end
+
+around(41) do |number|
+  number
 end
 ```
 
@@ -149,5 +163,5 @@ The immediate next track is:
 
 1. richer notebook shell and session ergonomics
 2. then browser/runtime decisions
-3. then deeper callable/block semantics
+3. then deeper callable/block semantics beyond narrow `yield(...)`
 4. then broader framework/interop work

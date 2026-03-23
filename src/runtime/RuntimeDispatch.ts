@@ -128,7 +128,7 @@ export class RuntimeDispatch {
     message: string,
     args: CosmValue[],
     repository: RuntimeRepository,
-    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
   ): CosmValue {
     try {
       const method = this.resolveSendTarget(receiver, message, repository);
@@ -151,7 +151,8 @@ export class RuntimeDispatch {
     messageValue: CosmValue,
     args: CosmValue[],
     repository: RuntimeRepository,
-    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
+    _env?: CosmEnv,
   ): CosmValue {
     return this.send(receiver, this.messageName(messageValue), args, repository, invokeFunction);
   }

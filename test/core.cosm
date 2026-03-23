@@ -194,6 +194,19 @@ assert(Kernel.try(->() { cosm.ai.complete("hello") }).error.message.length > 0, 
 assert(Kernel.try(->() { "cats" ~= "felines" }).error.message.length > 0, "semantic comparison currently fails clearly without an AI backend");
 require("app/views/layout/head.ecosm");
 assert(head.render({}).length > 0, ".ecosm templates can be required and rendered directly");
+require("app/views/index.cosm");
+require("app/views/notebook/result.ecosm");
+assert(views.HtmlView.renderLayout("Demo", result, { inspect: "42" }, "", "").length > 0, ".ecosm layouts can compose child templates through yield");
+def withBlock(value) do
+  yield(value + 1)
+end;
+assert(withBlock(41) do |value| value end == 42, "yield can invoke the current trailing block with arguments");
+def nestedYield() do
+  let inner = ->() { yield("nested") };
+  inner()
+end;
+assert(nestedYield() do |label| label end == "nested", "nested calls preserve the current block context");
+assert(Kernel.try(->() { yield() }).error.message == "Block error: yield called without a current block", "yield fails clearly when no current block exists");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");

@@ -34,9 +34,9 @@ export type RuntimeRepository = {
 };
 
 type BootstrapRuntime = {
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
   instantiateClass: (classValue: CosmClass, args: CosmValue[]) => CosmObject;
-  invokeSend: (receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]) => CosmValue;
+  invokeSend: (receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
   classOf: (value: CosmValue) => CosmClass;
   internSymbol: (name: string) => CosmValue;
   loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
@@ -60,7 +60,7 @@ export class Bootstrap {
 
   private static installRuntimeHooks(runtime: BootstrapRuntime): void {
     CosmKernelValue.installRuntimeHooks({
-      send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
+      send: (receiver, messageValue, args, env) => runtime.invokeSend(receiver, messageValue, args, env),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
       eval: (source) => runtime.evalSource(source),
       resetEval: () => runtime.resetEvalSource?.(),
@@ -93,7 +93,7 @@ export class Bootstrap {
       intern: (name) => runtime.internSymbol(name),
     });
     CosmValueBase.installRuntimeHooks({
-      send: (receiver, messageValue, args) => runtime.invokeSend(receiver, messageValue, args),
+      send: (receiver, messageValue, args, env) => runtime.invokeSend(receiver, messageValue, args, env),
       lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
       classOf: (receiver) => runtime.classOf(receiver),
       equal: (left, right) => RuntimeEquality.compare(left, right),

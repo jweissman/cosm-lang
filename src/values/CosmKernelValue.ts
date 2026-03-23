@@ -14,7 +14,7 @@ import { CosmErrorValue } from "./CosmErrorValue";
 
 
 export class CosmKernelValue extends CosmObjectValue {
-  private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
+  private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
   private static evalHandler?: (source: string) => CosmValue;
   private static resetEvalHandler?: () => void;
@@ -23,7 +23,7 @@ export class CosmKernelValue extends CosmObjectValue {
   private static testFailed = 0;
 
   static installRuntimeHooks(hooks: {
-    send: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
+    send: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
     invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
     eval?: (source: string) => CosmValue;
     resetEval?: () => void;
@@ -196,7 +196,7 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         return milliseconds;
       }),
-      send: () => new CosmFunctionValue('send', (args) => {
+      send: () => new CosmFunctionValue('send', (args, _selfValue, env) => {
         if (args.length < 2) {
           throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);
         }
@@ -204,7 +204,7 @@ export class CosmKernelValue extends CosmObjectValue {
           throw new Error('Kernel runtime error: send handler is not installed');
         }
         const [receiver, messageValue, ...messageArgs] = args;
-        return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs);
+        return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);
       }),
       expectEqual: () => new CosmFunctionValue('expectEqual', (args) => {
         if (args.length < 2 || args.length > 3) {

@@ -53,7 +53,8 @@ export type CoreNodeKind =
   | 'gt'
   | 'gte'
   | 'access'
-  | 'call';
+  | 'call'
+  | 'yield';
 
 export type CoreNode = {
   kind: CoreNodeKind;
@@ -69,6 +70,7 @@ export type CosmEnv = {
   bindings: Record<string, CosmValue>,
   parent?: CosmEnv,
   allowTopLevelRebinds?: boolean,
+  currentBlock?: CosmValue,
 };
 
 export type CosmNumber = CosmNumberValue;
@@ -143,7 +145,8 @@ export type SurfaceNodeKind =
   | 'gt'
   | 'gte'
   | 'access'
-  | 'call';
+  | 'call'
+  | 'yield';
 
 export type SurfaceNode = {
   kind: SurfaceNodeKind;

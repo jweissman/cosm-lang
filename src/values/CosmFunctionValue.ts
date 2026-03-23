@@ -18,14 +18,14 @@ export class CosmFunctionValue extends CosmValueBase {
       name: (self) => new CosmStringValue(self.name),
     },
     methods: {
-      call: () => new CosmFunctionValue('call', (args, selfValue) => {
+      call: () => new CosmFunctionValue('call', (args, selfValue, env) => {
         if (!(selfValue instanceof CosmFunctionValue)) {
           throw new Error('Type error: call expects a function receiver');
         }
         if (!CosmFunctionValue.invokeHandler) {
           throw new Error('Function runtime error: invoke handler is not installed');
         }
-        return CosmFunctionValue.invokeHandler(selfValue, args);
+        return CosmFunctionValue.invokeHandler(selfValue, args, undefined, env);
       }),
     },
   };

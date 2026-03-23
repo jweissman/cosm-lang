@@ -7,10 +7,12 @@
 - keep shrinking evaluator-owned behavior in favor of runtime-owned MPI
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
 - add trailing `do ... end` call sugar with block params on calls
+- add real narrow `yield(...)` for invoking the current implicit trailing block
 - add one simple reflective primitive through `Mirror`
 - make class-side authoring less provisional through `class << self`
 - improve testability and inspection while proving one tiny live-ish notebook page
 - make the canonical app shape module-organized with dedicated view modules
+- align `.ecosm` layout composition with narrow `yield()`
 
 For `0.3.4`, the callable boundary still stays intentionally narrow:
 
@@ -33,6 +35,7 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - A first reflective `Module` runtime object, with `cosm.test` and `cosm.modules.test` now modeled as real module objects rather than loose namespaces.
 - Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`. In `0.3.4`, `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
+- `.ecosm` templates now also support a narrow single-slot layout composition path through `yield()`, aligned with the same narrow block-invocation concept now available in ordinary Cosm code.
 - A minimal `cosm --watch <file>` / `cosm watch <file>` CLI loop for restarting long-running entry files like `app/server.cosm` when the target file changes, plus clearer CLI usage/help and loud failures on unknown switches.
 - Reflective method tables now also surface as `Namespace`-style objects rather than anonymous bags, which makes class reflection more consistent with the rest of the runtime.
 - The core reflective/runtime classes now expose their native surface through one explicit manifest-style protocol, so bootstrap class tables and runtime lookup are drawing from the same declarations instead of parallel hand wiring.
@@ -45,12 +48,14 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.
 - `HttpRouter` now provides exact-path routing through `handle(method, path, handler)`, `get`, `post`, `put`, and `delete`, can build routes through `draw(...)`, can apply router-level middleware through `use(...)`, and also acts as a service object through `handle(req)`.
 - Trailing call blocks now lower to final lambdas with optional block params, which makes `router.draw do ... end`, `router.use do |req, next| ... end`, and `get "/" do |req| ... end` available without adding general block capture or block-parameter syntax.
+- `yield()` and `yield(arg1, ...)` now work inside methods/functions that were invoked with trailing blocks, while still deliberately stopping short of `&block`, forwarding, or a full Ruby-style block model.
 - `HttpResponse.html(...)` now provides a small HTML-oriented response path with the right content type.
 - Live localhost round-trip checks for that HTTP surface now live in `test/http.integration.test.ts` and run explicitly with `COSM_HTTP_INTEGRATION=1` rather than in the default sandbox-safe suite.
 - Triple-double-quoted strings now provide a small multiline interpolated template path for server-side HTML output.
 - Stabby lambdas may now contain statement-list bodies, which makes route handlers like logging-then-responding work without introducing a second lambda syntax.
 - `Kernel.escapeHtml(string)` now exists as a tiny view-safety helper for server-rendered HTML.
 - The demo app now includes split `app`/`views` modules, router-level logging middleware, and one tiny Tailwind-via-CDN notebook page with live-ish partial updates and one shared session per process.
+- The demo app’s pages now render through a dedicated layout template plus page/fragment templates, rather than manual shell-string assembly in the view helper module.
 - `Mirror.reflect(value)` now provides the first readonly reflective wrapper for inspection-oriented use cases.
 - `class << self ... end` now exists as an explicit class-side authoring form alongside existing `def self.name(...)`.
 - TS-backed interned `Symbol` values via `Symbol.intern("name")`.

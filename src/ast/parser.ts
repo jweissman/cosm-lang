@@ -26,6 +26,7 @@ export class Parser {
 
       return {
         ...callNode,
+        target: 'trailing_block',
         children: [...(callNode.children ?? []), lambdaAst],
       };
     }
@@ -353,6 +354,11 @@ export class Parser {
           return Parser.appendTrailingBlock(callNode, trailingAst);
         },
         PriExp_paren: (_open, exp, _close) => exp.ast(),
+        PriExp_yield: (_yield, _open, args, _close) => ({
+          kind: 'yield',
+          value: '',
+          children: Parser.listChildren(args.ast()),
+        }),
         PriExp_array: (_open, items, _close) => ({
           kind: 'array',
           value: '',

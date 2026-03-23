@@ -112,9 +112,10 @@ v0.3.4 should mean:
 - a first deliberate service layer through `http`, `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter`
 - router-level middleware and a clearer app/view module split for small services
 - trailing `do ... end` block passing as narrow final-argument sugar, now with block params on trailing call blocks
+- real narrow `yield(...)` as the first explicit in-language block invocation primitive
 - one tiny server-rendered notebook demo page with live-ish partial updates backed by shared server-side eval
 - a real `inspect()` protocol across runtime values
-- `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app
+- `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app, with layout composition aligned around narrow `yield()`
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
 
@@ -131,6 +132,7 @@ v0.3.4 intentionally does not include:
 - route params, wildcards, middleware groups, or route macros
 - HTML tag-builder DSL
 - variadics / block capture
+- `&block` capture/forwarding or broader block-object semantics
 
 The immediate goal is to make the runtime and tiny service surface feel steady enough that a later notebook or richer service layer is building on solid ground rather than bootstrap mush.
 

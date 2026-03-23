@@ -32,15 +32,16 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 - Member access: `value.name`
 - Function call: `fn(arg1, arg2)`
 - Trailing call block: `fn(args...) do ... end`
+- Narrow block invocation: `yield()` / `yield(arg1, arg2)`
 
 ### Callables
 
 - Lambdas: `->(arg1, arg2) { expr }`
 - Named defs: `def name(arg1, arg2) do ... end`
 - Named defs may also omit `do` when the body is already delimited by `end`: `def name(arg1) expr end`
-- Calls may also take a trailing `do ... end` block, which lowers to a final zero-argument lambda argument.
+- Calls may also take a trailing `do ... end` block, which still lowers to a final lambda argument under the hood.
 
-In `0.3.4`, stabby lambdas remain the only standalone parameterized lambda form. Trailing call blocks may now bind parameters like `get "/" do |req| ... end`, but block capture and forwarding are still intentionally deferred.
+In `0.3.4`, stabby lambdas remain the only standalone parameterized lambda form. Trailing call blocks may now bind parameters like `get "/" do |req| ... end`, and method/function bodies may call `yield(...)` to invoke the current implicit trailing block. Block capture and forwarding are still intentionally deferred.
 
 ### Classes
 
@@ -88,6 +89,18 @@ end
 That trailing block form is intentionally narrow in `0.3.4`: it is still just sugar for an extra final lambda argument. It now supports block parameters on trailing call blocks, but it does not yet support ampersand-style capture/forwarding.
 
 ```cosm
+def around(value)
+  yield(value + 1)
+end
+
+around(41) do |number|
+  number
+end
+```
+
+`yield(...)` is only valid when the current function or method was invoked with a trailing block. Calling `yield(...)` without a current block raises a structured block error.
+
+```cosm
 let label = "co" + "sm";
 assert(1 + 1 == 2);
 assert(label == "cosm");
@@ -128,7 +141,7 @@ Module objects currently support:
 
 `require("cosm/test")` still parses as a statement today, but it returns the same `Module` object exposed as `cosm.test` while also injecting bootstrap helpers like `test`, `describe`, and `expectEqual` into the current scope.
 
-Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.4`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` entry point, which fits naturally with an `app/views/...` layout.
+Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.4`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` entry point, which fits naturally with an `app/views/...` layout. Layout composition may also provide template child content through `yield()` inside `.ecosm`, which aligns with the same narrow block-invocation idea used in ordinary Cosm code.
 
 ### Blocks and Conditionals
 
@@ -491,6 +504,7 @@ do let x = 1; x + 2 end
 - Single-quoted strings do not interpolate.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
 - Triple-quoted strings remain the small inline multiline template form in `0.3.4`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
+- `.ecosm` templates may interpolate ordinary `#{...}` expressions and, in `0.3.4`, may also consume a view-provided `yield` binding for single-slot layout composition.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `class << self ... end` is now available as an explicit class-side authoring form and is currently equivalent to `def self.name(...)`.
 - `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.

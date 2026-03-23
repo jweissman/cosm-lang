@@ -82,6 +82,8 @@ namespace Cosm {
           return this.evalAccess(ast, env);
         case 'call':
           return this.evalCall(ast, env);
+        case 'yield':
+          return this.evalYield(ast, env);
         case 'add':
           return this.evalAdd(ast, env);
         case 'subtract': {
@@ -131,7 +133,7 @@ namespace Cosm {
       const repository = Bootstrap.createRepository({
         invokeFunction: (callee, args, selfValue, env) => this.invokeFunction(callee, args, selfValue, env),
         instantiateClass: (classValue, args) => this.instantiateClass(classValue, args),
-        invokeSend: (receiver, messageValue, args) => this.invokeSend(receiver, messageValue, args),
+        invokeSend: (receiver, messageValue, args, env) => this.invokeSend(receiver, messageValue, args, env),
         classOf: (value) => this.classOf(value),
         internSymbol: (name) => this.internSymbol(name),
         loadModule: (name, env) => this.loadModule(name, env),
@@ -143,7 +145,11 @@ namespace Cosm {
     }
 
     static createEnv(parent?: Env, options?: { allowTopLevelRebinds?: boolean }): Env {
-      return { bindings: {}, parent, allowTopLevelRebinds: options?.allowTopLevelRebinds ?? false };
+      return {
+        bindings: {},
+        parent,
+        allowTopLevelRebinds: options?.allowTopLevelRebinds ?? false,
+      };
     }
 
     private static evalSharedKernelSource(source: string): CosmValue {
@@ -240,12 +246,40 @@ namespace Cosm {
       }
       env.bindings.context = context;
       switch (context.type) {
-        case 'hash':
-          Object.assign(env.bindings, context.entries);
+        case 'hash': {
+          const templateBindings = { ...context.entries };
+          const hasYield = Object.hasOwn(templateBindings, '__yield__') || Object.hasOwn(templateBindings, 'yield');
+          const yieldValue = templateBindings.__yield__ ?? templateBindings.yield;
+          delete templateBindings.__yield__;
+          delete templateBindings.yield;
+          Object.assign(env.bindings, templateBindings);
+          if (hasYield) {
+            env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
+              if (args.length !== 0) {
+                throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
+              }
+              return yieldValue;
+            });
+          }
           break;
-        case 'object':
-          Object.assign(env.bindings, context.fields);
+        }
+        case 'object': {
+          const templateBindings = { ...context.fields };
+          const hasYield = Object.hasOwn(templateBindings, '__yield__') || Object.hasOwn(templateBindings, 'yield');
+          const yieldValue = templateBindings.__yield__ ?? templateBindings.yield;
+          delete templateBindings.__yield__;
+          delete templateBindings.yield;
+          Object.assign(env.bindings, templateBindings);
+          if (hasYield) {
+            env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
+              if (args.length !== 0) {
+                throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
+              }
+              return yieldValue;
+            });
+          }
           break;
+        }
       }
       return env;
     }
@@ -589,19 +623,21 @@ namespace Cosm {
     private static evalCall(ast: CoreNode, env: Env): CosmValue {
       const calleeAst = this.expectChild(ast, 'call');
       return this.withFrame(`call ${this.describeCallTarget(calleeAst)}`, () => {
-        const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
+        const blockArg = ast.target === 'trailing_block' ? (ast.children ?? []).at(-1) : undefined;
+        const currentBlock = blockArg ? this.evalNode(blockArg, env) : undefined;
+        const args = (ast.children ?? []).map((child) => child === blockArg && currentBlock ? currentBlock : this.evalNode(child, env));
         if (calleeAst.kind === 'access') {
           const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
           try {
             const callee = this.lookupProperty(receiver, calleeAst.value);
-            return this.invokeFunction(callee, args, undefined, env);
+            return this.invokeFunction(callee, args, undefined, env, currentBlock);
           } catch (error) {
             if (
               receiver.type !== 'class'
               && error instanceof Error
               && error.message.includes(`has no property '${calleeAst.value}'`)
             ) {
-              return this.send(receiver, calleeAst.value, args);
+              return this.send(receiver, calleeAst.value, args, env);
             }
             throw error;
           }
@@ -609,18 +645,27 @@ namespace Cosm {
         if (calleeAst.kind === 'ident') {
           try {
             const callee = this.lookupName(calleeAst.value, env);
-            return this.invokeFunction(callee, args, undefined, env);
+            return this.invokeFunction(callee, args, undefined, env, currentBlock);
           } catch (error) {
             const selfValue = this.findSelfBinding(env);
             if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${calleeAst.value}'`) {
-              return this.send(selfValue, calleeAst.value, args);
+              return this.send(selfValue, calleeAst.value, args, env);
             }
             throw error;
           }
         }
         const callee = this.evalNode(calleeAst, env);
-        return this.invokeFunction(callee, args, undefined, env);
+        return this.invokeFunction(callee, args, undefined, env, currentBlock);
       });
+    }
+
+    private static evalYield(ast: CoreNode, env: Env): CosmValue {
+      const currentBlock = this.findCurrentBlock(env);
+      if (!currentBlock) {
+        throw new Error('Block error: yield called without a current block');
+      }
+      const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
+      return this.withFrame('yield', () => this.invokeFunction(currentBlock, args, undefined, env));
     }
 
     private static evalIvar(ast: CoreNode, env: Env): CosmValue {
@@ -632,10 +677,11 @@ namespace Cosm {
       return value;
     }
 
-    private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env): CosmValue {
+    private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env, currentBlock?: CosmValue): CosmValue {
       return this.withFrame(`invoke ${this.describeCallable(callee, selfValue)}`, () => {
+        const activeBlock = currentBlock ?? (env ? this.findCurrentBlock(env) : undefined);
         if (callee.type === 'method') {
-          return this.invokeFunction(callee.target, args, callee.receiver, env);
+          return this.invokeFunction(callee.target, args, callee.receiver, env, activeBlock);
         }
         if (callee.type !== 'function') {
           throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
@@ -646,10 +692,16 @@ namespace Cosm {
         if (!callee.params || !callee.body || !callee.env) {
           throw new Error(`Invalid function: ${callee.name}`);
         }
-        if (args.length !== callee.params.length) {
-          throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${args.length}`);
+        const effectiveArgs = activeBlock
+          && args.length === (callee.params.length + 1)
+          && args.at(-1) === activeBlock
+          ? args.slice(0, -1)
+          : args;
+        if (effectiveArgs.length !== callee.params.length) {
+          throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${effectiveArgs.length}`);
         }
         const callEnv = this.createEnv(callee.env);
+        callEnv.currentBlock = activeBlock;
         if (selfValue) {
           callEnv.bindings.self = selfValue;
         }
@@ -657,7 +709,7 @@ namespace Cosm {
           if (Object.hasOwn(callEnv.bindings, param)) {
             throw new Error(`Name error: duplicate parameter '${param}'`);
           }
-          callEnv.bindings[param] = args[index];
+          callEnv.bindings[param] = effectiveArgs[index];
         }
         return this.evalStatements(callee.body.children ?? [], callEnv);
       });
@@ -751,19 +803,21 @@ namespace Cosm {
       return instance;
     }
 
-    private static send(receiver: CosmValue, message: string, args: CosmValue[]): CosmValue {
+    private static send(receiver: CosmValue, message: string, args: CosmValue[], env?: Env): CosmValue {
+      const currentBlock = env ? this.findCurrentBlock(env) : undefined;
       return this.withFrame(`send ${this.describeValue(receiver)}.${message}`, () =>
         RuntimeDispatch.send(receiver, message, args, this.repository, (callee, invokeArgs, selfValue, env) =>
-          this.invokeFunction(callee, invokeArgs, selfValue, env)
+          this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
         )
       );
     }
 
-    private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[]): CosmValue {
+    private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: Env): CosmValue {
+      const currentBlock = env ? this.findCurrentBlock(env) : undefined;
       return this.withFrame(`send ${this.describeValue(receiver)}.${RuntimeDispatch.messageName(messageValue)}`, () =>
         RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repository, (callee, invokeArgs, selfValue, env) =>
-          this.invokeFunction(callee, invokeArgs, selfValue, env)
-        )
+          this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
+        , env)
       );
     }
 
@@ -845,6 +899,15 @@ namespace Cosm {
       for (let scope: Env | undefined = env; scope; scope = scope.parent) {
         if (Object.hasOwn(scope.bindings, 'self')) {
           return scope.bindings.self;
+        }
+      }
+      return undefined;
+    }
+
+    private static findCurrentBlock(env: Env): CosmValue | undefined {
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        if (scope.currentBlock) {
+          return scope.currentBlock;
         }
       }
       return undefined;

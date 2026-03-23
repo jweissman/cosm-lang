@@ -1,4 +1,4 @@
-import { CosmValue } from "../types";
+import { CosmEnv, CosmValue } from "../types";
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -7,13 +7,13 @@ import { RuntimeInspect } from "../runtime/RuntimeInspect";
 
 
 export abstract class CosmValueBase {
-  private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
+  private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
   private static classOfHandler?: (receiver: CosmValue) => CosmValue;
   private static equalityHandler?: (left: CosmValue, right: CosmValue) => boolean;
 
   static installRuntimeHooks(hooks: {
-    send: (receiver: CosmValue, message: CosmValue, args: CosmValue[]) => CosmValue;
+    send: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
     lookupMethod: (receiver: CosmValue, message: CosmValue) => CosmValue;
     classOf: (receiver: CosmValue) => CosmValue;
     equal: (left: CosmValue, right: CosmValue) => boolean;
@@ -60,7 +60,7 @@ export abstract class CosmValueBase {
         }
         return CosmValueBase.methodLookupHandler(selfValue, args[0]);
       }),
-      send: () => new CosmFunctionValue('send', (args, selfValue) => {
+      send: () => new CosmFunctionValue('send', (args, selfValue, env) => {
         if (!selfValue) {
           throw new Error('Type error: send expects a receiver');
         }
@@ -71,7 +71,7 @@ export abstract class CosmValueBase {
           throw new Error('Value runtime error: send handler is not installed');
         }
         const [messageValue, ...messageArgs] = args;
-        return CosmValueBase.sendHandler(selfValue, messageValue, messageArgs);
+        return CosmValueBase.sendHandler(selfValue, messageValue, messageArgs, env);
       }),
       inspect: () => new CosmFunctionValue('inspect', (args, selfValue) => {
         if (!selfValue) {

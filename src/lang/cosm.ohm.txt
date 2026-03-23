@@ -119,6 +119,7 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
+    | kw_yield "(" CallArgs? ")"  -- yield
     | kw_do StatementList kw_end  -- block
     | "->" "(" ParamList? ")" "{" StatementList "}"  -- lambda
     | "[" ArrayItems? "]"  -- array
@@ -248,6 +249,7 @@ Cosm {
   kw_self = "self" ~alnum
   kw_then = "then" ~alnum
   kw_true = "true" ~alnum
+  kw_yield = "yield" ~alnum
 
   ivar
     = "@" ident
@@ -265,6 +267,7 @@ Cosm {
     | kw_self
     | kw_then
     | kw_true
+    | kw_yield
 
   ident  (an identifier)
     = ~keyword identStart identRest*

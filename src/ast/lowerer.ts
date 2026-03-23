@@ -80,6 +80,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         case 'symbol':
         case 'ident':
         case 'ivar':
+        case 'yield':
         case 'add':
         case 'subtract':
         case 'multiply':
@@ -106,6 +107,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: node.kind as CoreNodeKind,
             value: node.value,
             params: node.params,
+            target: node.target,
             left: node.left ? this.lower(node.left) : undefined,
             right: node.right ? this.lower(node.right) : undefined,
             children: node.children?.map((child) => this.lower(child)),
