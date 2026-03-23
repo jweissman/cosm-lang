@@ -30,6 +30,4 @@ class App
   end
 end
 
-let app = App.new()
-
-let server = http.serve(12345, app.method(:handle))
+let server = http.serve(12345, App.new())

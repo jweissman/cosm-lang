@@ -55,9 +55,13 @@ Builder.new().render()
 ```
 
 ```cosm
-let server = http.serve(3001, ->(req) {
-  HttpResponse.text("hello " + req.path, 200)
-})
+class App
+  def handle(req)
+    HttpResponse.text("hello " + req.path, 200)
+  end
+end
+
+let server = http.serve(3001, App.new())
 ```
 
 ## Dev Commands

@@ -58,6 +58,7 @@ export class Bootstrap {
     });
     CosmHttpValue.installRuntimeHooks({
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+      lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
     });
     CosmClassValue.installRuntimeHooks({
       instantiate: (classValue, args) => runtime.instantiateClass(classValue, args),

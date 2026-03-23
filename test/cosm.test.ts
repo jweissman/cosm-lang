@@ -384,6 +384,9 @@ test("http request and response runtime objects reflect cleanly", () => {
   expect(cosmEval('HttpResponse.text("made", 201).body')).toBe("made");
   expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).status')).toBe(202);
   expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).headers.get("content-type")')).toBe("application/json");
+  expect(() => cosmEval("class Plain end\nhttp.serve(0, Plain.new())")).toThrow(
+    "Type error: serve expects a function, method, or object with handle(req)",
+  );
 });
 
 test("type errors stay explicit", () => {

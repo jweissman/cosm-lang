@@ -160,6 +160,7 @@ Concrete next construction ideas:
 - Tighten CLI/dev-loop polish so watch, test, help, and error handling feel deliberate and unsurprising.
 - Add a conservative newline-to-semicolon lowering pass once we have a design we trust.
 - Stage callable growth in small pieces: variadics, then block capture, then missing-method/delegation hooks.
+- Keep the near-term web-service path intentionally object-oriented: `http.serve(port, App.new())` should feel like the canonical minimal service shape before any route DSLs appear.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.

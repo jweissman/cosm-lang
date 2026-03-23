@@ -14,11 +14,14 @@ import { CosmStringValue } from "./CosmStringValue";
 
 export class CosmHttpValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
 
   static installRuntimeHooks(hooks: {
     invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    lookupMethod: (receiver: CosmValue, message: CosmValue) => CosmValue;
   }): void {
     this.invokeHandler = hooks.invoke;
+    this.methodLookupHandler = hooks.lookupMethod;
   }
 
   static readonly manifest: RuntimeValueManifest<CosmHttpValue> = {
@@ -42,7 +45,8 @@ export class CosmHttpValue extends CosmObjectValue {
           throw new Error('Type error: serve expects a non-negative integer port');
         }
 
-        const server = selfValue.startServer(requestedPort, handler, env);
+        const resolvedHandler = selfValue.normalizeHandler(handler);
+        const server = selfValue.startServer(requestedPort, resolvedHandler, env);
 
         const port = server.port;
         const url = `http://127.0.0.1:${port}`;
@@ -171,5 +175,32 @@ export class CosmHttpValue extends CosmObjectValue {
     }
 
     throw lastError instanceof Error ? lastError : new Error('Http runtime error: failed to start server');
+  }
+
+  private normalizeHandler(handler: CosmValue): CosmValue {
+    if (handler.type === 'function' || handler.type === 'method') {
+      return handler;
+    }
+    if (handler.type !== 'object') {
+      throw new Error('Type error: serve expects a function, method, or object with handle(req)');
+    }
+    if (!CosmHttpValue.methodLookupHandler) {
+      throw new Error('Http runtime error: method lookup handler is not installed');
+    }
+    try {
+      return CosmHttpValue.methodLookupHandler(handler, Construct.symbol('handle'));
+    } catch (error) {
+      if (
+        error instanceof Error
+        && (
+          error.message.includes("has no property 'handle'")
+          || error.message.includes("has no instance method 'handle'")
+          || error.message.includes("property 'handle' is not a method")
+        )
+      ) {
+        throw new Error('Type error: serve expects a function, method, or object with handle(req)');
+      }
+      throw error;
+    }
   }
 }

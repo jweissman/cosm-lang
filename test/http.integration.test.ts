@@ -42,6 +42,49 @@ httpTest("http runtime can serve a tiny Bun-native handler", async () => {
   }
 });
 
+httpTest("http runtime can serve a bound method handler", async () => {
+  const env = Cosm.Interpreter.createEnv();
+  startHttpServer(env, (port) => `
+    class App
+      def handle(req)
+        HttpResponse.text("method " + req.path, 200)
+      end
+    end
+    let app = App.new()
+    let server = http.serve(${port}, app.method(:handle))
+  `);
+  const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
+
+  try {
+    const response = await fetch(`${url}/bound`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("method /bound");
+  } finally {
+    Cosm.Interpreter.evalInEnv("server.stop()", env);
+  }
+});
+
+httpTest("http runtime can serve a service object directly through handle(req)", async () => {
+  const env = Cosm.Interpreter.createEnv();
+  startHttpServer(env, (port) => `
+    class App
+      def handle(req)
+        HttpResponse.text("object " + req.path, 200)
+      end
+    end
+    let server = http.serve(${port}, App.new())
+  `);
+  const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
+
+  try {
+    const response = await fetch(`${url}/object`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("object /object");
+  } finally {
+    Cosm.Interpreter.evalInEnv("server.stop()", env);
+  }
+});
+
 httpTest("http handlers can reflect request properties and build json responses", async () => {
   const env = Cosm.Interpreter.createEnv();
   startHttpServer(env, (port) => `let server = http.serve(${port}, ->(req) {

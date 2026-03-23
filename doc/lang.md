@@ -273,7 +273,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`.
 - `HttpRequest.method`
 - `HttpRequest.url`
 - `HttpRequest.path`
