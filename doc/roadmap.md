@@ -44,6 +44,7 @@ Those should begin as standard/runtime libraries rather than syntax features, so
 - Minimal per-class metaclasses exist, and class-side lookup already follows the metaclass chain.
 - Primitive behavior is in a mixed bootstrap state: some behavior lives on TS runtime value classes, and some still lives in interpreter/class lookup glue.
 - There is now an ambient `Kernel` object with its own reflective class, plus small `cosm` and `classes` namespace objects. That gives us a cleaner path for stdlib growth than leaving everything as anonymous globals.
+- The first reflective `Module` runtime object now exists, with `cosm.test` acting as the first real module-shaped stdlib surface.
 
 Classes and inheritance are far enough along to stop being the main blocker. The next leverage point is giving the runtime a more coherent standard surface: `Kernel`, inspect/stdio, namespaces/modules, and a cleaner ownership story for primitive dispatch.
 
@@ -71,8 +72,9 @@ What still feels missing or provisional:
 - Richer Cosm-native test assertions and suite structure beyond the current bootstrap harness.
 - Assignment / ivar writes / richer object-state setup.
 - Syntax lowering for omitted semicolons or implicit local binding.
-- Modules/namespaces as a first-class language form rather than only ambient reflective objects.
-- Variadic args, block capture, and a missing-method/delegation protocol that higher-level DSLs can build on.
+- Modules as a first-class language form rather than only reflective runtime objects.
+- Variadic args, block capture, and a richer missing-method/delegation protocol that higher-level DSLs can build on.
+- Final CLI/dev-loop polish so the watch/test/help flows feel principled rather than ad hoc.
 
 That suggests the next "tie your shoes" work should stay close to standard-surface basics, not just deep runtime theory.
 
@@ -128,6 +130,8 @@ Current focus:
 - Enough object-state semantics to make later JS interop and delegation rest on something real.
 - A tiny Cosm-native test surface that is pleasant enough to drive real build targets like an HTTP notebook without immediately hard-coding framework ideas into the language.
 - Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
+- Reflective module objects and a first minimal `does_not_understand(message, args)` fallback now exist as the bridge toward future DSL work, but lexical `module ... end`, splats, and block capture remain deliberately deferred.
+- A narrow `cosm --watch <file>` loop now exists as a child-process restart convenience; the remaining CLI work is mainly polish around argument parsing, help, and error handling.
 
 Questions this track should answer:
 
@@ -153,6 +157,7 @@ Concrete next construction ideas:
 - Grow `Kernel` into the home for inspect/print/stdio, time, randomness, and other tie-your-shoes functionality.
 - Keep moving small harness/runtime services like `describe`, `send`, and callable protocol onto TS-backed runtime values rather than interpreter special cases.
 - Deepen the HTTP host boundary through request/response objects rather than jumping to a framework/router abstraction.
+- Tighten CLI/dev-loop polish so watch, test, help, and error handling feel deliberate and unsurprising.
 - Add a conservative newline-to-semicolon lowering pass once we have a design we trust.
 - Stage callable growth in small pieces: variadics, then block capture, then missing-method/delegation hooks.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
@@ -164,10 +169,10 @@ Concrete next construction ideas:
 
 Recommended next slice:
 
-- Keep moving primitive behavior out of evaluator switches and into TS-backed runtime values or explicit runtime objects.
-- Keep improving `Kernel.inspect(...)` and other standard-surface helpers.
+- Finish the remaining CLI/dev-loop polish around watch/test/help.
+- Then optimize the near-term track for a web-service vertical slice: module organization for `app/server.cosm`, small startup/server ergonomics, and notebook-adjacent service scaffolding.
 - Continue making reflective roots (`Kernel`, `cosm`, `classes`, future modules) feel like real objects instead of interpreter conveniences.
-- Keep making `Namespace` feel module-like, so future modules can introspect their own exported constants with the same object protocol as `cosm` and `classes`.
+- Keep deepening the HTTP surface without jumping to a router/framework abstraction.
 
 ## Research Themes
 

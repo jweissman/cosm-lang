@@ -233,10 +233,18 @@ Cosm {
     | kw_true
 
   ident  (an identifier)
-    = ~keyword letter alnum*
+    = ~keyword identStart identRest*
 
   name
-    = letter alnum*
+    = identStart identRest*
+
+  identStart
+    = letter
+    | "_"
+
+  identRest
+    = alnum
+    | "_"
 
   number  (a number)
     = digit* "." digit+  -- fract

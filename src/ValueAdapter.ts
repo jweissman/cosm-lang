@@ -2,6 +2,7 @@ import { CosmValue } from "./types";
 import { CosmHttpRequestValue } from "./values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "./values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "./values/CosmHttpServerValue";
+import { CosmModuleValue } from "./values/CosmModuleValue";
 import { CosmNamespaceValue } from "./values/CosmNamespaceValue";
 
 type JsValue =
@@ -45,6 +46,15 @@ export class ValueAdapter {
           return Object.fromEntries(
             Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),
           );
+        }
+        if (value instanceof CosmModuleValue) {
+          return {
+            kind: "module",
+            name: value.moduleName,
+            entries: Object.fromEntries(
+              Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),
+            ),
+          };
         }
         if (value instanceof CosmHttpServerValue) {
           return {
@@ -110,6 +120,12 @@ export class ValueAdapter {
         if (value instanceof CosmNamespaceValue) {
           const namespaceEntries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
           return namespaceEntries.length > 0 ? `#<Namespace ${namespaceEntries}>` : "#<Namespace>";
+        }
+        if (value instanceof CosmModuleValue) {
+          const moduleEntries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(', ');
+          return moduleEntries.length > 0
+            ? `#<Module ${JSON.stringify(value.moduleName)} ${moduleEntries}>`
+            : `#<Module ${JSON.stringify(value.moduleName)}>`;
         }
         if (value instanceof CosmHttpServerValue) {
           return `#<HttpServer url: ${JSON.stringify(value.url)}, port: ${value.port}>`;

@@ -5,6 +5,7 @@ import { CosmClassValue } from "../values/CosmClassValue";
 import { CosmFunctionValue } from "../values/CosmFunctionValue";
 import { CosmKernelValue } from "../values/CosmKernelValue";
 import { CosmMethodValue } from "../values/CosmMethodValue";
+import { CosmModuleValue } from "../values/CosmModuleValue";
 import { CosmNamespaceValue } from "../values/CosmNamespaceValue";
 import { CosmProcessValue } from "../values/CosmProcessValue";
 import { CosmRandomValue } from "../values/CosmRandomValue";
@@ -22,6 +23,7 @@ import { RuntimeEquality } from "./RuntimeEquality";
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
   classes: Record<string, CosmClass>;
+  modules: Record<string, CosmObject>;
 };
 
 type BootstrapRuntime = {
@@ -40,9 +42,10 @@ export class Bootstrap {
     this.installBootNativeMethods(classes, runtime);
 
     const globals = this.createCoreGlobals(classes);
-    this.installKernelGlobals(globals, classes, runtime);
+    const modules = this.createCoreModules(classes);
+    this.installKernelGlobals(globals, classes, modules, runtime);
 
-    return { globals, classes };
+    return { globals, classes, modules };
   }
 
   private static installRuntimeHooks(runtime: BootstrapRuntime): void {
@@ -87,7 +90,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Process', 'Time', 'Random', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -115,6 +118,10 @@ export class Bootstrap {
     Object.assign(classes.Namespace.methods, manifestMethods(
       new CosmNamespaceValue({}, classes.Namespace),
       CosmNamespaceValue.manifest,
+    ));
+    Object.assign(classes.Module.methods, manifestMethods(
+      new CosmModuleValue('example/module', {}, classes.Module),
+      CosmModuleValue.manifest,
     ));
     Object.assign(classes.Kernel.methods, manifestMethods(
       new CosmKernelValue({}, classes.Kernel),
@@ -186,6 +193,7 @@ export class Bootstrap {
       Function: classes.Function,
       Method: classes.Method,
       Namespace: classes.Namespace,
+      Module: classes.Module,
       Process: classes.Process,
       Time: classes.Time,
       Random: classes.Random,
@@ -199,6 +207,7 @@ export class Bootstrap {
   private static installKernelGlobals(
     globals: Record<string, CosmValue>,
     classes: Record<string, CosmClass>,
+    modules: Record<string, CosmObject>,
     _runtime: BootstrapRuntime,
   ): void {
     const kernelMethods = classes.Kernel.methods;
@@ -206,7 +215,6 @@ export class Bootstrap {
     const processObject = new CosmProcessValue({}, classes.Process);
     const timeObject = new CosmTimeValue({}, classes.Time);
     const randomObject = new CosmRandomValue({}, classes.Random);
-    const testNamespace = CosmKernelValue.createTestNamespace(kernelMethods, classes.Namespace);
     const httpObject = new CosmHttpValue(
       {},
       classes.Http,
@@ -229,10 +237,26 @@ export class Bootstrap {
     globals.expectEqual = kernelMethods.expectEqual;
     globals.resetTests = kernelMethods.resetTests;
     globals.testSummary = kernelMethods.testSummary;
-    globals.require = this.createRequireFunction(kernelMethods, testNamespace);
+    globals.require = this.createRequireFunction(modules);
   }
 
-  private static createRequireFunction(kernelMethods: Record<string, CosmFunction>, testNamespace: CosmObject): CosmFunction {
+  private static createCoreModules(classes: Record<string, CosmClass>): Record<string, CosmObject> {
+    const testModule = Construct.module("cosm/test", {
+      test: classes.Kernel.methods.test,
+      describe: classes.Kernel.methods.describe,
+      expectEqual: classes.Kernel.methods.expectEqual,
+      reset: classes.Kernel.methods.resetTests,
+      summary: classes.Kernel.methods.testSummary,
+      resetTests: classes.Kernel.methods.resetTests,
+      testSummary: classes.Kernel.methods.testSummary,
+    }, classes.Module);
+
+    return {
+      "cosm/test": testModule,
+    };
+  }
+
+  private static createRequireFunction(modules: Record<string, CosmObject>): CosmFunction {
     return Construct.nativeFunc('require', (args, _selfValue, env) => {
       if (args.length !== 1) {
         throw new Error(`Arity error: require expects 1 arguments, got ${args.length}`);
@@ -244,13 +268,16 @@ export class Bootstrap {
       if (target.type !== 'string') {
         throw new Error('Type error: require expects a string argument');
       }
-      if (target.value === 'cosm/test') {
-        env.bindings.test = kernelMethods.test;
-        env.bindings.describe = testNamespace.fields.describe;
-        env.bindings.expectEqual = testNamespace.fields.expectEqual;
-        env.bindings.resetTests = kernelMethods.resetTests;
-        env.bindings.testSummary = kernelMethods.testSummary;
-        return testNamespace;
+      const loadedModule = modules[target.value];
+      if (loadedModule instanceof CosmModuleValue) {
+        if (target.value === 'cosm/test') {
+          env.bindings.test = loadedModule.fields.test;
+          env.bindings.describe = loadedModule.fields.describe;
+          env.bindings.expectEqual = loadedModule.fields.expectEqual;
+          env.bindings.resetTests = loadedModule.fields.resetTests;
+          env.bindings.testSummary = loadedModule.fields.testSummary;
+        }
+        return loadedModule;
       }
       throw new Error(`Require error: unknown module '${target.value}'`);
     });

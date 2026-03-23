@@ -30,6 +30,7 @@ test("parser keeps keyword prefixes distinct from identifiers", () => {
   expect(() => Parser.parse("do double() end")).not.toThrow();
   expect(() => Parser.parse("do doThing() end")).not.toThrow();
   expect(() => Parser.parse("let double = 1; do double end")).not.toThrow();
+  expect(() => Parser.parse("class Echo def does_not_understand(message, args) message end end")).not.toThrow();
 });
 
 test("parser keeps bare-call sugar statement-oriented", () => {

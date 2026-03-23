@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
@@ -20,6 +20,206 @@ function loadHistory(): string[] {
 
 function saveHistory(entries: string[]) {
   writeFileSync(HISTORY_PATH, `${entries.join("\n")}\n`, "utf8");
+}
+
+function usage(): string {
+  return [
+    "Usage:",
+    "  cosm",
+    "  cosm <file.cosm>",
+    "  cosm help",
+    "  cosm --help",
+    "  cosm <file.cosm> --test",
+    "  cosm --test <file.cosm>",
+    "  cosm <file.cosm> --watch",
+    "  cosm --watch <file.cosm>",
+    "  cosm test <file.cosm>",
+    "  cosm watch <file.cosm>",
+  ].join("\n");
+}
+
+type CliMode =
+  | { kind: "repl" }
+  | { kind: "help" }
+  | { kind: "run"; filePath: string }
+  | { kind: "test"; filePath: string }
+  | { kind: "watch"; filePath: string };
+
+function parseArgs(args: string[]): CliMode {
+  if (args.length === 0) {
+    return { kind: "repl" };
+  }
+
+  if (args.length === 1 && (args[0] === "help" || args[0] === "--help")) {
+    return { kind: "help" };
+  }
+
+  const modes = new Set<"test" | "watch">();
+  let filePath: string | undefined;
+
+  const takeFile = (value: string) => {
+    if (filePath) {
+      throw new Error(`unexpected extra argument '${value}'`);
+    }
+    filePath = value;
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--help" || arg === "help") {
+      if (args.length !== 1) {
+        throw new Error("help cannot be combined with other arguments");
+      }
+      return { kind: "help" };
+    }
+
+    if (arg === "--test" || arg === "test") {
+      modes.add("test");
+      const next = args[index + 1];
+      if (next && !next.startsWith("-") && next !== "watch" && next !== "test" && !filePath) {
+        filePath = next;
+        index += 1;
+      }
+      continue;
+    }
+
+    if (arg === "--watch" || arg === "watch") {
+      modes.add("watch");
+      const next = args[index + 1];
+      if (next && !next.startsWith("-") && next !== "watch" && next !== "test" && !filePath) {
+        filePath = next;
+        index += 1;
+      }
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new Error(`unknown option '${arg}'`);
+    }
+
+    takeFile(arg);
+  }
+
+  if (modes.has("test") && modes.has("watch")) {
+    throw new Error("--watch and --test cannot be combined");
+  }
+
+  if (modes.has("test")) {
+    if (!filePath) {
+      throw new Error("--test expects a file path");
+    }
+    return { kind: "test", filePath };
+  }
+
+  if (modes.has("watch")) {
+    if (!filePath) {
+      throw new Error("--watch expects a file path");
+    }
+    return { kind: "watch", filePath };
+  }
+
+  if (!filePath) {
+    return { kind: "repl" };
+  }
+
+  return { kind: "run", filePath };
+}
+
+function watchFileRunner(filePath: string) {
+  if (!existsSync(filePath)) {
+    console.error(`Error: watch target does not exist: ${filePath}`);
+    process.exit(1);
+  }
+
+  console.log(`[watch] watching ${filePath}`);
+
+  let child: Bun.Subprocess | undefined;
+  let restartTimer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  let restarting = false;
+
+  const stopChild = async () => {
+    if (!child) {
+      return;
+    }
+    const runningChild = child;
+    child = undefined;
+    runningChild.kill("SIGTERM");
+    try {
+      await runningChild.exited;
+    } catch {
+      // Ignore shutdown races from child termination.
+    }
+  };
+
+  const startChild = () => {
+    child = Bun.spawn(["bun", "bin/cosm", filePath], {
+      cwd: process.cwd(),
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    child.exited.then((exitCode) => {
+      if (stopped || child !== undefined && child.pid !== undefined && child.exitCode === null && restarting) {
+        return;
+      }
+      if (!stopped && !restarting) {
+        console.log(`[watch] child exited with code ${exitCode}; waiting for changes...`);
+      }
+    }).catch(() => {
+      if (!stopped && !restarting) {
+        console.log("[watch] child exited; waiting for changes...");
+      }
+    });
+  };
+
+  const restartChild = () => {
+    if (stopped) {
+      return;
+    }
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+    }
+    restartTimer = setTimeout(async () => {
+      if (stopped) {
+        return;
+      }
+      restarting = true;
+      console.log(`[watch] restarting ${filePath}`);
+      await stopChild();
+      startChild();
+      restarting = false;
+    }, 60);
+  };
+
+  const close = async () => {
+    if (stopped) {
+      return;
+    }
+    stopped = true;
+    watcher.close();
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+    }
+    await stopChild();
+  };
+
+  const watcher = watch(filePath, (_eventType) => {
+    restartChild();
+  });
+
+  process.on("SIGINT", async () => {
+    await close();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", async () => {
+    await close();
+    process.exit(0);
+  });
+
+  startChild();
 }
 
 function repl() {
@@ -56,17 +256,31 @@ function repl() {
 }
 
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  const isTestMode = args[0] === "--test" || args[0] === "test";
-  const filePath = isTestMode ? args[1] : args[0];
-  if (filePath) {
+  let mode: CliMode;
+  try {
+    mode = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error: ${message}`);
+    console.error(usage());
+    process.exit(1);
+  }
+
+  if (mode.kind === "help") {
+    console.log(usage());
+    process.exit(0);
+  } else if (mode.kind === "repl") {
+    repl();
+  } else if (mode.kind === "watch") {
+    watchFileRunner(mode.filePath);
+  } else {
     try {
-      const source = readFileSync(filePath, "utf8");
-      if (isTestMode) {
+      const source = readFileSync(mode.filePath, "utf8");
+      if (mode.kind === "test") {
         Cosm.Interpreter.eval("Kernel.resetTests()");
       }
       const result = Cosm.Interpreter.eval(source);
-      if (isTestMode) {
+      if (mode.kind === "test") {
         const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
         console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
         process.exit(summary.failed > 0 ? 1 : 0);
@@ -76,7 +290,5 @@ if (require.main === module) {
       console.error("Error:", e.message);
       process.exit(1);
     }
-  } else {
-    repl();
   }
 }

@@ -20,10 +20,12 @@
 - Minimal per-class metaclasses, with `Class` as the bootstrap anchor for class-of-class reflection and metaclass inheritance that mirrors the ordinary class chain.
 - Reflective class access through `classes`.
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
+- A first reflective `Module` runtime object, with `cosm.test` and `cosm.modules.test` now modeled as real module objects rather than loose namespaces.
+- A minimal `cosm --watch <file>` / `cosm watch <file>` CLI loop for restarting long-running entry files like `app/server.cosm` when the target file changes, plus clearer CLI usage/help and loud failures on unknown switches.
 - Reflective method tables now also surface as `Namespace`-style objects rather than anonymous bags, which makes class reflection more consistent with the rest of the runtime.
 - The core reflective/runtime classes now expose their native surface through one explicit manifest-style protocol, so bootstrap class tables and runtime lookup are drawing from the same declarations instead of parallel hand wiring.
 - `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model. Host concerns are getting split into clearer homes: `Process` owns `cwd()` / `env(name)`, `Time` owns `now()`, `isoNow()`, and `iso(ms)`, and `Random` owns `float()` / `int(max)`. `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
-- `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` can load `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
+- `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` now returns a real `Module` object while still injecting `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`.
 - Live localhost round-trip checks for that HTTP surface now live in `test/http.integration.test.ts` and run explicitly with `COSM_HTTP_INTEGRATION=1` rather than in the default sandbox-safe suite.
@@ -31,6 +33,7 @@
 - Explicit message-passing infrastructure via `receiver.send(...)` and `Kernel.send(...)`, plus `Kernel.inspect(...)` for Cosm-oriented inspection.
 - First-class bound `Method` values with `.call(...)` and reflective lookup via `method(...)` / `classMethod(...)`.
 - Basic message send through `obj.method(...)`, including class objects as receivers.
+- A minimal `does_not_understand(message, args)` fallback protocol for missing instance sends, with `message` passed as a `Symbol` and `args` passed as an `Array`.
 - Primitive ownership beginning to move into TS runtime classes via native properties/methods such as numeric/string `plus` and string/array/hash `length`.
 - Scalar equality and numeric ordering are now beginning to route through runtime message methods as well, instead of only evaluator branches.
 - Bun tests, direct runtime tests, a CLI runner, and `test/core.cosm` as a language-level smoke test.
@@ -59,13 +62,14 @@
 - Move more operators and built-ins behind runtime/class dispatch.
 - Fill in more baseline language services: stdio, math/random/time/process helpers, and a tiny test harness.
 - Add a disciplined newline/semicolon lowering pass rather than baking more ambiguity into the grammar.
-- Stage callable growth explicitly: variadic args first, block capture later, and missing-method protocol after that.
+- Stage callable growth explicitly: variadic args first, block capture later, and richer missing-method/delegation work after the current bootstrap fallback.
 - Add explicit object-state setup/writes once assignment semantics exist.
 - Design the first reflective metaclass links.
 - Write down the intended metaclass-diamond/bootstrap rule before we add much richer class-side power.
 - Explore later reflective OO ideas like mirrors, holograms, and delegation-oriented wrappers without forcing them into the core surface too early.
 - Treat any future `template` / `data` forms as consequences of a clearer metaobject protocol, not as syntax we rush in ahead of semantics.
-- Design how namespaces/modules should fit into the reflective object model.
+- Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
+- Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.
 - Add a lightweight Cosm-native test harness on top of the current self-test loop.
 - Prepare a small notebook/playground service and JS interop layer once dispatch/reflection are steady enough to expose.
 - Grow the tiny Bun-native HTTP surface into a more deliberate service/notebook host API.

@@ -10,6 +10,35 @@ const cosmEval = (input: string) => {
   return ValueAdapter.cosmToJS(cosmValue);
 };
 
+async function collectStream(stream: ReadableStream<Uint8Array> | null, sink: { value: string }) {
+  if (!stream) {
+    return;
+  }
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    sink.value += decoder.decode(value, { stream: true });
+  }
+}
+
+async function waitForOutput(
+  sink: { value: string },
+  pattern: string,
+  timeoutMs = 4000,
+): Promise<void> {
+  const startedAt = Date.now();
+  while (!sink.value.includes(pattern)) {
+    if (Date.now() - startedAt > timeoutMs) {
+      throw new Error(`Timed out waiting for output: ${pattern}\nCurrent output:\n${sink.value}`);
+    }
+    await Bun.sleep(25);
+  }
+}
+
 test("2 + 2", () => {
   expect(cosmEval('2 + 2')).toBe(4);
 });
@@ -63,6 +92,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Method.name")).toBe("Method");
   expect(cosmEval("classes.Symbol.name")).toBe("Symbol");
   expect(cosmEval("classes.Namespace.name")).toBe("Namespace");
+  expect(cosmEval("classes.Module.name")).toBe("Module");
   expect(cosmEval("classes.Http.name")).toBe("Http");
   expect(cosmEval("classes.HttpRequest.name")).toBe("HttpRequest");
   expect(cosmEval("classes.HttpResponse.name")).toBe("HttpResponse");
@@ -77,6 +107,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Symbol.methods.eq.name")).toBe("eq");
   expect(cosmEval("classes.Symbol.classMethods.intern.name")).toBe("intern");
   expect(cosmEval("classes.Namespace.methods.keys.name")).toBe("keys");
+  expect(cosmEval("classes.Module.methods.get.name")).toBe("get");
   expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
   expect(cosmEval("classes.Process.methods.cwd.name")).toBe("cwd");
   expect(cosmEval("classes.Time.methods.now.name")).toBe("now");
@@ -106,7 +137,9 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.method(:expectEqual).name")).toBe("expectEqual");
   expect(cosmEval("Kernel.method(:resetTests).name")).toBe("resetTests");
   expect(cosmEval("Kernel.method(:testSummary).name")).toBe("testSummary");
-  expect(cosmEval("cosm.test.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.test.class.name")).toBe("Module");
+  expect(cosmEval('cosm.test.name')).toBe("cosm/test");
+  expect(cosmEval("cosm.modules.test.class.name")).toBe("Module");
   expect(cosmEval("cosm.test.has(:test)")).toBe(true);
   expect(cosmEval("cosm.test.has(:describe)")).toBe(true);
   expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
@@ -116,7 +149,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Random.class.name")).toBe("Random");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
-  expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Namespace");
+  expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
+  expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
   expect(cosmEval('require("cosm/test"); test.class.name')).toBe("Function");
   expect(cosmEval('require("cosm/test"); describe.class.name')).toBe("Function");
   expect(cosmEval('require("cosm/test"); expectEqual.class.name')).toBe("Function");
@@ -136,7 +170,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Process.cwd().length > 0")).toBe(true);
   expect(cosmEval("Random.float() >= 0 && Random.float() < 1")).toBe(true);
   expect(cosmEval("Random.int(5) >= 0 && Random.int(5) < 5")).toBe(true);
-  expect(cosmEval('Kernel.inspect(cosm.test)')).toContain("#<Namespace");
+  expect(cosmEval('Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
+  expect(cosmEval('require("cosm/test"); Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
   expect(cosmEval('Kernel.send(1, Symbol.intern("plus"), 2)')).toBe(3);
   expect(cosmEval("Kernel.method(:assert).class.name")).toBe("Method");
@@ -154,6 +189,31 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
   expect(() => cosmEval("Kernel.cwd")).toThrow("Property error: object of class Kernel has no property 'cwd'");
   expect(() => cosmEval('Kernel.env("HOME")')).toThrow("Property error: object of class Kernel has no property 'env'");
+});
+
+test("missing-method fallback supports explicit send and implicit self calls", () => {
+  expect(cosmEval(`
+    class Echo
+      def does_not_understand(message, args)
+        message.name + ":" + args.length
+      end
+    end
+    Echo.new().unknown(1, 2)
+  `)).toBe("unknown:2");
+
+  expect(cosmEval(`
+    class Builder
+      def does_not_understand(message, args)
+        message.name + ":" + args.length
+      end
+      def render()
+        wrapper("ok")
+      end
+    end
+    Builder.new().render()
+  `)).toBe("wrapper:1");
+
+  expect(() => cosmEval("class Plain end\nPlain.new.unknown()")).toThrow("Property error");
 });
 
 test("Process.env can read host environment strings", () => {
@@ -519,6 +579,163 @@ test("cli test mode reports failures and exits nonzero", () => {
     expect(stdout).toContain("ok - math smoke");
     expect(stdout).toContain("not ok - sad path: Assertion failed: boom");
     expect(stdout).toContain("7 passed, 1 failed, 8 total");
+  });
+});
+
+test("cli watch mode restarts a target file on change", async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-watch-"));
+  const sourcePath = join(tempDir, "watch.cosm");
+  writeFileSync(sourcePath, 'Kernel.puts("watch-start"); 1\n');
+
+  const proc = Bun.spawn(["bun", "bin/cosm", "--watch", sourcePath], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const stdoutSink = { value: "" };
+  const stderrSink = { value: "" };
+  const stdoutTask = collectStream(proc.stdout, stdoutSink);
+  const stderrTask = collectStream(proc.stderr, stderrSink);
+
+  await waitForOutput(stdoutSink, `[watch] watching ${sourcePath}`);
+  await waitForOutput(stdoutSink, "watch-start");
+
+  writeFileSync(sourcePath, 'Kernel.puts("watch-restart"); 2\n');
+
+  await waitForOutput(stdoutSink, `[watch] restarting ${sourcePath}`);
+  await waitForOutput(stdoutSink, "watch-restart");
+
+  proc.kill("SIGTERM");
+  const exitCode = await proc.exited;
+  await Promise.all([stdoutTask, stderrTask]);
+
+  expect(exitCode).toBe(0);
+  expect(stderrSink.value).toBe("");
+  expect(stdoutSink.value).toContain("watch-start");
+  expect(stdoutSink.value).toContain("watch-restart");
+});
+
+test("cli watch mode also works with trailing --watch", async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-watch-trailing-"));
+  const sourcePath = join(tempDir, "watch-tail.cosm");
+  writeFileSync(sourcePath, 'Kernel.puts("tail-watch"); 3\n');
+
+  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath, "--watch"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const stdoutSink = { value: "" };
+  const stderrSink = { value: "" };
+  const stdoutTask = collectStream(proc.stdout, stdoutSink);
+  const stderrTask = collectStream(proc.stderr, stderrSink);
+
+  await waitForOutput(stdoutSink, `[watch] watching ${sourcePath}`);
+  await waitForOutput(stdoutSink, "tail-watch");
+
+  proc.kill("SIGTERM");
+  const exitCode = await proc.exited;
+  await Promise.all([stdoutTask, stderrTask]);
+
+  expect(exitCode).toBe(0);
+  expect(stderrSink.value).toBe("");
+  expect(stdoutSink.value).toContain("tail-watch");
+});
+
+test("cli watch mode rejects a missing file path", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "--watch"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("Cosm version:");
+    expect(stderr).toContain("Error: --watch expects a file path");
+    expect(stderr).toContain("Usage:");
+  });
+});
+
+test("cli rejects unknown switches loudly", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "--watcch", "app/server.cosm"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("Cosm version:");
+    expect(stderr).toContain("Error: unknown option '--watcch'");
+    expect(stderr).toContain("Usage:");
+  });
+});
+
+test("cli rejects invalid mode combinations", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "--watch", "--test", "test/test.cosm"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("Cosm version:");
+    expect(stderr).toContain("Error: --watch and --test cannot be combined");
+    expect(stderr).toContain("Usage:");
+  });
+});
+
+test("cli help prints usage", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "--help"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("Cosm version:");
+    expect(stdout).toContain("Usage:");
+    expect(stdout).toContain("cosm --watch <file.cosm>");
+  });
+});
+
+test("cli help command prints usage", () => {
+  const proc = Bun.spawn(["bun", "bin/cosm", "help"], {
+    cwd: process.cwd(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  return Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]).then(([stdout, stderr, exitCode]) => {
+    expect(exitCode).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("Usage:");
   });
 });
 

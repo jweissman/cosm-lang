@@ -13,6 +13,7 @@ namespace Cosm {
   type Repository = {
     globals: Record<string, CosmValue>;
     classes: Record<string, CosmClass>;
+    modules: Record<string, CosmObject>;
   };
 
   type Env = CosmEnv;
@@ -383,14 +384,11 @@ namespace Cosm {
         Time: this.repository.globals.Time,
         Random: this.repository.globals.Random,
         http: this.repository.globals.http,
-        classes: this.classesObject(env),
-        test: Construct.namespace({
-          test: this.repository.globals.test,
-          describe: this.repository.classes.Kernel.methods.describe,
-          expectEqual: this.repository.globals.expectEqual,
-          reset: this.repository.globals.resetTests,
-          summary: this.repository.globals.testSummary,
+        modules: Construct.namespace({
+          test: this.repository.modules["cosm/test"],
         }, this.repository.classes.Namespace),
+        classes: this.classesObject(env),
+        test: this.repository.modules["cosm/test"],
         version: Construct.string(version),
       }, this.repository.classes.Namespace);
     }
@@ -402,8 +400,36 @@ namespace Cosm {
 
     private static evalCall(ast: CoreNode, env: Env): CosmValue {
       const calleeAst = this.expectChild(ast, 'call');
-      const callee = this.evalNode(calleeAst, env);
       const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
+      if (calleeAst.kind === 'access') {
+        const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
+        try {
+          const callee = this.lookupProperty(receiver, calleeAst.value);
+          return this.invokeFunction(callee, args, undefined, env);
+        } catch (error) {
+          if (
+            receiver.type !== 'class'
+            && error instanceof Error
+            && error.message.includes(`has no property '${calleeAst.value}'`)
+          ) {
+            return this.send(receiver, calleeAst.value, args);
+          }
+          throw error;
+        }
+      }
+      if (calleeAst.kind === 'ident') {
+        try {
+          const callee = this.lookupName(calleeAst.value, env);
+          return this.invokeFunction(callee, args, undefined, env);
+        } catch (error) {
+          const selfValue = this.findSelfBinding(env);
+          if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${calleeAst.value}'`) {
+            return this.send(selfValue, calleeAst.value, args);
+          }
+          throw error;
+        }
+      }
+      const callee = this.evalNode(calleeAst, env);
       return this.invokeFunction(callee, args, undefined, env);
     }
 

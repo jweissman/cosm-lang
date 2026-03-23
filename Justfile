@@ -17,3 +17,9 @@ self-test:
 
 repl:
   cosm
+
+server:
+  bun bin/cosm --watch app/server.cosm
+
+watch-server:
+  bun bin/cosm --watch app/server.cosm

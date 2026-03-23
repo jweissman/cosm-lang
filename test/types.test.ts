@@ -5,6 +5,7 @@ import { CosmClassValue } from "../src/values/CosmClassValue";
 import { CosmFunctionValue } from "../src/values/CosmFunctionValue";
 import { CosmKernelValue } from "../src/values/CosmKernelValue";
 import { CosmMethodValue } from "../src/values/CosmMethodValue";
+import { CosmModuleValue } from "../src/values/CosmModuleValue";
 import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmObjectValue } from "../src/values/CosmObjectValue";
 import { CosmProcessValue } from "../src/values/CosmProcessValue";
@@ -148,6 +149,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const classClass = new CosmClassValue("Class", "Object");
   const kernelClass = new CosmClassValue("Kernel", "Object");
   const namespaceClass = new CosmClassValue("Namespace", "Object");
+  const moduleClass = new CosmClassValue("Module", "Object");
   const processClass = new CosmClassValue("Process", "Object");
   const timeClass = new CosmClassValue("Time", "Object");
   const randomClass = new CosmClassValue("Random", "Object");
@@ -172,6 +174,10 @@ test("core runtime manifests expose a consistent boot surface", () => {
   const namespaceMethods = manifestMethods(
     new CosmNamespaceValue({}, namespaceClass),
     CosmNamespaceValue.manifest,
+  );
+  const moduleMethods = manifestMethods(
+    new CosmModuleValue("cosm/test", {}, moduleClass),
+    CosmModuleValue.manifest,
   );
   const kernelMethods = manifestMethods(
     new CosmKernelValue({}, kernelClass),
@@ -222,6 +228,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(symbolMethods)).toEqual(["eq"]);
   expect(Object.keys(symbolClassMethods)).toEqual(["intern"]);
   expect(Object.keys(namespaceMethods).sort()).toEqual(["get", "has", "keys", "values"]);
+  expect(Object.keys(moduleMethods).sort()).toEqual(["get", "has", "keys", "values"]);
   expect(Object.keys(kernelMethods).sort()).toEqual([
     "assert",
     "describe",

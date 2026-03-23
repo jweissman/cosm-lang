@@ -51,9 +51,11 @@ assert(Kernel.method(:assert).name == "assert", "objects can introspect bound me
 assert(Kernel.method(:assert).call(true) == true, "method objects can be invoked explicitly through call");
 assert(classes.Kernel.method(:assert).name == "assert", "class objects can introspect instance methods directly");
 assert(classes.Kernel.method(:assert).call(true, "ok") == true, "class-side method introspection returns callable Method objects");
-assert(cosm.test.class.name == "Namespace", "cosm exposes a dedicated test namespace");
+assert(cosm.test.class.name == "Module", "cosm exposes a dedicated test module");
+assert(cosm.test.name == "cosm/test", "test module carries its module name");
 assert(cosm.test.has(:test) == true, "test namespace exposes a test entry point");
 assert(cosm.test.has(:expectEqual) == true, "test namespace exposes a tiny equality helper");
+assert(cosm.modules.test.class.name == "Module", "cosm exposes a module registry");
 require("cosm/test");
 assert(test.class.name == "Function", "require can load the tiny test stdlib namespace");
 assert(cosm.classes.String.name == "String", "cosm exposes the reflective class repository");
@@ -69,6 +71,7 @@ assert(classes.Method.methods.call.name == "call", "Method reflects call through
 assert(classes.Symbol.methods.eq.name == "eq", "Symbol reflects eq through the runtime model");
 assert(classes.Symbol.classMethods.intern.name == "intern", "Symbol reflects intern on its metaclass");
 assert(classes.Namespace.methods.keys.name == "keys", "Namespace reflects enumerable helpers through the runtime model");
+assert(classes.Module.methods.get.name == "get", "Module reflects enumerable helpers through the runtime model");
 assert(classes.Kernel.methods.assert.name == "assert", "Kernel reflects its ambient services through the runtime model");
 assert(classes.Process.methods.cwd.name == "cwd", "Process reflects current-working-directory access through the runtime model");
 assert(classes.Time.methods.now.name == "now", "Time reflects current time access through the runtime model");
@@ -129,6 +132,16 @@ class ImplicitDispatch do
   end
 end;
 assert(ImplicitDispatch.new().relay("cosm") == "hello cosm", "unresolved bare calls can dispatch through self");
+class MissingExample
+  def does_not_understand(message, args)
+    message.name + ":" + args.length
+  end
+  def render()
+    wrapper("ok")
+  end
+end;
+assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallback can handle explicit sends");
+assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");

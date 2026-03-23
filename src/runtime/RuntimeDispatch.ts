@@ -130,8 +130,20 @@ export class RuntimeDispatch {
     repository: RuntimeRepository,
     invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue,
   ): CosmValue {
-    const method = this.resolveSendTarget(receiver, message, repository);
-    return invokeFunction(method, args, receiver);
+    try {
+      const method = this.resolveSendTarget(receiver, message, repository);
+      return invokeFunction(method, args, receiver);
+    } catch (error) {
+      const missingHandler = this.lookupMissingMethodHandler(receiver, repository);
+      if (missingHandler) {
+        return invokeFunction(
+          missingHandler,
+          [Construct.symbol(message), Construct.array(args)],
+          receiver,
+        );
+      }
+      throw error;
+    }
   }
 
   static invokeSend(
@@ -144,7 +156,11 @@ export class RuntimeDispatch {
     return this.send(receiver, this.messageName(messageValue), args, repository, invokeFunction);
   }
 
-  static resolveSendTarget(receiver: CosmValue, message: string, repository: RuntimeRepository): CosmValue {
+  static resolveSendTarget(
+    receiver: CosmValue,
+    message: string,
+    repository: RuntimeRepository,
+  ): CosmValue {
     try {
       return this.lookupProperty(receiver, message, repository);
     } catch (error) {
@@ -160,6 +176,14 @@ export class RuntimeDispatch {
       }
       throw error;
     }
+  }
+
+  private static lookupMissingMethodHandler(receiver: CosmValue, repository: RuntimeRepository): CosmValue | undefined {
+    const fallback = this.lookupMethod(this.classOf(receiver, repository.classes), 'does_not_understand');
+    if (!fallback) {
+      return undefined;
+    }
+    return this.bindMethod(receiver, fallback);
   }
 
   static messageName(messageValue: CosmValue): string {

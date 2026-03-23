@@ -25,6 +25,7 @@ import { CosmBoolValue } from "./values/CosmBoolValue";
 import { CosmNumberValue } from "./values/CosmNumberValue";
 import { CosmSymbolValue } from "./values/CosmSymbolValue";
 import { CosmMethodValue } from "./values/CosmMethodValue";
+import { CosmModuleValue } from "./values/CosmModuleValue";
 
 export class Construct {
   static number(value: number): CosmNumber { return new CosmNumberValue(value); }
@@ -41,6 +42,9 @@ export class Construct {
   }
   static namespace(fields: Record<string, CosmValue>, classRef?: CosmClass): CosmObject {
     return new CosmNamespaceValue(fields, classRef);
+  }
+  static module(name: string, fields: Record<string, CosmValue>, classRef?: CosmClass): CosmObject {
+    return new CosmModuleValue(name, fields, classRef);
   }
   static class(
     name: string,
