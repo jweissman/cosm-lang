@@ -1,0 +1,17 @@
+class App do
+  def handle(req) do
+    HttpResponse.text(respond(req), 200)
+  end
+
+  def respond(req) do
+    hello(req.path)
+  end
+
+  def hello(subject) do
+    "Hello #{subject}"
+  end
+end;
+
+let app = App.new();
+
+let server = http.serve(12345, app.method(:handle));
