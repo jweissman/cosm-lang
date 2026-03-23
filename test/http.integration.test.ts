@@ -124,8 +124,13 @@ httpTest("http router can serve exact routes and html responses", async () => {
   const env = Cosm.Interpreter.createEnv();
   startHttpServer(env, (port) => `
     let router = HttpRouter.new()
+    router.use do |req, next|
+      next()
+    end
     router.draw do
-      get("/", ->(req) { HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) })
+      get "/" do |req|
+        HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200)
+      end
     end
     let server = http.serve(${port}, router)
   `);
@@ -164,10 +169,10 @@ httpTest("http runtime can serve a router-backed app object", async () => {
 
     const notebook = await fetch(`${url}/notebook`);
     expect(notebook.status).toBe(200);
-    expect(await notebook.text()).toContain("Server-side Cosm session");
+    expect(await notebook.text()).toContain("Server-live Cosm session");
 
     const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-    const first = await fetch(`${url}/notebook`, {
+    const first = await fetch(`${url}/notebook/eval`, {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",
@@ -177,7 +182,7 @@ httpTest("http runtime can serve a router-backed app object", async () => {
     expect(first.status).toBe(200);
     expect(await first.text()).toContain("Result");
 
-    const second = await fetch(`${url}/notebook`, {
+    const second = await fetch(`${url}/notebook/eval`, {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",

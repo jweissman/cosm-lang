@@ -1,0 +1,158 @@
+class HtmlView
+  class << self
+    def escape(value)
+      Kernel.escapeHtml(value)
+    end
+
+    def shell(title, body, extraHead, extraScript)
+      """
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>#{escape(title)}</title>
+    #{extraHead}
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    #{body}
+    #{extraScript}
+  </body>
+</html>
+"""
+    end
+  end
+end
+
+class HomeView
+  class << self
+    def page(req)
+      HtmlView.shell("Cosm 0.3.2", """
+<main class="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
+  <div class="space-y-4">
+    <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm 0.3.2</p>
+    <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
+    <p class="max-w-2xl text-lg text-slate-300">
+      Object-first routing, router middleware, split view modules, and a live-ish shared-session notebook.
+    </p>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-cyan-400" href="/notebook">
+      <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Notebook</p>
+      <h2 class="mt-3 text-2xl font-bold">Shared Eval Session</h2>
+      <p class="mt-2 text-sm text-slate-300">Run Cosm on the server and update the output panel without a full page reload.</p>
+    </a>
+
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-emerald-400" href="/health">
+      <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Health</p>
+      <h2 class="mt-3 text-2xl font-bold">JSON Status</h2>
+      <p class="mt-2 text-sm text-slate-300">Inspect a tiny runtime-backed JSON response with process metadata.</p>
+    </a>
+
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+      <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Request</p>
+      <h2 class="mt-3 text-2xl font-bold">#{HtmlView.escape(req.method)} #{HtmlView.escape(req.path)}</h2>
+      <p class="mt-2 text-sm text-slate-300">Current pid #{Process.pid()} on #{Process.platform()}/#{Process.arch()}.</p>
+    </div>
+  </div>
+</main>
+""", "", "")
+    end
+  end
+end
+
+class NotebookView
+  class << self
+    def page(code, evaluation)
+      HtmlView.shell("Cosm Notebook", """
+<main class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
+  <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div>
+      <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Notebook Demo</p>
+      <h1 class="mt-2 text-4xl font-black tracking-tight">Server-live Cosm session</h1>
+      <p class="mt-3 max-w-3xl text-base text-slate-300">
+        This stays server-side: one shared session per process, one eval endpoint, and a live output panel.
+      </p>
+    </div>
+    <a class="text-sm text-slate-300 underline decoration-cyan-400 underline-offset-4" href="/">Back home</a>
+  </div>
+
+  <div class="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
+    <section class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/40">
+      <form id="notebook-form" method="post" action="/notebook" class="space-y-4">
+        <label class="block text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Code</label>
+        <textarea id="notebook-code" name="code" class="min-h-[24rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-cyan-100 outline-none ring-0 placeholder:text-slate-600" spellcheck="false">#{HtmlView.escape(code)}</textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <button class="rounded-full bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300" type="submit">Run In Shared Session</button>
+          <p class="text-sm text-slate-400">Try: <code class="text-cyan-300">let answer = 41</code> then <code class="text-cyan-300">answer + 1</code></p>
+        </div>
+      </form>
+    </section>
+
+    <section class="space-y-4">
+      <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">Runtime</p>
+        <dl class="mt-4 grid gap-3 text-sm text-slate-300">
+          <div><dt class="font-semibold text-slate-100">Process</dt><dd>#{Process.pid()} on #{Process.platform()}/#{Process.arch()}</dd></div>
+          <div><dt class="font-semibold text-slate-100">Now</dt><dd>#{Time.isoNow()}</dd></div>
+          <div><dt class="font-semibold text-slate-100">Shared Eval</dt><dd>Backed by <code class="text-cyan-300">Kernel.tryEval(...)</code></dd></div>
+        </dl>
+      </div>
+
+      <div id="notebook-output">
+        #{fragment(code, evaluation)}
+      </div>
+    </section>
+  </div>
+</main>
+""", "", """
+<script>
+  const form = document.getElementById("notebook-form");
+  const output = document.getElementById("notebook-output");
+  if (form && output) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      output.innerHTML = '<div class="rounded-3xl border border-slate-700 bg-slate-900/60 p-6 text-slate-300">Running...</div>';
+      const response = await fetch("/notebook/eval", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams(new FormData(form)).toString()
+      });
+      output.innerHTML = await response.text();
+    });
+  }
+</script>
+""")
+    end
+
+    def fragment(code, evaluation)
+      if evaluation == false then
+        """
+<div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300">
+  Run some Cosm code to inspect the shared server-side session.
+</div>
+"""
+      else
+        if evaluation.ok then
+          """
+<div class="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">Result</p>
+  <pre class="mt-3 overflow-x-auto whitespace-pre-wrap text-sm text-emerald-50">#{HtmlView.escape(evaluation.inspect)}</pre>
+</div>
+"""
+        else
+          """
+<div class="rounded-3xl border border-rose-500/30 bg-rose-500/10 p-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-rose-300">Error</p>
+  <pre class="mt-3 overflow-x-auto whitespace-pre-wrap text-sm text-rose-50">#{HtmlView.escape(evaluation.error)}</pre>
+</div>
+"""
+        end
+      end
+    end
+  end
+end

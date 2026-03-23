@@ -87,6 +87,23 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         return new CosmStringValue(ValueAdapter.format(args[0]));
       }),
+      escapeHtml: () => new CosmFunctionValue('escapeHtml', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: escapeHtml expects 1 arguments, got ${args.length}`);
+        }
+        const [value] = args;
+        if (!(value instanceof CosmStringValue)) {
+          throw new Error('Type error: escapeHtml expects a string');
+        }
+        return new CosmStringValue(
+          value.value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;'),
+        );
+      }),
       eval: () => new CosmFunctionValue('eval', (args) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: eval expects 1 arguments, got ${args.length}`);
@@ -120,7 +137,7 @@ export class CosmKernelValue extends CosmObjectValue {
             error: new CosmBoolValue(false),
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
           return new CosmNamespaceValue({
             ok: new CosmBoolValue(false),
             value: new CosmBoolValue(false),

@@ -245,6 +245,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(kernelMethods).sort()).toEqual([
     "assert",
     "describe",
+    "escapeHtml",
     "eval",
     "expectEqual",
     "inspect",
@@ -266,7 +267,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(httpResponseMethods)).toEqual([]);
   expect(Object.keys(httpResponseClassMethods).sort()).toEqual(["html", "json", "ok", "text"]);
   expect(Object.keys(httpServerMethods)).toEqual(["stop"]);
-  expect(Object.keys(httpRouterMethods).sort()).toEqual(["delete", "draw", "get", "handle", "post", "put"]);
+  expect(Object.keys(httpRouterMethods).sort()).toEqual(["delete", "draw", "get", "handle", "post", "put", "use"]);
   expect(Object.keys(mirrorMethods).sort()).toEqual(["get", "has", "inspect", "methods"]);
   expect(Object.keys(mirrorClassMethods)).toEqual(["reflect"]);
 });

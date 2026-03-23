@@ -28,13 +28,14 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.1", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.2", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
 assert(Time.class.name == "Time", "Time is now a real object with its own class");
 assert(Random.class.name == "Random", "Random is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
+assert(Kernel.escapeHtml("<tag> & 'quote'") == "&lt;tag&gt; &amp; &#39;quote&#39;", "Kernel can escape HTML-sensitive text for views");
 assert(Time.now() > 0, "Time exposes a simple time helper");
 assert(Time.iso(0) == "1970-01-01T00:00:00.000Z", "Time can render timestamps as ISO-8601 strings");
 assert(Time.isoNow().length >= 20, "Time exposes a convenient ISO-8601 helper for logging");
@@ -95,6 +96,7 @@ assert(classes.Mirror.classMethods.reflect.name == "reflect", "Mirror exposes a 
 assert(classes.Http.methods.serve.name == "serve", "Http reflects Bun-native serving through the runtime model");
 assert(classes.HttpRouter.methods.get.name == "get", "HttpRouter reflects tiny routing helpers through the runtime model");
 assert(classes.HttpRouter.methods.draw.name == "draw", "HttpRouter reflects draw through the runtime model");
+assert(classes.HttpRouter.methods.use.name == "use", "HttpRouter reflects router-level middleware through the runtime model");
 assert(classes.HttpRequest.methods.bodyText.name == "bodyText", "HttpRequest reflects request access through the runtime model");
 assert(classes.HttpRequest.methods.form.name == "form", "HttpRequest reflects form parsing through the runtime model");
 assert(classes.HttpResponse.classMethods.html.name == "html", "HttpResponse reflects HTML response construction through the runtime model");
@@ -248,8 +250,13 @@ assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass in
 # ordinary object/hash access still works
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 let router = HttpRouter.new();
+router.use do |req, next|
+  next()
+end;
 router.draw do
-  get("/", ->(req) { HttpResponse.html("<h1>ok</h1>", 200) })
+  get "/" do |req|
+    HttpResponse.html("<h1>ok</h1>", 200)
+  end
 end;
 assert(router.length == 1, "HttpRouter can register exact routes through draw");
 assert(Mirror.reflect(router).inspect() == '#<HttpRouter routes: 1>', "Mirror can inspect service-oriented runtime objects");

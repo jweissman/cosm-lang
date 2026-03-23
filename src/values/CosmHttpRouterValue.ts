@@ -131,6 +131,17 @@ export class CosmHttpRouterValue extends CosmObjectValue {
         );
         return selfValue;
       }),
+      use: () => new CosmFunctionValue("use", (args, selfValue) => {
+        if (!(selfValue instanceof CosmHttpRouterValue)) {
+          throw new Error("Type error: use expects an HttpRouter receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: HttpRouter.use expects 1 argument, got ${args.length}`);
+        }
+        const [middleware] = args;
+        selfValue.middleware.push(selfValue.normalizeMiddleware(middleware));
+        return selfValue;
+      }),
     },
   };
 
@@ -140,6 +151,7 @@ export class CosmHttpRouterValue extends CosmObjectValue {
     public readonly responseClassRef?: CosmClassValue,
     public readonly namespaceClassRef?: CosmClassValue,
     private readonly routes: Map<string, CosmValue> = new Map(),
+    private readonly middleware: CosmValue[] = [],
   ) {
     super("HttpRouter", fields, classRef);
   }
@@ -183,19 +195,38 @@ export class CosmHttpRouterValue extends CosmObjectValue {
   }
 
   private dispatchRequest(request: CosmHttpRequestValue, env?: CosmEnv): CosmValue {
-    const handler = this.routes.get(this.routeKey(request.method, request.path));
-    if (!handler) {
-      return new CosmHttpResponseValue(
-        404,
-        new CosmStringValue(`No route for ${request.method} ${request.path}`),
-        new CosmNamespaceValue({}, this.namespaceClassRef),
-        this.responseClassRef,
-      );
-    }
     if (!CosmHttpRouterValue.invokeHandler) {
       throw new Error("HttpRouter runtime error: invoke handler is not installed");
     }
-    return CosmHttpRouterValue.invokeHandler(handler, [request], undefined, env);
+
+    const terminal = () => {
+      const handler = this.routes.get(this.routeKey(request.method, request.path));
+      if (!handler) {
+        return new CosmHttpResponseValue(
+          404,
+          new CosmStringValue(`No route for ${request.method} ${request.path}`),
+          new CosmNamespaceValue({}, this.namespaceClassRef),
+          this.responseClassRef,
+        );
+      }
+      return CosmHttpRouterValue.invokeHandler!(handler, [request], undefined, env);
+    };
+
+    let pipeline = terminal;
+    for (const middleware of [...this.middleware].reverse()) {
+      const downstream = pipeline;
+      pipeline = () => {
+        const nextCallable = new CosmFunctionValue("<next>", (args) => {
+          if (args.length !== 0) {
+            throw new Error(`Arity error: next expects 0 arguments, got ${args.length}`);
+          }
+          return downstream();
+        });
+        return CosmHttpRouterValue.invokeHandler!(middleware, [request, nextCallable], undefined, env);
+      };
+    }
+
+    return pipeline();
   }
 
   private normalizeHandler(handler: CosmValue): CosmValue {
@@ -220,6 +251,33 @@ export class CosmHttpRouterValue extends CosmObjectValue {
         )
       ) {
         throw new Error("Type error: router handlers must be functions, methods, or objects with handle(req)");
+      }
+      throw error;
+    }
+  }
+
+  private normalizeMiddleware(middleware: CosmValue): CosmValue {
+    if (middleware.type === "function" || middleware.type === "method") {
+      return middleware;
+    }
+    if (middleware.type !== "object") {
+      throw new Error("Type error: router middleware must be functions, methods, or objects with handle(req, next)");
+    }
+    if (!CosmHttpRouterValue.methodLookupHandler) {
+      throw new Error("HttpRouter runtime error: method lookup handler is not installed");
+    }
+    try {
+      return CosmHttpRouterValue.methodLookupHandler(middleware, new CosmStringValue("handle"));
+    } catch (error) {
+      if (
+        error instanceof Error
+        && (
+          error.message.includes("has no property 'handle'")
+          || error.message.includes("has no instance method 'handle'")
+          || error.message.includes("property 'handle' is not a method")
+        )
+      ) {
+        throw new Error("Type error: router middleware must be functions, methods, or objects with handle(req, next)");
       }
       throw error;
     }

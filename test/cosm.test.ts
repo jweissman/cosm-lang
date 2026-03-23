@@ -4,11 +4,33 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
+import { CosmHttpRequestValue } from "../src/values/CosmHttpRequestValue";
+import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmProcessValue } from "../src/values/CosmProcessValue";
+import { CosmStringValue } from "../src/values/CosmStringValue";
 
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
   return ValueAdapter.cosmToJS(cosmValue);
+};
+
+const dispatchService = (serviceSource: string, method: string, path: string, body = "") => {
+  const serviceValue = Cosm.Interpreter.eval(serviceSource);
+  const requestValue = new CosmHttpRequestValue(
+    method,
+    `http://127.0.0.1${path}`,
+    path,
+    new CosmNamespaceValue({}),
+    new CosmNamespaceValue({}),
+    body,
+  );
+  const handleMethod = (Cosm.Interpreter as unknown as {
+    lookupProperty: (receiver: unknown, property: string) => unknown;
+    invokeFunction: (callee: unknown, args: unknown[]) => unknown;
+  }).lookupProperty(serviceValue, "handle");
+  return (Cosm.Interpreter as unknown as {
+    invokeFunction: (callee: unknown, args: unknown[]) => unknown;
+  }).invokeFunction(handleMethod, [requestValue]);
 };
 
 async function collectStream(stream: ReadableStream<Uint8Array> | null, sink: { value: string }) {
@@ -172,12 +194,13 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.1");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.2");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
+  expect(cosmEval('Kernel.escapeHtml("<tag> & \'quote\'")')).toBe("&lt;tag&gt; &amp; &#39;quote&#39;");
   expect(cosmEval('Kernel.expectEqual([1, 2], [1, 2])')).toBe(true);
   expect(cosmEval("Time.now() > 0")).toBe(true);
   expect(cosmEval('Time.iso(0)')).toBe("1970-01-01T00:00:00.000Z");
@@ -205,7 +228,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.1");
+  expect(cosmEval("cosm.version")).toBe("0.3.2");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
   expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
   expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('{ answer: 42 }');
@@ -239,8 +262,11 @@ test("Process.exit can be hooked and validates codes", () => {
 test("Kernel.eval and Kernel.tryEval share a tiny process-wide session", () => {
   const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
   expect(cosmEval(`Kernel.eval("let ${sharedName} = 41"); Kernel.eval("${sharedName} + 1")`)).toBe(42);
+  expect(cosmEval(`Kernel.eval("let ${sharedName} = 1"); Kernel.eval("${sharedName} + 2")`)).toBe(3);
   expect(cosmEval('Kernel.tryEval("1 + 2").ok')).toBe(true);
   expect(cosmEval('Kernel.tryEval("1 + 2").inspect')).toBe("3");
+  expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").ok')).toBe(true);
+  expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").inspect')).toBe("2");
   expect(cosmEval('Kernel.tryEval("let = 1").ok')).toBe(false);
   expect(cosmEval('Kernel.tryEval("let = 1").error.length > 0')).toBe(true);
 });
@@ -446,18 +472,33 @@ test("http request and response runtime objects reflect cleanly", () => {
   expect(cosmEval(`
     let router = HttpRouter.new()
     router.draw do
-      get("/", ->(req) { HttpResponse.text("hi", 200) })
-      get("/health", ->(req) { HttpResponse.json({ ok: true }, 200) })
+      get "/" do |req|
+        HttpResponse.text("hi " + req.path, 200)
+      end
+      get "/health" do |req|
+        HttpResponse.json({ ok: true }, 200)
+      end
     end
     router.length
   `)).toBe(2);
   expect(cosmEval(`
     let router = HttpRouter.new()
     router.draw do
-      get("/", ->(req) { HttpResponse.text("hi", 200) })
+      get "/" do |req|
+        HttpResponse.text("hi " + req.path, 200)
+      end
     end
     Kernel.inspect(router)
   `)).toBe('#<HttpRouter routes: 1>');
+  expect(cosmEval(`
+    let router = HttpRouter.new()
+    router.use do |req, next|
+      HttpResponse.text("mw " + req.path, 200)
+    end
+    router.get("/", ->(req) { HttpResponse.text("route " + req.path, 200) })
+    router.handle("GET", "/", ->(req) { HttpResponse.text("route " + req.path, 200) })
+    router.length
+  `)).toBe(1);
   expect(() => cosmEval(`
     let router = HttpRouter.new()
     router.draw do
@@ -470,9 +511,81 @@ test("http request and response runtime objects reflect cleanly", () => {
   expect(() => cosmEval('let router = HttpRouter.new(); router.get("/", 1)')).toThrow(
     "Type error: router handlers must be functions, methods, or objects with handle(req)",
   );
+  expect(() => cosmEval('let router = HttpRouter.new(); router.use(1)')).toThrow(
+    "Type error: router middleware must be functions, methods, or objects with handle(req, next)",
+  );
   expect(() => cosmEval("class Plain end\nhttp.serve(0, Plain.new())")).toThrow(
     "Type error: serve expects a function, method, or object with handle(req)",
   );
+});
+
+test("router request specs can dispatch without a live server listen", () => {
+  const response = dispatchService(`
+    let router = HttpRouter.new()
+    router.use do |req, next|
+      next()
+    end
+    router.draw do
+      get "/" do |req|
+        HttpResponse.text("hi " + req.path, 200)
+      end
+      post "/submit" do |req|
+        HttpResponse.text(req.bodyText(), 201)
+      end
+    end
+    class RouterService
+      def init(router)
+        true
+      end
+      def handle(req)
+        @router.handle(req)
+      end
+    end
+    RouterService.new(router)
+  `, "GET", "/");
+
+  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
+  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("body"))).toBe("hi /");
+
+  const postResponse = dispatchService(`
+    let router = HttpRouter.new()
+    router.draw do
+      post "/submit" do |req|
+        HttpResponse.text(req.bodyText(), 201)
+      end
+    end
+    class RouterService
+      def init(router)
+        true
+      end
+      def handle(req)
+        @router.handle(req)
+      end
+    end
+    RouterService.new(router)
+  `, "POST", "/submit", "code=1%20%2B%202");
+
+  expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("status"))).toBe(201);
+  expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("body"))).toBe("code=1%20%2B%202");
+});
+
+test("module-organized app can be exercised as a request spec without listen", () => {
+  const home = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "GET", "/");
+  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("status"))).toBe(200);
+  const homeHeaders = home.nativeProperty?.("headers");
+  const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
+  expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
+  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.2");
+
+  const notebook = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/notebook/eval", "code=1%20%2B%202");
+  expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
+  expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"))).toContain("3");
 });
 
 test("type errors stay explicit", () => {

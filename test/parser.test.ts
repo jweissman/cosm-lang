@@ -46,8 +46,11 @@ test("parser accepts multi-statement lambdas with bare calls", () => {
 test("parser lowers trailing do-end blocks on calls", () => {
   expect(() => Parser.parse('router.draw do get("/", ->(req) { HttpResponse.text("hi", 200) }) end')).not.toThrow();
   expect(() => Parser.parse('describe("smoke") do test("ok", ->() { assert(true) }) end')).not.toThrow();
+  expect(() => Parser.parse('router.use do |req, next| next() end')).not.toThrow();
+  expect(() => Parser.parse('router.draw do get "/" do |req| HttpResponse.text(req.path, 200) end end')).not.toThrow();
   expect(() => Parser.parse('do let x = 1; x end')).not.toThrow();
-  expect(() => Parser.parse('router.draw do |req| req end')).toThrow("Parse error:");
+  expect(() => Parser.parse('router.draw do |req| req end')).not.toThrow();
+  expect(() => Parser.parse('router.use do |req, next, &block| next() end')).toThrow("Parse error:");
 });
 
 test("parser keeps bare-call sugar statement-oriented", () => {
@@ -58,4 +61,5 @@ test("parser keeps bare-call sugar statement-oriented", () => {
 test("parser accepts the canonical app/server.cosm shape", () => {
   expect(() => Parser.parse(readFileSync("app/server.cosm", "utf8"))).not.toThrow();
   expect(() => Parser.parse(readFileSync("app/app.cosm", "utf8"))).not.toThrow();
+  expect(() => Parser.parse(readFileSync("app/views.cosm", "utf8"))).not.toThrow();
 });

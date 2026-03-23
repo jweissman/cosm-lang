@@ -164,8 +164,10 @@ export class CosmHttpValue extends CosmObjectValue {
               const result = CosmHttpValue.invokeHandler!(handler, [requestValue], undefined, env);
               return this.responseFrom(result);
             } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              return new Response(message, { status: 500 });
+              return new Response(this.renderServerError(error), {
+                status: 500,
+                headers: { "content-type": "text/plain; charset=utf-8" },
+              });
             }
           },
         });
@@ -175,6 +177,13 @@ export class CosmHttpValue extends CosmObjectValue {
     }
 
     throw lastError instanceof Error ? lastError : new Error('Http runtime error: failed to start server');
+  }
+
+  private renderServerError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.stack ?? error.message;
+    }
+    return String(error);
   }
 
   private normalizeHandler(handler: CosmValue): CosmValue {

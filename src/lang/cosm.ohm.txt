@@ -138,7 +138,10 @@ Cosm {
     = Exp ("," Exp)*
 
   TrailingBlock
-    = kw_do StatementList kw_end
+    = kw_do BlockParams? StatementList kw_end
+
+  BlockParams
+    = "|" ParamList? "|"
 
   BareCallArgs
     = BareArg ("," BareArg)*

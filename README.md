@@ -4,22 +4,22 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.1` is aimed at a callable/block ergonomics follow-up on that first small but real web-service slice:
+`0.3.2` is aimed at a service-structure and notebook-usability follow-up on that first small web-service slice:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
-- trailing `do ... end` block passing as final-argument sugar
+- router-level middleware through `HttpRouter.use(...)`
+- trailing `do ... end` block passing with block params on calls
 - HTML-friendly responses through `HttpResponse.html(...)`
 - triple-quoted interpolated strings for small templates
 - the first readonly reflective primitive through `Mirror.reflect(...)`
 - a clearer class-side authoring path through `class << self`
-- a tiny server-rendered notebook demo page with shared server-side eval
+- split view modules for app rendering
+- a server-live notebook demo page with shared server-side eval
 
-This is intentionally still below a full notebook product or framework layer. `0.3.1` is about making the runtime and service surface feel steady enough to build on while proving one tiny interactive page.
+This is intentionally still below a full notebook product or framework layer. `0.3.2` is about making the runtime and service surface feel steadier to build on while proving one tiny interactive page.
 
-Explicitly not in `0.3.1`:
-- block-style lambdas with parameters like `do |req| ... end`
-- `get "/" do |req| ... end`
+Explicitly not in `0.3.2`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - notebook persistence or multi-user isolation
@@ -31,10 +31,11 @@ Explicitly not in `0.3.1`:
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3.1` should now be organized as:
+Small services in `0.3.2` should now be organized as:
 
 - a boot entry like `app/server.cosm`
-- one or more required `.cosm` modules like `app/app.cosm`
+- an app/service module like `app/app.cosm`
+- one or more view modules like `app/views.cosm`
 - object-first service classes that still own `handle(req)` and router setup
 
 ## Current Examples
@@ -84,10 +85,14 @@ class App
   class << self
     def build()
       let router = HttpRouter.new()
+      router.use do |req, next|
+        App.log(req)
+        next()
+      end
       router.draw do
-        get("/", ->(req) {
+        get "/" do |req|
           HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200)
-        })
+        end
       end
       App.new(router)
     end
@@ -103,15 +108,17 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is intentionally narrow in `0.3.1`: it is just sugar for a final zero-argument lambda argument, which is enough to make `router.draw do ... end` feel natural without committing to full block semantics.
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.2`: it is lambda sugar, not a full Ruby block system. The useful new step is block params on trailing blocks, so service code can now use:
 
 ```cosm
 router.draw do
-  get("/", ->(req) { HttpResponse.html("<h1>Hello</h1>", 200) })
+  get "/" do |req|
+    HttpResponse.html("<h1>Hello</h1>", 200)
+  end
 end
 ```
 
-The demo app also now exposes a tiny `/notebook` page with Tailwind via CDN, server-side evaluation, and one shared session per running process. That page is an app-layer proof, not a runtime/browser commitment.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, server-side evaluation, and one shared session per running process. That is still an app-layer proof, not a runtime/browser commitment.
 
 ## Dev Commands
 
@@ -135,11 +142,11 @@ The demo app also now exposes a tiny `/notebook` page with Tailwind via CDN, ser
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.1
+## After 0.3.2
 
 The immediate next track is:
 
-1. module/app structure for service code
-2. then a tiny server-side notebook shell
-3. then browser/runtime decisions
-4. then richer callable/block syntax growth
+1. richer notebook shell and session ergonomics
+2. then browser/runtime decisions
+3. then deeper callable/block semantics
+4. then broader framework/interop work

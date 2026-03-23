@@ -5,15 +5,22 @@ import { Lowerer } from "./lowerer";
 
 export class Parser {
     private static appendTrailingBlock(callNode: SurfaceNode, trailingBlockAst: SurfaceNode): SurfaceNode {
-      const blockChildren = trailingBlockAst.kind === 'list' ? (trailingBlockAst.children ?? []) : [trailingBlockAst];
+      const normalizedBlock = trailingBlockAst.kind === 'list'
+        ? trailingBlockAst.children?.[0]
+        : trailingBlockAst;
+
+      if (!normalizedBlock || normalizedBlock.kind !== 'block_expr') {
+        throw new Error('Invalid surface AST: trailing block must lower from a block expression');
+      }
+
       const lambdaAst: SurfaceNode = {
         kind: 'lambda_expr',
         value: '<lambda>',
-        params: [],
+        params: normalizedBlock.params ?? [],
         children: [{
           kind: 'block_expr',
           value: '',
-          children: blockChildren,
+          children: normalizedBlock.children ?? [],
         }],
       };
 
@@ -140,6 +147,7 @@ export class Parser {
         || trimmed === 'else'
         || /\bthen\s*$/.test(trimmed)
         || /\bdo\s*$/.test(trimmed)
+        || /\bdo\s*\|[^|]*\|\s*$/.test(trimmed)
       ) {
         return false;
       }
@@ -363,11 +371,13 @@ export class Parser {
           value: '',
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
         }),
-        TrailingBlock: (_do, body, _end) => ({
+        TrailingBlock: (_do, params, body, _end) => ({
           kind: 'block_expr',
           value: '',
+          params: Parser.paramNames(params.ast()),
           children: Parser.listChildren(body.ast()),
         }),
+        BlockParams: (_open, params, _close) => params.ast(),
         BareCallArgs: (first, _seps, rest) => ({
           kind: 'list',
           value: '',

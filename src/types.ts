@@ -60,7 +60,11 @@ export type CoreNode = {
   target?: string;
 };
 
-export type CosmEnv = { bindings: Record<string, CosmValue>, parent?: CosmEnv };
+export type CosmEnv = {
+  bindings: Record<string, CosmValue>,
+  parent?: CosmEnv,
+  allowTopLevelRebinds?: boolean,
+};
 
 export type CosmNumber = CosmNumberValue;
 export type CosmBool = CosmBoolValue;

@@ -137,13 +137,13 @@ namespace Cosm {
       return repository;
     }
 
-    static createEnv(parent?: Env): Env {
-      return { bindings: {}, parent };
+    static createEnv(parent?: Env, options?: { allowTopLevelRebinds?: boolean }): Env {
+      return { bindings: {}, parent, allowTopLevelRebinds: options?.allowTopLevelRebinds ?? false };
     }
 
     private static evalSharedKernelSource(source: string): CosmValue {
       if (!this.sharedKernelEvalEnv) {
-        this.sharedKernelEvalEnv = this.createEnv();
+        this.sharedKernelEvalEnv = this.createEnv(undefined, { allowTopLevelRebinds: true });
       }
       return this.evalInEnv(source, this.sharedKernelEvalEnv);
     }
@@ -182,7 +182,7 @@ namespace Cosm {
     }
 
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
-      if (Object.hasOwn(env.bindings, ast.value)) {
+      if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
       const superclassName = ast.left?.value || 'Object';
@@ -197,7 +197,7 @@ namespace Cosm {
     }
 
     private static evalLet(ast: CoreNode, env: Env): CosmValue {
-      if (Object.hasOwn(env.bindings, ast.value)) {
+      if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
       if (!ast.left) {
@@ -209,7 +209,7 @@ namespace Cosm {
     }
 
     private static evalDef(ast: CoreNode, env: Env): CosmValue {
-      if (Object.hasOwn(env.bindings, ast.value)) {
+      if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
       const value = this.buildClosure(ast, env);
@@ -636,6 +636,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.1";
+    export const version = "0.3.2";
 }
 export default Cosm;
