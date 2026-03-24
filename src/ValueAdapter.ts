@@ -10,7 +10,9 @@ import { CosmErrorValue } from "./values/CosmErrorValue";
 import { CosmSchemaValue } from "./values/CosmSchemaValue";
 import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
+import { CosmSessionValue } from "./values/CosmSessionValue";
 import { RuntimeInspect } from "./runtime/RuntimeInspect";
+import { Construct } from "./Construct";
 
 type JsValue =
   | number
@@ -21,6 +23,29 @@ type JsValue =
   | JsValue[];
 
 export class ValueAdapter {
+  static jsToCosm(value: JsValue): CosmValue {
+    if (value === null) {
+      return Construct.bool(false);
+    }
+    if (typeof value === "number") {
+      return Construct.number(value);
+    }
+    if (typeof value === "boolean") {
+      return Construct.bool(value);
+    }
+    if (typeof value === "string") {
+      return Construct.string(value);
+    }
+    if (Array.isArray(value)) {
+      return Construct.array(value.map((item) => this.jsToCosm(item)));
+    }
+    return Construct.hash(
+      Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [key, this.jsToCosm(entry)]),
+      ),
+    );
+  }
+
   static cosmToJS(value: CosmValue): JsValue {
     switch (value.type) {
       case 'number':
@@ -123,6 +148,13 @@ export class ValueAdapter {
         if (value instanceof CosmAiValue) {
           return {
             kind: "ai",
+          };
+        }
+        if (value instanceof CosmSessionValue) {
+          return {
+            kind: "session",
+            name: value.nativeProperty("name") ? this.cosmToJS(value.nativeProperty("name")!) : null,
+            length: value.nativeProperty("length") ? this.cosmToJS(value.nativeProperty("length")!) : 0,
           };
         }
         return Object.fromEntries(

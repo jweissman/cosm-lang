@@ -28,7 +28,7 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.4", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.5", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
@@ -36,6 +36,8 @@ assert(Time.class.name == "Time", "Time is now a real object with its own class"
 assert(Random.class.name == "Random", "Random is now a real object with its own class");
 assert(Kernel.inspect(Kernel) == "#<Kernel>", "Kernel can inspect runtime objects reflectively");
 assert(Kernel.inspect(Kernel) == Kernel.inspect(), "Kernel.inspect delegates to the in-language inspect protocol");
+assert(Kernel.blockGiven() == false, "Kernel.blockGiven reports false when there is no current block");
+assert((->() { Kernel.blockGiven() }).call() == false, "blockGiven stays false in plain callables without a trailing block");
 assert(Symbol.intern("ok").inspect() == ":ok", "primitive values expose inspect directly");
 assert(Kernel.escapeHtml("<tag> & 'quote'") == "&lt;tag&gt; &amp; &#39;quote&#39;", "Kernel can escape HTML-sensitive text for views");
 assert(Time.now() > 0, "Time exposes a simple time helper");
@@ -48,6 +50,9 @@ assert(Process.pid() > 0, "Process exposes the host process id");
 assert(Process.platform().length > 0, "Process exposes the host platform");
 assert(Process.arch().length > 0, "Process exposes the host architecture");
 assert(Kernel.sleep(0) == 0, "Kernel exposes a tiny synchronous sleep helper");
+assert(Session.default().name == "default", "Session.default exposes the process-default session");
+assert(Session.default().inspect().length > 0, "Session values expose inspect directly");
+assert(Kernel.session().name == "default", "Kernel exposes the default session explicitly");
 assert(Random.float() >= 0, "Random exposes a simple floating-point helper");
 assert(Random.float() < 1, "Random float stays in the expected JS range");
 assert(Random.int(5) >= 0, "Random exposes a simple integer helper");
@@ -174,6 +179,7 @@ assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallba
 assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
 assert(Kernel.tryEval("1 + 2").ok == true, "Kernel.tryEval exposes structured eval success");
 assert(Kernel.tryEval("1 + 2").inspect == "3", "Kernel.tryEval returns inspected result text");
+assert(Session.default().history().length >= 2, "Session.default tracks a small eval history");
 assert(Kernel.try(->() { 1 + 2 }).ok == true, "Kernel.try exposes structured callable success");
 assert(Kernel.try(->() { Kernel.raise("boom") }).error.message == "boom", "Kernel.try wraps raised Cosm errors");
 Kernel.eval("let notebookSeed = 41");
@@ -207,6 +213,10 @@ def nestedYield() do
 end;
 assert(nestedYield() do |label| label end == "nested", "nested calls preserve the current block context");
 assert(Kernel.try(->() { yield() }).error.message == "Block error: yield called without a current block", "yield fails clearly when no current block exists");
+def yieldOne()
+  yield(41)
+end
+assert((yieldOne() do |value| value + 1 end) == 42, "yield can forward arguments into the current trailing block");
 
 # classes, metaclasses, and reflective access
 assert(1.plus(2) == 3, "number instances can send plus directly");

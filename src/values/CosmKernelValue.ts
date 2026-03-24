@@ -11,6 +11,7 @@ import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { RuntimeEquality } from "../runtime/RuntimeEquality";
 import { CosmErrorValue } from "./CosmErrorValue";
+import { Construct } from "../Construct";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -18,6 +19,7 @@ export class CosmKernelValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
   private static evalHandler?: (source: string) => CosmValue;
   private static resetEvalHandler?: () => void;
+  private static defaultSessionHandler?: () => CosmValue;
   private static wrapErrorHandler?: (error: unknown) => CosmErrorValue;
   private static testPassed = 0;
   private static testFailed = 0;
@@ -27,12 +29,14 @@ export class CosmKernelValue extends CosmObjectValue {
     invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
     eval?: (source: string) => CosmValue;
     resetEval?: () => void;
+    defaultSession?: () => CosmValue;
     wrapError?: (error: unknown) => CosmErrorValue;
   }): void {
     this.sendHandler = hooks.send;
     this.invokeHandler = hooks.invoke;
     this.evalHandler = hooks.eval;
     this.resetEvalHandler = hooks.resetEval;
+    this.defaultSessionHandler = hooks.defaultSession;
     this.wrapErrorHandler = hooks.wrapError;
   }
 
@@ -61,49 +65,44 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         return new CosmBoolValue(true);
       }),
-      puts: () => new CosmFunctionValue('puts', (args) => {
+      puts: () => new CosmFunctionValue('puts', (args, _selfValue, env) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: puts expects 1 arguments, got ${args.length}`);
         }
         const [value] = args;
-        const rendered = value instanceof CosmStringValue ? value.value : ValueAdapter.format(value);
+        const rendered = CosmKernelValue.renderForOutput(value, env);
         process.stdout.write(`${rendered}\n`);
         return value;
       }),
-      print: () => new CosmFunctionValue('print', (args) => {
+      print: () => new CosmFunctionValue('print', (args, _selfValue, env) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: print expects 1 arguments, got ${args.length}`);
         }
         const [value] = args;
-        const rendered = value instanceof CosmStringValue ? value.value : ValueAdapter.format(value);
+        const rendered = CosmKernelValue.renderForOutput(value, env);
         process.stdout.write(rendered);
         return value;
       }),
-      warn: () => new CosmFunctionValue('warn', (args) => {
+      warn: () => new CosmFunctionValue('warn', (args, _selfValue, env) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: warn expects 1 arguments, got ${args.length}`);
         }
         const [value] = args;
-        const rendered = value instanceof CosmStringValue ? value.value : ValueAdapter.format(value);
+        const rendered = CosmKernelValue.renderForOutput(value, env);
         process.stderr.write(`${rendered}\n`);
         return value;
       }),
-      inspect: () => new CosmFunctionValue('inspect', (args, selfValue) => {
+      inspect: () => new CosmFunctionValue('inspect', (args, selfValue, env) => {
         if (args.length === 0) {
           if (!selfValue) {
             throw new Error('Type error: inspect expects a receiver');
           }
-          return new CosmStringValue(ValueAdapter.format(selfValue));
+          return CosmKernelValue.inspectValue(selfValue, env);
         }
         if (args.length !== 1) {
           throw new Error(`Arity error: inspect expects 0 or 1 arguments, got ${args.length}`);
         }
-        const target = args[0];
-        const inspectMethod = target.nativeMethod("inspect");
-        if (inspectMethod?.nativeCall) {
-          return inspectMethod.nativeCall([], target);
-        }
-        return new CosmStringValue(ValueAdapter.format(target));
+        return CosmKernelValue.inspectValue(args[0], env);
       }),
       escapeHtml: () => new CosmFunctionValue('escapeHtml', (args) => {
         if (args.length !== 1) {
@@ -182,6 +181,12 @@ export class CosmKernelValue extends CosmObjectValue {
         CosmKernelValue.resetEvalHandler?.();
         return new CosmBoolValue(true);
       }),
+      blockGiven: () => new CosmFunctionValue('blockGiven', (args, _selfValue, env) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: blockGiven expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmBoolValue(CosmKernelValue.currentBlock(env) !== undefined);
+      }),
       sleep: () => new CosmFunctionValue('sleep', (args) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: sleep expects 1 arguments, got ${args.length}`);
@@ -190,10 +195,8 @@ export class CosmKernelValue extends CosmObjectValue {
         if (!(milliseconds instanceof CosmNumberValue) || !Number.isFinite(milliseconds.value) || milliseconds.value < 0) {
           throw new Error('Type error: sleep expects a non-negative numeric duration in milliseconds');
         }
-        const start = Date.now();
-        while (Date.now() - start < milliseconds.value) {
-          // Busy-waiting is acceptable for the tiny synchronous runtime surface in 0.3.3.
-        }
+        const timeout = new Int32Array(new SharedArrayBuffer(4));
+        Atomics.wait(timeout, 0, 0, milliseconds.value);
         return milliseconds;
       }),
       send: () => new CosmFunctionValue('send', (args, _selfValue, env) => {
@@ -205,6 +208,15 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         const [receiver, messageValue, ...messageArgs] = args;
         return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);
+      }),
+      session: () => new CosmFunctionValue('session', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: session expects 0 arguments, got ${args.length}`);
+        }
+        if (!CosmKernelValue.defaultSessionHandler) {
+          throw new Error('Kernel runtime error: default session handler is not installed');
+        }
+        return CosmKernelValue.defaultSessionHandler();
       }),
       expectEqual: () => new CosmFunctionValue('expectEqual', (args) => {
         if (args.length < 2 || args.length > 3) {
@@ -323,5 +335,42 @@ export class CosmKernelValue extends CosmObjectValue {
       return inherited;
     }
     return manifestMethod(this, name, CosmKernelValue.manifest);
+  }
+
+  private static inspectValue(target: CosmValue, env?: CosmEnv): CosmStringValue {
+    if (target instanceof CosmKernelValue) {
+      return new CosmStringValue(ValueAdapter.format(target));
+    }
+    if (!CosmKernelValue.sendHandler) {
+      return new CosmStringValue(ValueAdapter.format(target));
+    }
+    const rendered = CosmKernelValue.sendHandler(target, Construct.symbol("inspect"), [], env);
+    if (!(rendered instanceof CosmStringValue)) {
+      throw new Error('Type error: inspect must return a string');
+    }
+    return rendered;
+  }
+
+  private static renderForOutput(value: CosmValue, env?: CosmEnv): string {
+    if (value instanceof CosmStringValue) {
+      return value.value;
+    }
+    if (!CosmKernelValue.sendHandler) {
+      return ValueAdapter.format(value);
+    }
+    const rendered = CosmKernelValue.sendHandler(value, Construct.symbol("to_s"), [], env);
+    if (!(rendered instanceof CosmStringValue)) {
+      throw new Error('Type error: to_s must return a string');
+    }
+    return rendered.value;
+  }
+
+  private static currentBlock(env?: CosmEnv): CosmValue | undefined {
+    for (let scope = env; scope; scope = scope.parent) {
+      if (scope.currentBlock) {
+        return scope.currentBlock;
+      }
+    }
+    return undefined;
   }
 }

@@ -14,6 +14,7 @@ import { CosmErrorValue } from "./values/CosmErrorValue";
 import { CosmSchemaValue } from "./values/CosmSchemaValue";
 import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
+import { CosmSessionValue } from "./values/CosmSessionValue";
 
 export type CoreNodeKind =
   | 'program'
@@ -100,7 +101,8 @@ export type CosmValue =
   | CosmErrorValue
   | CosmSchemaValue
   | CosmPromptValue
-  | CosmAiValue;
+  | CosmAiValue
+  | CosmSessionValue;
 
 export type SurfaceNodeKind =
   | 'program'

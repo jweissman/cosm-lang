@@ -4,24 +4,26 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.4` is aimed at a runtime-protocol and authoring-surface cleanup on top of that tiny service and notebook slice:
+`0.3.5` is aimed at making the current service/notebook/runtime slice operationally solid:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
 - router-level middleware through `HttpRouter.use(...)`
 - trailing `do ... end` block passing with block params on calls
 - real narrow `yield(...)` for invoking the current implicit trailing block
+- `Kernel.blockGiven()` for the current trailing-block context
 - HTML-friendly responses through `HttpResponse.html(...)`
-- first-class `inspect()` behavior across the runtime
-- `.ecosm` templates for real app views under `app/views/...`, now aligned with narrow `yield()`-based layout composition
+- first-class `inspect()` and `to_s()` behavior across the runtime
+- `.ecosm` templates for real app views under `app/views/...`, now aligned with narrow `yield()`-based layout composition without smuggling body content through ordinary context keys
 - the first readonly reflective primitive through `Mirror.reflect(...)`
 - a clearer class-side authoring path through `class << self`
 - split view modules for app rendering
-- a server-live notebook demo page with shared server-side eval
+- explicit `Session` runtime objects for notebook/server eval
+- explicit `Prompt`, `Schema`, and `cosm.ai` surfaces, with LM Studio as the default local backend path
 
-This is intentionally still below a full notebook product or framework layer. `0.3.4` is about making the runtime feel more self-describing and the demo app less one-off: object inspection, stronger structured errors, and a real template layer.
+This is intentionally still below a full notebook product or framework layer. `0.3.5` is about making the runtime feel more self-describing, giving notebook/server eval an explicit session model, and making the explicit AI boundary usable instead of merely present.
 
-Explicitly not in `0.3.4`:
+Explicitly not in `0.3.5`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - notebook persistence or multi-user isolation
@@ -31,11 +33,11 @@ Explicitly not in `0.3.4`:
 - JS interop mirrors/holograms
 - VM execution
 
-In `0.3.4`, `yield(...)` is now a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
+In `0.3.5`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3.4` should now be organized as:
+Small services in `0.3.5` should now be organized as:
 
 - a boot entry like `app/server.cosm`
 - an app/service module like `app/app.cosm`
@@ -113,7 +115,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.4`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.5`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
@@ -133,7 +135,14 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, server-side evaluation, and one shared session per running process. That is still an app-layer proof, not a runtime/browser commitment.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, server-side evaluation, and one explicit default session per running process. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
+
+For local AI use, `cosm.ai` now assumes LM Studio by default:
+
+- `COSM_AI_BACKEND=lmstudio` if unset
+- `COSM_AI_BASE_URL=http://127.0.0.1:1234/v1` if unset
+- set `COSM_AI_MODEL` for actual calls
+- inspect current config with `cosm.ai.status()`
 
 ## Dev Commands
 
@@ -157,7 +166,7 @@ The demo app now also exposes a small `/notebook` page plus a live-ish `/noteboo
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.4
+## After 0.3.5
 
 The immediate next track is:
 

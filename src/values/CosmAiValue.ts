@@ -10,15 +10,18 @@ import { CosmErrorValue } from "./CosmErrorValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 
 export class CosmAiValue extends CosmObjectValue {
+  private static statusHandler?: () => CosmValue;
   private static completeHandler?: (prompt: string, env?: CosmEnv) => CosmValue;
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
 
   static installRuntimeHooks(hooks: {
+    status?: () => CosmValue;
     complete?: (prompt: string, env?: CosmEnv) => CosmValue;
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
   }): void {
+    this.statusHandler = hooks.status;
     this.completeHandler = hooks.complete;
     this.castHandler = hooks.cast;
     this.compareHandler = hooks.compare;
@@ -26,6 +29,18 @@ export class CosmAiValue extends CosmObjectValue {
 
   static readonly manifest: RuntimeValueManifest<CosmAiValue> = {
     methods: {
+      status: () => new CosmFunctionValue("status", (args, selfValue) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: status expects an Ai receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: cosm.ai.status expects 0 arguments, got ${args.length}`);
+        }
+        if (!CosmAiValue.statusHandler) {
+          throw new Error("AI runtime error: status handler is not installed");
+        }
+        return CosmAiValue.statusHandler();
+      }),
       complete: () => new CosmFunctionValue("complete", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {
           throw new Error("Type error: complete expects an Ai receiver");

@@ -24,6 +24,7 @@ import { CosmErrorValue } from "../src/values/CosmErrorValue";
 import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 import { CosmPromptValue } from "../src/values/CosmPromptValue";
 import { CosmAiValue } from "../src/values/CosmAiValue";
+import { CosmSessionValue } from "../src/values/CosmSessionValue";
 
 test("type constructors build expected runtime values", () => {
   expect(Val.number(42)).toMatchObject({ type: "number", value: 42 });
@@ -260,8 +261,19 @@ test("core runtime manifests expose a consistent boot surface", () => {
     new CosmAiValue({}, aiClass, errorClass),
     CosmAiValue.manifest,
   );
+  CosmSessionValue.installRuntimeHooks({
+    evalInEnv: () => Val.bool(true),
+    createEnv: () => ({ bindings: {} }),
+    wrapError: (error) => error instanceof CosmErrorValue ? error : new CosmErrorValue(String(error), [], Val.bool(false), errorClass),
+    defaultSession: () => new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
+  });
+  const sessionMethods = manifestMethods(
+    new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
+    CosmSessionValue.manifest,
+  );
+  const sessionClassMethods = manifestClassMethods(CosmSessionValue.manifest);
 
-  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "send"]);
+  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "send", "to_s"]);
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
   expect(Object.keys(functionMethods)).toEqual(["call"]);
   expect(Object.keys(methodMethods)).toEqual(["call"]);
@@ -271,6 +283,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(moduleMethods).sort()).toEqual(["get", "has", "keys", "values"]);
   expect(Object.keys(kernelMethods).sort()).toEqual([
     "assert",
+    "blockGiven",
     "describe",
     "escapeHtml",
     "eval",
@@ -282,6 +295,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "resetSession",
     "resetTests",
     "send",
+    "session",
     "sleep",
     "test",
     "testSummary",
@@ -302,9 +316,11 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(mirrorClassMethods)).toEqual(["reflect"]);
   expect(Object.keys(errorMethods).sort()).toEqual(["inspect"]);
   expect(Object.keys(errorClassMethods)).toEqual(["new"]);
-  expect(Object.keys(schemaMethods).sort()).toEqual(["cast", "describe", "inspect", "validate"]);
+  expect(Object.keys(schemaMethods).sort()).toEqual(["cast", "describe", "inspect", "jsonSchema", "validate"]);
   expect(Object.keys(schemaClassMethods).sort()).toEqual(["array", "boolean", "enum", "number", "object", "optional", "string"]);
   expect(Object.keys(promptMethods)).toEqual([]);
   expect(Object.keys(promptClassMethods)).toEqual(["text"]);
-  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete"]);
+  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete", "status"]);
+  expect(Object.keys(sessionMethods).sort()).toEqual(["eval", "history", "inspect", "reset", "to_s", "tryEval"]);
+  expect(Object.keys(sessionClassMethods)).toEqual(["default"]);
 });

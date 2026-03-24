@@ -23,9 +23,11 @@ import { CosmErrorValue } from "../values/CosmErrorValue";
 import { CosmSchemaValue } from "../values/CosmSchemaValue";
 import { CosmPromptValue } from "../values/CosmPromptValue";
 import { CosmAiValue } from "../values/CosmAiValue";
+import { CosmSessionValue } from "../values/CosmSessionValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
 import { basename } from "node:path";
+import { AiRuntime } from "./AiRuntime";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -41,6 +43,9 @@ type BootstrapRuntime = {
   internSymbol: (name: string) => CosmValue;
   loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
   evalSource: (source: string) => CosmValue;
+  evalInEnv: (source: string, env: CosmEnv) => CosmValue;
+  createSessionEnv: () => CosmEnv;
+  defaultSession: () => CosmValue;
   resetEvalSource?: () => void;
 };
 
@@ -64,6 +69,7 @@ export class Bootstrap {
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
       eval: (source) => runtime.evalSource(source),
       resetEval: () => runtime.resetEvalSource?.(),
+      defaultSession: () => runtime.defaultSession(),
       wrapError: (error) => CosmErrorValue.fromUnknown(error, this.currentRepository?.classes.Error),
     });
     CosmProcessValue.installRuntimeHooks({});
@@ -98,7 +104,18 @@ export class Bootstrap {
       classOf: (receiver) => runtime.classOf(receiver),
       equal: (left, right) => RuntimeEquality.compare(left, right),
     });
-    CosmAiValue.installRuntimeHooks({});
+    CosmAiValue.installRuntimeHooks({
+      status: () => AiRuntime.status(this.currentRepository?.classes.Namespace),
+      complete: (prompt) => AiRuntime.complete(prompt),
+      cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
+      compare: (left, right) => AiRuntime.compare(left, right),
+    });
+    CosmSessionValue.installRuntimeHooks({
+      evalInEnv: (source, env) => runtime.evalInEnv(source, env),
+      createEnv: () => runtime.createSessionEnv(),
+      wrapError: (error) => CosmErrorValue.fromUnknown(error, this.currentRepository?.classes.Error),
+      defaultSession: () => runtime.defaultSession() as CosmSessionValue,
+    });
   }
 
   private static currentRepository?: RuntimeRepository;
@@ -114,7 +131,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -183,6 +200,10 @@ export class Bootstrap {
       new CosmAiValue({}, classes.Ai, classes.Error),
       CosmAiValue.manifest,
     ));
+    Object.assign(classes.Session.methods, manifestMethods(
+      new CosmSessionValue("example", classes.Session, classes.Error),
+      CosmSessionValue.manifest,
+    ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
         {},
@@ -242,6 +263,10 @@ export class Bootstrap {
       classes.Prompt.classRef?.methods ?? {},
       CosmPromptValue.bootClassMethods(),
     );
+    Object.assign(
+      classes.Session.classRef?.methods ?? {},
+      CosmSessionValue.bootClassMethods(),
+    );
   }
 
   private static createCoreGlobals(classes: Record<string, CosmClass>): Record<string, CosmValue> {
@@ -266,6 +291,7 @@ export class Bootstrap {
       Schema: classes.Schema,
       Prompt: classes.Prompt,
       Ai: classes.Ai,
+      Session: classes.Session,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
@@ -286,6 +312,7 @@ export class Bootstrap {
     const timeObject = new CosmTimeValue({}, classes.Time);
     const randomObject = new CosmRandomValue({}, classes.Random);
     const aiObject = new CosmAiValue({}, classes.Ai, classes.Error);
+    const sessionClass = classes.Session;
     const httpObject = new CosmHttpValue(
       {},
       classes.Http,
@@ -300,6 +327,7 @@ export class Bootstrap {
     globals.Time = timeObject;
     globals.Random = randomObject;
     globals.ai = aiObject;
+    globals.Session = sessionClass;
     globals.http = httpObject;
     globals.assert = kernelMethods.assert;
     globals.print = kernelMethods.print;

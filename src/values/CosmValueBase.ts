@@ -82,6 +82,19 @@ export abstract class CosmValueBase {
         }
         return new CosmStringValue(RuntimeInspect.format(selfValue));
       }),
+      to_s: () => new CosmFunctionValue('to_s', (args, selfValue) => {
+        if (!selfValue) {
+          throw new Error('Type error: to_s expects a receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_s expects 0 arguments, got ${args.length}`);
+        }
+        try {
+          return new CosmStringValue(selfValue.toCosmString('concatenate'));
+        } catch {
+          return new CosmStringValue(RuntimeInspect.format(selfValue));
+        }
+      }),
     },
   };
 

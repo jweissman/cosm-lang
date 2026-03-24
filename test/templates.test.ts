@@ -22,6 +22,19 @@ test("yield is a narrow language feature for the current trailing block", () => 
       label
     end
   `)).toBe("nested");
+  expect(cosmEval(`
+    def hasBlock()
+      Kernel.blockGiven()
+    end
+    def withBlockProbe()
+      hasBlock() do
+        true
+      end
+    end
+    let without = hasBlock()
+    let withBlock = withBlockProbe()
+    [without, withBlock]
+  `)).toEqual([false, true]);
   expect(() => cosmEval("yield()")).toThrow("Block error: yield called without a current block");
 });
 
@@ -39,6 +52,23 @@ test(".ecosm layout templates can render child content through yield", () => {
   expect(rendered).toContain("<!doctype html>");
   expect(rendered).toContain("<title>Demo</title>");
   expect(rendered).toContain("42");
+});
+
+test(".ecosm layout yield no longer hijacks ordinary context keys", () => {
+  expect(cosmEval(`
+    require("app/views/layout/page.ecosm")
+    page.render({ title: "Demo", extraHead: "", extraScript: "", bodyLabel: "context-body" }, "<div>body</div>")
+  `)).toContain("body");
+
+  expect(cosmEval(`
+    require("tmp/template_context.ecosm")
+    class TemplateContext
+      def init(bodyLabel, __yield__)
+        true
+      end
+    end
+    template_context.render(TemplateContext.new("context-body", "context-hidden"))
+  `)).toContain("body=context-body hidden=context-hidden");
 });
 
 test("nested app/views loads keep basename and index bindings predictable", () => {

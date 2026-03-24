@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import { CosmModuleValue } from './values/CosmModuleValue';
 import { CosmErrorValue } from './values/CosmErrorValue';
 import { CosmRaisedError } from './runtime/CosmRaisedError';
+import { CosmSessionValue } from './values/CosmSessionValue';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -28,7 +29,7 @@ namespace Cosm {
   export class Interpreter {
     private static readonly repository = this.createRepository();
     private static readonly symbolTable = new Map<string, CosmValue>();
-    private static sharedKernelEvalEnv?: Env;
+    private static defaultSessionValue?: CosmSessionValue;
 
     static evalNode(ast: CoreNode, env: Env): CosmValue {
       switch (ast.kind) {
@@ -138,6 +139,9 @@ namespace Cosm {
         internSymbol: (name) => this.internSymbol(name),
         loadModule: (name, env) => this.loadModule(name, env),
         evalSource: (source) => this.evalSharedKernelSource(source),
+        evalInEnv: (source, env) => this.evalInEnv(source, env),
+        createSessionEnv: () => this.createEnv(undefined, { allowTopLevelRebinds: true }),
+        defaultSession: () => this.defaultSession(),
         resetEvalSource: () => this.resetSharedKernelEnv(),
       });
       Bootstrap.setCurrentRepository(repository);
@@ -153,14 +157,18 @@ namespace Cosm {
     }
 
     private static evalSharedKernelSource(source: string): CosmValue {
-      if (!this.sharedKernelEvalEnv) {
-        this.sharedKernelEvalEnv = this.createEnv(undefined, { allowTopLevelRebinds: true });
-      }
-      return this.withFrame('eval <shared>', () => this.evalInEnv(source, this.sharedKernelEvalEnv!));
+      return this.withFrame('eval <shared>', () => this.defaultSession().evalSource(source));
     }
 
     private static resetSharedKernelEnv(): void {
-      this.sharedKernelEvalEnv = this.createEnv(undefined, { allowTopLevelRebinds: true });
+      this.defaultSession().reset();
+    }
+
+    private static defaultSession(): CosmSessionValue {
+      if (!this.defaultSessionValue) {
+        this.defaultSessionValue = new CosmSessionValue('default', this.repository.classes.Session, this.repository.classes.Error);
+      }
+      return this.defaultSessionValue;
     }
 
     private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
@@ -193,11 +201,11 @@ namespace Cosm {
         const templateModule = Construct.module(name, {
           source: Construct.string(source),
           render: Construct.nativeFunc("render", (args) => {
-            if (args.length > 1) {
-              throw new Error(`Arity error: render expects 0 or 1 arguments, got ${args.length}`);
+            if (args.length > 2) {
+              throw new Error(`Arity error: render expects 0, 1, or 2 arguments, got ${args.length}`);
             }
-            const [context] = args;
-            return this.renderTemplateSource(source, context);
+            const [context, body] = args;
+            return this.renderTemplateSource(source, context, body);
           }),
         }, this.repository.classes.Module);
         this.repository.modules[name] = templateModule;
@@ -215,8 +223,8 @@ namespace Cosm {
       return loadedModule;
     }
 
-    private static renderTemplateSource(source: string, context?: CosmValue): CosmValue {
-      const env = this.createTemplateEnv(context);
+    private static renderTemplateSource(source: string, context?: CosmValue, body?: CosmValue): CosmValue {
+      const env = this.createTemplateEnv(context, body);
       let output = '';
       let cursor = 0;
 
@@ -239,45 +247,27 @@ namespace Cosm {
       return Construct.string(output);
     }
 
-    private static createTemplateEnv(context?: CosmValue): Env {
+    private static createTemplateEnv(context?: CosmValue, body?: CosmValue): Env {
       const env = this.createEnv();
+      if (body !== undefined) {
+        env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
+          if (args.length !== 0) {
+            throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
+          }
+          return body;
+        });
+      }
       if (!context) {
         return env;
       }
       env.bindings.context = context;
       switch (context.type) {
         case 'hash': {
-          const templateBindings = { ...context.entries };
-          const hasYield = Object.hasOwn(templateBindings, '__yield__') || Object.hasOwn(templateBindings, 'yield');
-          const yieldValue = templateBindings.__yield__ ?? templateBindings.yield;
-          delete templateBindings.__yield__;
-          delete templateBindings.yield;
-          Object.assign(env.bindings, templateBindings);
-          if (hasYield) {
-            env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
-              if (args.length !== 0) {
-                throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
-              }
-              return yieldValue;
-            });
-          }
+          Object.assign(env.bindings, context.entries);
           break;
         }
         case 'object': {
-          const templateBindings = { ...context.fields };
-          const hasYield = Object.hasOwn(templateBindings, '__yield__') || Object.hasOwn(templateBindings, 'yield');
-          const yieldValue = templateBindings.__yield__ ?? templateBindings.yield;
-          delete templateBindings.__yield__;
-          delete templateBindings.yield;
-          Object.assign(env.bindings, templateBindings);
-          if (hasYield) {
-            env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
-              if (args.length !== 0) {
-                throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
-              }
-              return yieldValue;
-            });
-          }
+          Object.assign(env.bindings, context.fields);
           break;
         }
       }
@@ -601,6 +591,7 @@ namespace Cosm {
         Error: this.repository.globals.Error,
         Schema: this.repository.globals.Schema,
         Prompt: this.repository.globals.Prompt,
+        Session: this.repository.globals.Session,
         HttpRouter: this.repository.globals.HttpRouter,
         ai: this.repository.globals.ai,
         http: this.repository.globals.http,
@@ -772,6 +763,9 @@ namespace Cosm {
       if (classValue.name === 'HttpRouter') {
         return new CosmHttpRouterValue({}, classValue, this.repository.classes.HttpResponse, this.repository.classes.Namespace);
       }
+      if (classValue.name === 'Session') {
+        return new CosmSessionValue(undefined, classValue, this.repository.classes.Error);
+      }
       const fields = Object.fromEntries(
         classValue.slots.map((slot, index) => [slot, args[index]]),
       );
@@ -924,6 +918,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.4";
+    export const version = "0.3.5";
 }
 export default Cosm;

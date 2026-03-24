@@ -195,7 +195,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.4");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.5");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
@@ -231,7 +231,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.4");
+  expect(cosmEval("cosm.version")).toBe("0.3.5");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
   expect(cosmEval("Error.class.name")).toBe("Error class");
   expect(cosmEval("Schema.class.name")).toBe("Schema class");
@@ -283,7 +283,7 @@ test("Process.exit can be hooked and validates codes", () => {
   expect(() => cosmEval("Process.exit(1.5)")).toThrow("Type error: exit expects an integer code");
 });
 
-test("Kernel.eval and Kernel.tryEval share a tiny process-wide session", () => {
+test("Kernel.eval and Kernel.tryEval delegate to the default explicit session", () => {
   const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
   expect(cosmEval(`Kernel.eval("let ${sharedName} = 41"); Kernel.eval("${sharedName} + 1")`)).toBe(42);
   expect(cosmEval(`Kernel.eval("let ${sharedName} = 1"); Kernel.eval("${sharedName} + 2")`)).toBe(3);
@@ -291,6 +291,8 @@ test("Kernel.eval and Kernel.tryEval share a tiny process-wide session", () => {
   expect(cosmEval('Kernel.tryEval("1 + 2").inspect')).toBe("3");
   expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").ok')).toBe(true);
   expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").inspect')).toBe("2");
+  expect(cosmEval("Session.default().name")).toBe("default");
+  expect(cosmEval("Session.default().history().length >= 4")).toBe(true);
   expect(cosmEval('Kernel.tryEval("let = 1").ok')).toBe(false);
   expect(cosmEval('Kernel.tryEval("let = 1").error.message.length > 0')).toBe(true);
   expect(cosmEval("Kernel.resetSession()")).toBe(true);
@@ -634,7 +636,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const homeHeaders = home.nativeProperty?.("headers");
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.4");
+  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.5");
 
   const notebook = dispatchService(`
     require("app/app.cosm")

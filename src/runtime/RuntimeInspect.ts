@@ -61,6 +61,10 @@ export class RuntimeInspect {
         if (value.className === "Ai") {
           return "#<Ai>";
         }
+        if (value.className === "Session" && "sessionName" in value) {
+          const length = value.nativeProperty("length");
+          return `#<Session ${JSON.stringify(String(value.sessionName))} history: ${length ? this.format(length) : "0"}>`;
+        }
         const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(", ");
         if (value.className === "Object") {
           return `{ ${entries} }`;

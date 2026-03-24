@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.4
+## Current Release Target: 0.3.5
 
-`0.3.4` is an object-protocol, structured-error, and `.ecosm` template follow-up on the current small web-service + notebook slice:
+`0.3.5` is a runtime-health, explicit-session, and usable-AI follow-up on the current small web-service + notebook slice:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned MPI
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -13,8 +13,11 @@
 - improve testability and inspection while proving one tiny live-ish notebook page
 - make the canonical app shape module-organized with dedicated view modules
 - align `.ecosm` layout composition with narrow `yield()`
+- make `inspect()` and `to_s()` real object protocols rather than mostly host formatting
+- make `Session` the explicit notebook/server eval surface
+- keep `Prompt`, `Schema`, `cosm.ai`, and `~=` explicit while making LM Studio the default local backend path
 
-For `0.3.4`, the callable boundary still stays intentionally narrow:
+For `0.3.5`, the callable boundary still stays intentionally narrow:
 
 - `router.draw do ... end` is in
 - `get "/" do |req| ... end` is in
@@ -34,16 +37,20 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - Reflective class access through `classes`.
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - A first reflective `Module` runtime object, with `cosm.test` and `cosm.modules.test` now modeled as real module objects rather than loose namespaces.
-- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`. In `0.3.4`, `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
+- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`. In `0.3.5`, `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
 - `.ecosm` templates now also support a narrow single-slot layout composition path through `yield()`, aligned with the same narrow block-invocation concept now available in ordinary Cosm code.
 - A minimal `cosm --watch <file>` / `cosm watch <file>` CLI loop for restarting long-running entry files like `app/server.cosm` when the target file changes, plus clearer CLI usage/help and loud failures on unknown switches.
 - Reflective method tables now also surface as `Namespace`-style objects rather than anonymous bags, which makes class reflection more consistent with the rest of the runtime.
 - The core reflective/runtime classes now expose their native surface through one explicit manifest-style protocol, so bootstrap class tables and runtime lookup are drawing from the same declarations instead of parallel hand wiring.
-- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `expectEqual`, and a tiny `test(name, fn)` path in its TS value model. Host concerns are getting split into clearer homes: `Process` owns `cwd()` / `env(name)`, `Time` owns `now()`, `isoNow()`, and `iso(ms)`, and `Random` owns `float()` / `int(max)`. `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
+- `Kernel` now owns real native `assert`, `print`, `puts`, `warn`, `inspect`, `send`, `expectEqual`, `blockGiven()`, and a tiny `test(name, fn)` path in its TS value model. Host concerns are getting split into clearer homes: `Process` owns `cwd()` / `env(name)`, `Time` owns `now()`, `isoNow()`, and `iso(ms)`, and `Random` owns `float()` / `int(max)`. `Namespace` exposes `length`, `keys()`, `values()`, `has(...)`, and `get(...)` directly.
 - `Process` now also exposes `pid()` and `exit(code?)`, which makes service boot/lifecycle work feel more real while keeping process concerns off `Kernel`.
 - `Process` now also exposes `platform()` and `arch()`.
 - `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` now returns a real `Module` object while still injecting `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
-- `Kernel.sleep(ms)`, `Kernel.eval(source)`, `Kernel.tryEval(source)`, `Kernel.try(block)`, `Kernel.raise(...)`, and `Kernel.resetSession()` now provide a tiny synchronous comfort layer for service/notebook work. `Kernel.eval(...)` uses one shared process-local session, and `Kernel.tryEval(...)` now returns a structured namespace whose `.error` is a first-class `Error` object.
+- `Kernel.sleep(ms)`, `Kernel.eval(source)`, `Kernel.tryEval(source)`, `Kernel.try(block)`, `Kernel.raise(...)`, and `Kernel.resetSession()` now provide a tiny synchronous comfort layer for service/notebook work. In `0.3.5`, those eval helpers delegate to `Session.default()` instead of a hidden shared env, and `Kernel.tryEval(...)` returns a structured namespace whose `.error` is a first-class `Error` object.
+- `Session.new()`, `Session.default()`, `session.eval(...)`, `session.tryEval(...)`, `session.reset()`, and `session.history()` now make notebook/server eval explicit in the runtime model.
+- `inspect()` and `to_s()` now behave like true object text protocols: `Kernel.inspect(value)` dispatches through ordinary runtime sends, user-defined `def inspect()` is respected, and `print` / `puts` / `warn` use `to_s()` for non-string receivers.
+- `Schema.jsonSchema()` now exports a backend-facing structural contract for AI-guided casting.
+- `cosm.ai.status()` now exposes the effective local backend config, and LM Studio is the default local backend path through its OpenAI-compatible API.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`. `handler` may be a function, a bound method, or a service object that implements `handle(req)`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.
 - `HttpRouter` now provides exact-path routing through `handle(method, path, handler)`, `get`, `post`, `put`, and `delete`, can build routes through `draw(...)`, can apply router-level middleware through `use(...)`, and also acts as a service object through `handle(req)`.
@@ -54,7 +61,7 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - Triple-double-quoted strings now provide a small multiline interpolated template path for server-side HTML output.
 - Stabby lambdas may now contain statement-list bodies, which makes route handlers like logging-then-responding work without introducing a second lambda syntax.
 - `Kernel.escapeHtml(string)` now exists as a tiny view-safety helper for server-rendered HTML.
-- The demo app now includes split `app`/`views` modules, router-level logging middleware, and one tiny Tailwind-via-CDN notebook page with live-ish partial updates and one shared session per process.
+- The demo app now includes split `app`/`views` modules, router-level logging middleware, and one tiny Tailwind-via-CDN notebook page with live-ish partial updates and one explicit default session per process.
 - The demo app’s pages now render through a dedicated layout template plus page/fragment templates, rather than manual shell-string assembly in the view helper module.
 - `Mirror.reflect(value)` now provides the first readonly reflective wrapper for inspection-oriented use cases.
 - `class << self ... end` now exists as an explicit class-side authoring form alongside existing `def self.name(...)`.
@@ -76,16 +83,18 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.4 Definition Of Done
+## v0.3.5 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
 - `Kernel`, `Namespace`, `Mirror`, and `cosm` feel usable for ordinary experiments.
+- `Session` is an explicit runtime object instead of hidden notebook eval state.
+- `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `test/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
-- Full notebook/framework work is still intentionally post-`0.3.4`.
+- Full notebook/framework work is still intentionally post-`0.3.5`.
 
-## Explicitly Not In v0.3.4
+## Explicitly Not In v0.3.5
 
 - ampersand block capture or forwarding
 - notebook UI beyond the tiny shared-session demo page
@@ -104,7 +113,7 @@ For `0.3.4`, the callable boundary still stays intentionally narrow:
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
 - Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.
-- Keep growing the tiny Bun-native HTTP surface without turning it into a framework/router abstraction inside `0.3.4`.
+- Keep growing the tiny Bun-native HTTP surface without turning it into a framework/router abstraction inside `0.3.5`.
 
 ## Current Reference Target
 

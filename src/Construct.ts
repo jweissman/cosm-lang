@@ -30,6 +30,7 @@ import { CosmErrorValue } from "./values/CosmErrorValue";
 import { CosmSchemaValue } from "./values/CosmSchemaValue";
 import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
+import { CosmSessionValue } from "./values/CosmSessionValue";
 
 export class Construct {
   static number(value: number): CosmNumber { return new CosmNumberValue(value); }
@@ -61,6 +62,9 @@ export class Construct {
   }
   static ai(fields: Record<string, CosmValue>, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
     return new CosmAiValue(fields, classRef, errorClassRef);
+  }
+  static session(name: string, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
+    return new CosmSessionValue(name, classRef, errorClassRef);
   }
   static class(
     name: string,

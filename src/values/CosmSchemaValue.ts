@@ -58,6 +58,15 @@ export class CosmSchemaValue extends CosmObjectValue {
         }
         return new CosmStringValue(selfValue.describeSchema());
       }),
+      jsonSchema: () => new CosmFunctionValue("jsonSchema", (args, selfValue) => {
+        if (!(selfValue instanceof CosmSchemaValue)) {
+          throw new Error("Type error: jsonSchema expects a Schema receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: Schema.jsonSchema expects 0 arguments, got ${args.length}`);
+        }
+        return ValueAdapter.jsToCosm(selfValue.toJsonSchema()) as CosmValue;
+      }),
     },
     classMethods: {
       string: () => new CosmFunctionValue("string", (args, selfValue) => {
@@ -328,6 +337,44 @@ export class CosmSchemaValue extends CosmObjectValue {
         return `Schema.enum(${this.expectOptions().items.map((item) => ValueAdapter.format(item)).join(", ")})`;
       case "object":
         return `Schema.object({ ${Object.entries(this.expectFieldSchemas().fields).map(([key, schema]) => `${key}: ${(schema as CosmSchemaValue).describeSchema()}`).join(", ")} })`;
+    }
+  }
+
+  private toJsonSchema(): string | number | boolean | null | { [key: string]: unknown } | unknown[] {
+    switch (this.schemaKind) {
+      case "string":
+        return { type: "string" };
+      case "number":
+        return { type: "number" };
+      case "boolean":
+        return { type: "boolean" };
+      case "optional":
+        return {
+          anyOf: [
+            this.expectInnerSchema("optional").toJsonSchema(),
+            { type: "null" },
+          ],
+        };
+      case "array":
+        return {
+          type: "array",
+          items: this.expectItemSchema().toJsonSchema(),
+        };
+      case "enum":
+        return {
+          enum: this.expectOptions().items.map((item) => ValueAdapter.cosmToJS(item)),
+        };
+      case "object":
+        return {
+          type: "object",
+          additionalProperties: false,
+          properties: Object.fromEntries(
+            Object.entries(this.expectFieldSchemas().fields).map(([key, schema]) => [key, (schema as CosmSchemaValue).toJsonSchema()]),
+          ),
+          required: Object.entries(this.expectFieldSchemas().fields)
+            .filter(([, schema]) => !(schema instanceof CosmSchemaValue && schema.schemaKind === "optional"))
+            .map(([key]) => key),
+        };
     }
   }
 

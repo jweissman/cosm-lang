@@ -1,0 +1,92 @@
+import { expect, test } from "bun:test";
+import Cosm from "../src/cosm";
+import { ValueAdapter } from "../src/ValueAdapter";
+import { Construct } from "../src/Construct";
+import { CosmAiValue } from "../src/values/CosmAiValue";
+import { AiRuntime } from "../src/runtime/AiRuntime";
+import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
+
+const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
+
+test("cosm.ai.status reports LM Studio defaults clearly", () => {
+  const previousBackend = process.env.COSM_AI_BACKEND;
+  const previousBaseUrl = process.env.COSM_AI_BASE_URL;
+  const previousModel = process.env.COSM_AI_MODEL;
+
+  delete process.env.COSM_AI_BACKEND;
+  delete process.env.COSM_AI_BASE_URL;
+  delete process.env.COSM_AI_MODEL;
+
+  try {
+    const status = cosmEval("cosm.ai.status()") as {
+      backend: string;
+      baseUrl: string;
+      model: boolean;
+      configured: boolean;
+    };
+    expect(status.backend).toBe("lmstudio");
+    expect(status.baseUrl).toBe("http://127.0.0.1:1234/v1");
+    expect(status.model).toBe(false);
+    expect(status.configured).toBe(false);
+  } finally {
+    if (previousBackend === undefined) {
+      delete process.env.COSM_AI_BACKEND;
+    } else {
+      process.env.COSM_AI_BACKEND = previousBackend;
+    }
+    if (previousBaseUrl === undefined) {
+      delete process.env.COSM_AI_BASE_URL;
+    } else {
+      process.env.COSM_AI_BASE_URL = previousBaseUrl;
+    }
+    if (previousModel === undefined) {
+      delete process.env.COSM_AI_MODEL;
+    } else {
+      process.env.COSM_AI_MODEL = previousModel;
+    }
+  }
+});
+
+test("Schema.jsonSchema exports stable reflective shapes", () => {
+  expect(cosmEval('Schema.string().jsonSchema()')).toMatchObject({ type: "string" });
+  expect(cosmEval('Schema.optional(Schema.number()).jsonSchema()')).toMatchObject({
+    anyOf: [{ type: "number" }, { type: "null" }],
+  });
+  expect(cosmEval('Schema.enum("a", "b").jsonSchema()')).toMatchObject({ enum: ["a", "b"] });
+  expect(cosmEval('Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()')).toMatchObject({
+    type: "object",
+    additionalProperties: false,
+    required: ["answer"],
+    properties: {
+      answer: { type: "string" },
+      count: { anyOf: [{ type: "number" }, { type: "null" }] },
+    },
+  });
+});
+
+test("cosm.ai complete, cast, and compare can be driven through a mocked adapter", () => {
+  CosmAiValue.installRuntimeHooks({
+    status: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+    }),
+    complete: (prompt) => Construct.string(`complete:${prompt}`),
+    cast: (prompt, schema) => schema.nativeMethod("cast")!.nativeCall!([Construct.string(`cast:${prompt}`)], schema),
+    compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+  });
+
+  try {
+    expect(cosmEval('cosm.ai.complete("hello")')).toBe("complete:hello");
+    expect(cosmEval('cosm.ai.cast("hello", Schema.string())')).toBe("cast:hello");
+    expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
+  } finally {
+    CosmAiValue.installRuntimeHooks({
+      status: () => AiRuntime.status(),
+      complete: (prompt) => AiRuntime.complete(prompt),
+      cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
+      compare: (left, right) => AiRuntime.compare(left, right),
+    });
+  }
+});

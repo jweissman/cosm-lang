@@ -13,53 +13,29 @@ export class RuntimeDispatch {
       return nativeProperty;
     }
 
+    const classMethod = this.lookupMethod(this.classOf(receiver, repository.classes), property);
+    if (classMethod) {
+      return this.bindMethod(receiver, classMethod);
+    }
+
     const nativeMethod = receiver.nativeMethod(property);
     if (nativeMethod) {
       return this.bindMethod(receiver, nativeMethod);
     }
 
     switch (receiver.type) {
-      case 'array': {
-        const method = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
+      case 'array':
         throw new Error(`Property error: Array instance has no property '${property}'`);
-      }
-      case 'hash': {
-        const method = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
+      case 'hash':
         throw new Error(`Property error: Hash instance has no property '${property}'`);
-      }
-      case 'object': {
-        const method = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
+      case 'object':
         throw new Error(`Property error: object of class ${receiver.className} has no property '${property}'`);
-      }
-      case 'class': {
-        const method = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
+      case 'class':
         throw new Error(`Property error: class ${receiver.name} has no property '${property}'`);
-      }
-      case 'function': {
-        const method = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
+      case 'function':
         throw new Error(`Property error: function ${receiver.name} has no property '${property}'`);
-      }
       default: {
         const classValue = this.classOf(receiver, repository.classes);
-        const method = this.lookupMethod(classValue, property);
-        if (method) {
-          return this.bindMethod(receiver, method);
-        }
         throw new Error(`Property error: ${classValue.name} instance has no property '${property}'`);
       }
     }
