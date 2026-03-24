@@ -1,4 +1,4 @@
-import { CosmEnv, CosmValue } from "../types";
+import { CosmValue } from "../types";
 import { RuntimeValueManifest, manifestClassMethods, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -11,6 +11,7 @@ import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmErrorValue } from "./CosmErrorValue";
 import { ValueAdapter } from "../ValueAdapter";
 import { Construct } from "../Construct";
+import { SessionRuntimeHandle, SessionRuntimeResult, raiseSessionResult } from "../runtime/SessionRuntime";
 
 type SessionHistoryEntry = {
   source: string;
@@ -20,21 +21,15 @@ type SessionHistoryEntry = {
 };
 
 export class CosmSessionValue extends CosmObjectValue {
-  private static evalInEnvHandler?: (source: string, env: CosmEnv) => CosmValue;
-  private static createEnvHandler?: () => CosmEnv;
-  private static wrapErrorHandler?: (error: unknown) => CosmErrorValue;
+  private static createHandleHandler?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
   private static defaultSessionHandler?: () => CosmSessionValue;
   private static nextId = 1;
 
   static installRuntimeHooks(hooks: {
-    evalInEnv: (source: string, env: CosmEnv) => CosmValue;
-    createEnv: () => CosmEnv;
-    wrapError: (error: unknown) => CosmErrorValue;
+    createHandle: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
     defaultSession: () => CosmSessionValue;
   }): void {
-    this.evalInEnvHandler = hooks.evalInEnv;
-    this.createEnvHandler = hooks.createEnv;
-    this.wrapErrorHandler = hooks.wrapError;
+    this.createHandleHandler = hooks.createHandle;
     this.defaultSessionHandler = hooks.defaultSession;
   }
 
@@ -118,7 +113,7 @@ export class CosmSessionValue extends CosmObjectValue {
     return manifestClassMethods(CosmSessionValue.manifest);
   }
 
-  private sessionEnv: CosmEnv;
+  private runtimeHandle: SessionRuntimeHandle;
   private historyEntries: SessionHistoryEntry[] = [];
   private lastResultValue?: CosmValue;
   private lastErrorValue?: CosmErrorValue;
@@ -129,10 +124,10 @@ export class CosmSessionValue extends CosmObjectValue {
     private readonly errorClassRef?: CosmClassValue,
   ) {
     super("Session", {}, classRef);
-    if (!CosmSessionValue.createEnvHandler) {
-      throw new Error("Session runtime error: createEnv handler is not installed");
+    if (!CosmSessionValue.createHandleHandler) {
+      throw new Error("Session runtime error: createHandle handler is not installed");
     }
-    this.sessionEnv = CosmSessionValue.createEnvHandler();
+    this.runtimeHandle = CosmSessionValue.createHandleHandler(this.sessionName, this.errorClassRef);
   }
 
   private expectSource(args: CosmValue[], context: string): string {
@@ -147,47 +142,19 @@ export class CosmSessionValue extends CosmObjectValue {
   }
 
   evalSource(source: string): CosmValue {
-    if (!CosmSessionValue.evalInEnvHandler) {
-      throw new Error("Session runtime error: eval handler is not installed");
-    }
-    try {
-      const value = CosmSessionValue.evalInEnvHandler(source, this.sessionEnv);
-      this.lastResultValue = value;
-      this.lastErrorValue = undefined;
-      this.record(source, true, ValueAdapter.format(value));
-      return value;
-    } catch (error) {
-      const wrapped = this.wrapError(error);
-      this.lastErrorValue = wrapped;
-      this.record(source, false, wrapped.toDisplayString(), wrapped);
-      throw error;
-    }
+    const result = this.runtimeHandle.eval(source);
+    this.applyResult(source, result);
+    return raiseSessionResult(result);
   }
 
   tryEvalSource(source: string): CosmValue {
-    if (!CosmSessionValue.evalInEnvHandler) {
-      throw new Error("Session runtime error: eval handler is not installed");
-    }
-    try {
-      const value = CosmSessionValue.evalInEnvHandler(source, this.sessionEnv);
-      this.lastResultValue = value;
-      this.lastErrorValue = undefined;
-      const inspect = ValueAdapter.format(value);
-      this.record(source, true, inspect);
-      return this.resultNamespace(value);
-    } catch (error) {
-      const wrapped = this.wrapError(error);
-      this.lastErrorValue = wrapped;
-      this.record(source, false, wrapped.toDisplayString(), wrapped);
-      return this.resultNamespace(false, wrapped);
-    }
+    const result = this.runtimeHandle.tryEval(source);
+    this.applyResult(source, result);
+    return this.resultNamespace(result.ok ? result.value : Construct.bool(false), result.error);
   }
 
   reset(): void {
-    if (!CosmSessionValue.createEnvHandler) {
-      throw new Error("Session runtime error: createEnv handler is not installed");
-    }
-    this.sessionEnv = CosmSessionValue.createEnvHandler();
+    this.runtimeHandle.reset();
     this.historyEntries = [];
     this.lastResultValue = undefined;
     this.lastErrorValue = undefined;
@@ -217,14 +184,29 @@ export class CosmSessionValue extends CosmObjectValue {
   }
 
   private wrapError(error: unknown): CosmErrorValue {
-    if (!CosmSessionValue.wrapErrorHandler) {
-      throw new Error("Session runtime error: wrapError handler is not installed");
+    if (error instanceof CosmErrorValue) {
+      return error;
     }
-    return CosmSessionValue.wrapErrorHandler(error);
+    return CosmErrorValue.fromUnknown(error, this.errorClassRef);
   }
 
-  private record(source: string, ok: boolean, inspect: string, error?: CosmErrorValue): void {
-    this.historyEntries.push({ source, ok, inspect, error });
+  private applyResult(source: string, result: SessionRuntimeResult): void {
+    this.lastResultValue = result.ok ? result.value : undefined;
+    this.lastErrorValue = result.error || undefined;
+    this.historyEntries = result.history.map((entry) => ({
+      source: entry.source,
+      ok: entry.ok,
+      inspect: entry.inspect,
+      error: entry.error === undefined ? undefined : this.wrapError(entry.error),
+    }));
+    if (this.historyEntries.length === 0 && source.length > 0) {
+      this.historyEntries.push({
+        source,
+        ok: result.ok,
+        inspect: result.inspect,
+        error: result.error || undefined,
+      });
+    }
   }
 
   override nativeProperty(name: string): CosmValue | undefined {

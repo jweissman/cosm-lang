@@ -28,6 +28,7 @@ import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
 import { basename } from "node:path";
 import { AiRuntime } from "./AiRuntime";
+import { SessionRuntime } from "./SessionRuntime";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -111,9 +112,13 @@ export class Bootstrap {
       compare: (left, right) => AiRuntime.compare(left, right),
     });
     CosmSessionValue.installRuntimeHooks({
-      evalInEnv: (source, env) => runtime.evalInEnv(source, env),
-      createEnv: () => runtime.createSessionEnv(),
-      wrapError: (error) => CosmErrorValue.fromUnknown(error, this.currentRepository?.classes.Error),
+      createHandle: (name, errorClassRef) => SessionRuntime.createHandle({
+        name,
+        errorClassRef,
+        evalInEnv: (source, env) => runtime.evalInEnv(source, env),
+        createEnv: () => runtime.createSessionEnv(),
+        inline: name === "example",
+      }),
       defaultSession: () => runtime.defaultSession() as CosmSessionValue,
     });
   }

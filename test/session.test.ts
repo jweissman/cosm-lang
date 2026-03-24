@@ -45,3 +45,29 @@ test("Kernel session helpers delegate to Session.default", () => {
   expect(cosmEval("Kernel.resetSession()")).toBe(true);
   expect(cosmEval('Session.default().tryEval("delegated").ok')).toBe(false);
 });
+
+test("worker-backed sessions timeout cleanly and recover on the next eval", () => {
+  const previousTimeout = process.env.COSM_SESSION_TIMEOUT_MS;
+  process.env.COSM_SESSION_TIMEOUT_MS = "10";
+
+  try {
+    expect(cosmEval(`
+      let session = Session.new()
+      session.tryEval("Kernel.sleep(50); 1").error.message
+    `)).toContain("Session timeout");
+
+    process.env.COSM_SESSION_TIMEOUT_MS = "200";
+
+    expect(cosmEval(`
+      let session = Session.new()
+      session.tryEval("Kernel.sleep(50); 1")
+      session.tryEval("1 + 1").inspect
+    `)).toBe("2");
+  } finally {
+    if (previousTimeout === undefined) {
+      delete process.env.COSM_SESSION_TIMEOUT_MS;
+    } else {
+      process.env.COSM_SESSION_TIMEOUT_MS = previousTimeout;
+    }
+  }
+});

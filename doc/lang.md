@@ -304,9 +304,9 @@ Class.class.name
 - `Kernel.blockGiven()`
   Returns whether the current function or method has an implicit trailing block available to `yield(...)`.
 - `Session.default()`
-  Returns the default process-local session used by `Kernel.eval(...)` and `Kernel.tryEval(...)`.
+  Returns the default worker-backed session used by `Kernel.eval(...)` and `Kernel.tryEval(...)`.
 - `Session.new()`
-  Creates a fresh explicit session with its own bindings and history.
+  Creates a fresh explicit worker-backed session with its own bindings and history.
 - `session.eval(source)`
   Evaluates Cosm source inside that session and returns the resulting value.
 - `session.tryEval(source)`
@@ -315,6 +315,10 @@ Class.class.name
   Clears bindings, history, last result, and last error for that session.
 - `session.history()`
   Returns a small array of prior eval records for that session.
+- `COSM_SESSION_TIMEOUT_MS`
+  Optional host environment variable controlling the per-eval session timeout in milliseconds. Defaults to `1500`.
+- `COSM_AI_MODEL`
+  Optional host environment variable forcing a specific LM Studio model. When unset, `cosm.ai` attempts to discover one through `/v1/models`.
 - `Random.float()`
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
 - `Random.int(max)`
@@ -559,6 +563,8 @@ do let x = 1; x + 2 end
 
 - ampersand block capture or forwarding
 - route params, wildcards, middleware groups, and route macros
+- `Data` syntax or model-declaration syntax
+- Slack/MCP or persistent agent-runtime surfaces
 - HTML tag-builder DSLs
 - browser-side Cosm runtime
 - richer notebook/session management

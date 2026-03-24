@@ -47,10 +47,10 @@ For `0.3.5`, the callable boundary still stays intentionally narrow:
 - `Process` now also exposes `platform()` and `arch()`.
 - `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` now returns a real `Module` object while still injecting `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
 - `Kernel.sleep(ms)`, `Kernel.eval(source)`, `Kernel.tryEval(source)`, `Kernel.try(block)`, `Kernel.raise(...)`, and `Kernel.resetSession()` now provide a tiny synchronous comfort layer for service/notebook work. In `0.3.5`, those eval helpers delegate to `Session.default()` instead of a hidden shared env, and `Kernel.tryEval(...)` returns a structured namespace whose `.error` is a first-class `Error` object.
-- `Session.new()`, `Session.default()`, `session.eval(...)`, `session.tryEval(...)`, `session.reset()`, and `session.history()` now make notebook/server eval explicit in the runtime model.
+- `Session.new()`, `Session.default()`, `session.eval(...)`, `session.tryEval(...)`, `session.reset()`, and `session.history()` now make notebook/server eval explicit in the runtime model. In the main runtime, those sessions are worker-backed so notebook/service eval no longer runs directly in the web process, and `COSM_SESSION_TIMEOUT_MS` controls the per-eval timeout.
 - `inspect()` and `to_s()` now behave like true object text protocols: `Kernel.inspect(value)` dispatches through ordinary runtime sends, user-defined `def inspect()` is respected, and `print` / `puts` / `warn` use `to_s()` for non-string receivers.
 - `Schema.jsonSchema()` now exports a backend-facing structural contract for AI-guided casting.
-- `cosm.ai.status()` now exposes the effective local backend config, and LM Studio is the default local backend path through its OpenAI-compatible API.
+- `cosm.ai.status()` now exposes the effective local backend config, and LM Studio is the default local backend path through its OpenAI-compatible API. `COSM_AI_MODEL` may still force a specific model, but `cosm.ai` now also auto-discovers a model through `/v1/models` when LM Studio exposes one.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`. `handler` may be a function, a bound method, or a service object that implements `handle(req)`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.
 - `HttpRouter` now provides exact-path routing through `handle(method, path, handler)`, `get`, `post`, `put`, and `delete`, can build routes through `draw(...)`, can apply router-level middleware through `use(...)`, and also acts as a service object through `handle(req)`.
@@ -89,7 +89,9 @@ For `0.3.5`, the callable boundary still stays intentionally narrow:
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
 - `Kernel`, `Namespace`, `Mirror`, and `cosm` feel usable for ordinary experiments.
 - `Session` is an explicit runtime object instead of hidden notebook eval state.
+- `Session.default()` runs through a worker-backed isolation boundary with timeout/error wrapping for notebook/service eval.
 - `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable.
+- A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `test/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
 - Full notebook/framework work is still intentionally post-`0.3.5`.
@@ -102,14 +104,19 @@ For `0.3.5`, the callable boundary still stays intentionally narrow:
 - richer notebook/session management
 - route DSL syntax or router macros
 - lexical `module ... end`
+- `Data` syntax or model-declaration syntax
+- Slack/MCP or persistent agent-runtime surfaces
 - HTML tag-builder DSLs
 - JS interop mirrors/holograms
 - VM execution
 
 ## Next Likely Steps
 
+- Build a library-first `Data::Model` layer on top of `Schema` rather than introducing new syntax first.
+- Move more policy/orchestration code into Cosm where debugging remains reasonable, especially helper/library layers like `cosm/ai.cosm`, test helpers, and app/view helpers.
 - Deepen the notebook shell from this new app/view/middleware foundation.
 - Decide browser/runtime exposure after the notebook shell exists.
+- Only after those two tracks, stage a tiny persistent agent runtime around sessions, `cosm.ai`, service modules, and future Slack/MCP adapters.
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
 - Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.

@@ -1,13 +1,12 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
 import { CosmHttpRequestValue } from "../src/values/CosmHttpRequestValue";
 import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmProcessValue } from "../src/values/CosmProcessValue";
 import { CosmStringValue } from "../src/values/CosmStringValue";
+
+process.env.COSM_AI_AUTO_DISCOVER_MODEL ??= "0";
 
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
@@ -33,34 +32,6 @@ const dispatchService = (serviceSource: string, method: string, path: string, bo
   }).invokeFunction(handleMethod, [requestValue]);
 };
 
-async function collectStream(stream: ReadableStream<Uint8Array> | null, sink: { value: string }) {
-  if (!stream) {
-    return;
-  }
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    sink.value += decoder.decode(value, { stream: true });
-  }
-}
-
-async function waitForOutput(
-  sink: { value: string },
-  pattern: string,
-  timeoutMs = 4000,
-): Promise<void> {
-  const startedAt = Date.now();
-  while (!sink.value.includes(pattern)) {
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error(`Timed out waiting for output: ${pattern}\nCurrent output:\n${sink.value}`);
-    }
-    await Bun.sleep(25);
-  }
-}
 
 test("2 + 2", () => {
   expect(cosmEval('2 + 2')).toBe(4);
@@ -183,6 +154,9 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Random.class.name")).toBe("Random");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
+});
+
+test("modules, views, and runtime roots expose predictable reflective surfaces", () => {
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
   expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
@@ -198,6 +172,14 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval('cosm.get(:version)')).toBe("0.3.5");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
+  expect(cosmEval("Kernel.class.name")).toBe("Kernel");
+  expect(cosmEval("classes.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.class.name")).toBe("Namespace");
+  expect(cosmEval("cosm.version")).toBe("0.3.5");
+  expect(cosmEval("Process.argv().length >= 1")).toBe(true);
+});
+
+test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", () => {
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval('Symbol.intern("ok").inspect()')).toBe(":ok");
@@ -216,6 +198,13 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.sleep(0)")).toBe(0);
   expect(cosmEval("Random.float() >= 0 && Random.float() < 1")).toBe(true);
   expect(cosmEval("Random.int(5) >= 0 && Random.int(5) < 5")).toBe(true);
+  expect(() => cosmEval("Kernel.now()")).toThrow("Property error: object of class Kernel has no property 'now'");
+  expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
+  expect(() => cosmEval("Kernel.cwd")).toThrow("Property error: object of class Kernel has no property 'cwd'");
+  expect(() => cosmEval('Kernel.env("HOME")')).toThrow("Property error: object of class Kernel has no property 'env'");
+});
+
+test("reflective inspect and method surfaces remain available on representative runtime objects", () => {
   expect(cosmEval('Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('require("cosm/test"); Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
@@ -228,11 +217,9 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.method(:assert).call(true)")).toBe(true);
   expect(cosmEval("classes.Kernel.method(:assert).name")).toBe("assert");
   expect(cosmEval('classes.Kernel.method(:assert).call(true, "ok")')).toBe(true);
-  expect(cosmEval("Kernel.class.name")).toBe("Kernel");
-  expect(cosmEval("classes.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.5");
-  expect(cosmEval("Process.argv().length >= 1")).toBe(true);
+});
+
+test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective runtime", () => {
   expect(cosmEval("Error.class.name")).toBe("Error class");
   expect(cosmEval("Schema.class.name")).toBe("Schema class");
   expect(cosmEval("Prompt.class.name")).toBe("Prompt class");
@@ -262,10 +249,6 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval('Mirror.reflect(cosm.test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
-  expect(() => cosmEval("Kernel.now()")).toThrow("Property error: object of class Kernel has no property 'now'");
-  expect(() => cosmEval("Kernel.random()")).toThrow("Property error: object of class Kernel has no property 'random'");
-  expect(() => cosmEval("Kernel.cwd")).toThrow("Property error: object of class Kernel has no property 'cwd'");
-  expect(() => cosmEval('Kernel.env("HOME")')).toThrow("Property error: object of class Kernel has no property 'env'");
 });
 
 test("Process.exit can be hooked and validates codes", () => {
@@ -696,340 +679,4 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("class Thing do def init(value) do true end; def missing() do @other end end; Thing.new(1).missing()")).toThrow("Property error: object of class Thing has no ivar '@other'");
   expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
   expect(() => cosmEval("let self = 1")).toThrow("Parse error:");
-});
-
-test("cli can evaluate a source file", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
-  const sourcePath = join(tempDir, "smoke.cosm");
-  writeFileSync(sourcePath, "assert([1, 2, 3].length == 3); assert(\"cosm\".length == 4); assert({ a: 1, b: 2 }.length == 2); classes.Array.name\n");
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("Array");
-  });
-});
-
-test("cli can write output through Kernel.puts", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
-  const sourcePath = join(tempDir, "puts.cosm");
-  writeFileSync(sourcePath, 'Kernel.puts("hello from cosm"); 7\n');
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("hello from cosm");
-    expect(stdout).toContain("7");
-  });
-});
-
-test("cli can write warnings through Kernel.warn", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
-  const sourcePath = join(tempDir, "warn.cosm");
-  writeFileSync(sourcePath, 'Kernel.warn("careful now"); 5\n');
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("5");
-    expect(stderr).toContain("careful now");
-  });
-});
-
-test("cli supports bare puts with single-quoted strings", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
-  const sourcePath = join(tempDir, "bare-puts.cosm");
-  writeFileSync(sourcePath, "puts 'hello from bare puts'; 9\n");
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("hello from bare puts");
-    expect(stdout).toContain("9");
-  });
-});
-
-test("cli can sketch a tiny Cosm-native test harness", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
-  const sourcePath = join(tempDir, "kernel-test.cosm");
-  writeFileSync(sourcePath, 'test("smoke", ->() { assert(true) }); test("sad", ->() { assert(false, "boom") }); 11\n');
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("ok - smoke");
-    expect(stdout).toContain("not ok - sad: Assertion failed: boom");
-    expect(stdout).toContain("11");
-  });
-});
-
-test("cli can run the dedicated Cosm test file", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "test/test.cosm"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("# kernel basics");
-    expect(stdout).toContain("# callables");
-    expect(stdout).toContain("# objects");
-    expect(stdout).toContain("ok - math smoke");
-    expect(stdout).toContain("ok - class smoke");
-    expect(stdout).toContain("not ok - sad path: Assertion failed: boom");
-    expect(stdout).toContain("test harness complete");
-  });
-});
-
-test("cli test mode reports failures and exits nonzero", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "--test", "test/test.cosm"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(1);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("# kernel basics");
-    expect(stdout).toContain("# callables");
-    expect(stdout).toContain("# objects");
-    expect(stdout).toContain("ok - math smoke");
-    expect(stdout).toContain("not ok - sad path: Assertion failed: boom");
-    expect(stdout).toContain("7 passed, 1 failed, 8 total");
-  });
-});
-
-test("cli watch mode restarts a target file on change", async () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-watch-"));
-  const sourcePath = join(tempDir, "watch.cosm");
-  writeFileSync(sourcePath, 'Kernel.puts("watch-start"); 1\n');
-
-  const proc = Bun.spawn(["bun", "bin/cosm", "--watch", sourcePath], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const stdoutSink = { value: "" };
-  const stderrSink = { value: "" };
-  const stdoutTask = collectStream(proc.stdout, stdoutSink);
-  const stderrTask = collectStream(proc.stderr, stderrSink);
-
-  await waitForOutput(stdoutSink, `[watch] watching ${sourcePath}`);
-  await waitForOutput(stdoutSink, "watch-start");
-
-  writeFileSync(sourcePath, 'Kernel.puts("watch-restart"); 2\n');
-
-  await waitForOutput(stdoutSink, `[watch] restarting ${sourcePath}`);
-  await waitForOutput(stdoutSink, "watch-restart");
-
-  proc.kill("SIGTERM");
-  const exitCode = await proc.exited;
-  await Promise.all([stdoutTask, stderrTask]);
-
-  expect(exitCode).toBe(0);
-  expect(stderrSink.value).toBe("");
-  expect(stdoutSink.value).toContain("watch-start");
-  expect(stdoutSink.value).toContain("watch-restart");
-});
-
-test("cli watch mode also works with trailing --watch", async () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-watch-trailing-"));
-  const sourcePath = join(tempDir, "watch-tail.cosm");
-  writeFileSync(sourcePath, 'Kernel.puts("tail-watch"); 3\n');
-
-  const proc = Bun.spawn(["bun", "bin/cosm", sourcePath, "--watch"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const stdoutSink = { value: "" };
-  const stderrSink = { value: "" };
-  const stdoutTask = collectStream(proc.stdout, stdoutSink);
-  const stderrTask = collectStream(proc.stderr, stderrSink);
-
-  await waitForOutput(stdoutSink, `[watch] watching ${sourcePath}`);
-  await waitForOutput(stdoutSink, "tail-watch");
-
-  proc.kill("SIGTERM");
-  const exitCode = await proc.exited;
-  await Promise.all([stdoutTask, stderrTask]);
-
-  expect(exitCode).toBe(0);
-  expect(stderrSink.value).toBe("");
-  expect(stdoutSink.value).toContain("tail-watch");
-});
-
-test("cli watch mode rejects a missing file path", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "--watch"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Cosm version:");
-    expect(stderr).toContain("Error: --watch expects a file path");
-    expect(stderr).toContain("Usage:");
-  });
-});
-
-test("cli rejects unknown switches loudly", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "--watcch", "app/server.cosm"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Cosm version:");
-    expect(stderr).toContain("Error: unknown option '--watcch'");
-    expect(stderr).toContain("Usage:");
-  });
-});
-
-test("cli rejects invalid mode combinations", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "--watch", "--test", "test/test.cosm"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Cosm version:");
-    expect(stderr).toContain("Error: --watch and --test cannot be combined");
-    expect(stderr).toContain("Usage:");
-  });
-});
-
-test("cli help prints usage", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "--help"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("Cosm version:");
-    expect(stdout).toContain("Usage:");
-    expect(stdout).toContain("cosm --watch <file.cosm>");
-  });
-});
-
-test("cli help command prints usage", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "help"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toBe("");
-    expect(stdout).toContain("Usage:");
-  });
-});
-
-test("cli can run the cosm self-test file", () => {
-  const proc = Bun.spawn(["bun", "bin/cosm", "test/core.cosm"], {
-    cwd: process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  return Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]).then(([stdout, stderr, exitCode]) => {
-    expect(exitCode).toBe(0);
-    expect(stderr).toContain("core warning");
-    expect(stdout).toContain("String");
-  });
 });

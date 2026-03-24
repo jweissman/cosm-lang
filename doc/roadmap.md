@@ -82,6 +82,8 @@ What is deliberately not part of `0.3.5` even if it is attractive:
 - ampersand block capture/passing
 - notebook UI beyond the tiny shared-session demo page
 - browser-side Cosm runtime
+- Slack/MCP or persistent agent runtime surfaces
+- `Data` syntax or model-declaration syntax
 - Tailwind/frontend stack decisions as language/runtime commitments
 - route params, wildcards, middleware groups, or route macros
 - lexical `module ... end`
@@ -115,8 +117,8 @@ v0.3.5 should mean:
 - real narrow `yield(...)` as the first explicit in-language block invocation primitive
 - one tiny server-rendered notebook demo page with live-ish partial updates backed by an explicit default session
 - real `inspect()` and `to_s()` protocols across runtime values
-- `Session` as an explicit runtime object for notebook/server eval
-- a usable explicit AI boundary through `Prompt`, `Schema`, `cosm.ai`, `~=`, and LM Studio defaults
+- `Session` as an explicit runtime object for notebook/server eval, with worker-backed isolation and timeout/error wrapping
+- a usable explicit AI boundary through `Prompt`, `Schema`, `cosm.ai`, `~=`, and LM Studio defaults, including model auto-discovery through `/v1/models`
 - `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app, with layout composition aligned around narrow `yield()`
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
@@ -127,6 +129,7 @@ v0.3.5 intentionally does not include:
 - a notebook app beyond the tiny shared-session demo page
 - a framework/router layer
 - Slack/webhook integration
+- Slack/MCP or persistent agent-runtime surfaces
 - automatic prompt literals or ambient AI semantics
 - VM execution
 - holograms or JS-host mirror bridges
@@ -178,10 +181,12 @@ Questions this track should answer:
 - `cosm.ts` is not the main declaration site for runtime surfaces.
 - `Kernel`, `Namespace`, `Mirror`, and the reflective roots cover the everyday "tie your shoes" surface more comfortably.
 - `Session` covers the explicit notebook/server eval surface rather than hidden shared state.
+- `Session.default()` evaluates through a worker-backed isolation boundary with timeout/error wrapping, controlled by `COSM_SESSION_TIMEOUT_MS`.
 - `Process` covers the basic host boot/lifecycle surface needed for tiny services: `cwd`, `env`, `argv`, `pid`, and `exit`.
 - `Process`, `Kernel`, and `Time` cover the additional tiny comfort surface needed for service/notebook work: `platform`, `arch`, `sleep`, and `fromIso`.
 - `inspect()`, `to_s()`, and `Kernel.blockGiven()` behave consistently through runtime dispatch.
 - `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable, while `Schema.jsonSchema()` gives the casting path a stable structural contract.
+- A dedicated live LM Studio integration target is documented and passes against a real local LM Studio instance: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains optional when auto-discovery is insufficient or you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are documented and test-covered.
 - The canonical app demonstrates a split boot/app/views structure, router middleware, `router.draw do ... end`, `get "/" do |req| ... end`, and a tiny `/notebook` route without introducing full block semantics or browser execution.
 - The self-test, tiny test harness, REPL, CLI, and default Bun suite remain green and stable.
@@ -209,9 +214,11 @@ Concrete next construction ideas:
 Recommended next slice:
 
 - Treat `0.3.5` as the point where the runtime starts behaving like a real operational surface instead of just a semantically promising demo slice.
-- Use the immediate next track to deepen the notebook shell from the new module/app/views + middleware structure rather than adding more syntax first.
+- Use the immediate next track to add a library-first `Data::Model` layer on top of `Schema`, plus more Cosm-authored stdlib surfaces where the host boundary is already stable.
+- Then deepen the notebook shell from the new module/app/views + middleware structure.
 - Then decide browser/runtime exposure from that stronger server-side notebook footing.
-- Leave ampersand block capture, variadics, and richer callable/block syntax for after those two steps.
+- Only after those foundations, reach for a tiny persistent agent runtime with Slack/MCP-style adapters as standard/runtime libraries rather than syntax features.
+- Leave ampersand block capture, variadics, and richer callable/block syntax for after those steps.
 
 ## Research Themes
 

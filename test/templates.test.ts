@@ -61,7 +61,7 @@ test(".ecosm layout yield no longer hijacks ordinary context keys", () => {
   `)).toContain("body");
 
   expect(cosmEval(`
-    require("tmp/template_context.ecosm")
+    require("test/fixtures/template_context.ecosm")
     class TemplateContext
       def init(bodyLabel, __yield__)
         true

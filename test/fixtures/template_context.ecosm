@@ -1,0 +1,1 @@
+body=#{context.bodyLabel} hidden=#{context.__yield__}

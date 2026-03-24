@@ -262,9 +262,12 @@ test("core runtime manifests expose a consistent boot surface", () => {
     CosmAiValue.manifest,
   );
   CosmSessionValue.installRuntimeHooks({
-    evalInEnv: () => Val.bool(true),
-    createEnv: () => ({ bindings: {} }),
-    wrapError: (error) => error instanceof CosmErrorValue ? error : new CosmErrorValue(String(error), [], Val.bool(false), errorClass),
+    createHandle: () => ({
+      eval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
+      tryEval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
+      reset: () => undefined,
+      history: () => [],
+    }),
     defaultSession: () => new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
   });
   const sessionMethods = manifestMethods(

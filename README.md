@@ -26,6 +26,8 @@ This is intentionally still below a full notebook product or framework layer. `0
 Explicitly not in `0.3.5`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
+- Slack, MCP, or persistent agent runtime surfaces
+- `Data` syntax or model-declaration syntax
 - notebook persistence or multi-user isolation
 - Tailwind or any frontend styling stack as a language/runtime commitment
 - broader route DSL syntax or router macros
@@ -135,19 +137,22 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, server-side evaluation, and one explicit default session per running process. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, server-side evaluation, and one explicit default session per running process. In `0.3.5`, that session now evaluates through a worker-backed isolation boundary with timeout/error wrapping. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
 
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
 - `COSM_AI_BACKEND=lmstudio` if unset
 - `COSM_AI_BASE_URL=http://127.0.0.1:1234/v1` if unset
-- set `COSM_AI_MODEL` for actual calls
+- `COSM_AI_MODEL` is optional when LM Studio exposes a model through `/v1/models`; set it explicitly to force a particular model
 - inspect current config with `cosm.ai.status()`
+- optional session timeout override: `COSM_SESSION_TIMEOUT_MS=1500` by default
 
 ## Dev Commands
 
 - `bun test`
 - `COSM_HTTP_INTEGRATION=1 bun test test/http.integration.test.ts`
+- `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`
+- `COSM_AI_LIVE=1 COSM_AI_MODEL=<model> bun test test/ai.integration.test.ts`
 - `bun run lint`
 - `just repl`
 - `just server`
@@ -170,7 +175,14 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 
 The immediate next track is:
 
-1. richer notebook shell and session ergonomics
-2. then browser/runtime decisions
-3. then deeper callable/block semantics beyond narrow `yield(...)`
-4. then broader framework/interop work
+1. `Data` / `Schema` ergonomics and more Cosm-authored stdlib surfaces
+2. then richer notebook shell and session ergonomics
+3. then browser/runtime decisions
+4. then persistent agent/runtime work built on sessions, AI, and service modules
+
+The intended sequencing is:
+
+- finish and prove `0.3.5`
+- then build a library-first `Data::Model` layer on top of `Schema`
+- then deepen the notebook and decide browser/runtime exposure
+- only after that reach for Slack/MCP-backed persistent agent work

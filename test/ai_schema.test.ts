@@ -3,7 +3,7 @@ import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { Construct } from "../src/Construct";
 import { CosmAiValue } from "../src/values/CosmAiValue";
-import { AiRuntime } from "../src/runtime/AiRuntime";
+import { AiRuntime, normalizeSemanticPair } from "../src/runtime/AiRuntime";
 import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
@@ -14,7 +14,7 @@ test("cosm.ai.status reports LM Studio defaults clearly", () => {
   const previousModel = process.env.COSM_AI_MODEL;
 
   delete process.env.COSM_AI_BACKEND;
-  delete process.env.COSM_AI_BASE_URL;
+  process.env.COSM_AI_BASE_URL = "http://127.0.0.1:1/v1";
   delete process.env.COSM_AI_MODEL;
 
   try {
@@ -25,7 +25,7 @@ test("cosm.ai.status reports LM Studio defaults clearly", () => {
       configured: boolean;
     };
     expect(status.backend).toBe("lmstudio");
-    expect(status.baseUrl).toBe("http://127.0.0.1:1234/v1");
+    expect(status.baseUrl).toBe("http://127.0.0.1:1/v1");
     expect(status.model).toBe(false);
     expect(status.configured).toBe(false);
   } finally {
@@ -89,4 +89,10 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
       compare: (left, right) => AiRuntime.compare(left, right),
     });
   }
+});
+
+test("semantic comparison input normalization is symmetric", () => {
+  expect(normalizeSemanticPair("dog", "canine")).toEqual(["canine", "dog"]);
+  expect(normalizeSemanticPair("canine", "dog")).toEqual(["canine", "dog"]);
+  expect(normalizeSemanticPair("Cat", "cat")).toEqual(["Cat", "cat"]);
 });

@@ -12,7 +12,30 @@ type LmStudioConfig = {
   configured: boolean;
 };
 
+type ChatMessage = {
+  role: string;
+  content: string;
+};
+
+type ChatOptions = {
+  responseFormat?: Record<string, unknown>;
+};
+
+export function normalizeSemanticPair(left: string, right: string): [string, string] {
+  const leftKey = left.trim().toLowerCase();
+  const rightKey = right.trim().toLowerCase();
+  if (leftKey < rightKey) {
+    return [left, right];
+  }
+  if (leftKey > rightKey) {
+    return [right, left];
+  }
+  return left <= right ? [left, right] : [right, left];
+}
+
 export class AiRuntime {
+  private static readonly discoveryCache = new Map<string, { value: string | false; expiresAt: number }>();
+
   static status(namespaceClassRef?: CosmClassValue) {
     const config = this.config();
     return Construct.namespace({
@@ -39,22 +62,46 @@ export class AiRuntime {
         content: `Return only valid JSON matching this schema: ${JSON.stringify(schemaObject)}`,
       },
       { role: "user", content: prompt },
-    ], { json: true });
+    ], {
+      responseFormat: this.jsonSchemaResponseFormat("cosm_cast", schemaObject as Record<string, unknown>),
+    });
     const parsed = JSON.parse(content);
     return schema.nativeMethod("cast")!.nativeCall!([ValueAdapter.jsToCosm(parsed)], schema);
   }
 
   static compare(left: string, right: string): boolean {
+    const normalizedLeft = left.trim().toLowerCase();
+    const normalizedRight = right.trim().toLowerCase();
+    if (normalizedLeft === normalizedRight) {
+      return true;
+    }
+    const [first, second] = normalizeSemanticPair(left, right);
     const content = this.chat([
       {
         role: "system",
-        content: 'Return only JSON like {"equal":true} or {"equal":false}.',
+        content: [
+          "Decide whether the two inputs are semantically equivalent in ordinary usage.",
+          "This relation must be symmetric: swapping the inputs must not change the answer.",
+          "Return true only for the same concept or a near-direct synonym.",
+          "Return false for parent/child relations, examples, subtypes, associations, or merely related terms.",
+          'Examples: "cat" vs "feline" => true; "dog" vs "canine" => true; "cat" vs "kitten" => false; "cat" vs "dog" => false.',
+          "Return only structured JSON.",
+        ].join(" "),
       },
       {
         role: "user",
-        content: `Are these semantically equivalent?\nLeft: ${left}\nRight: ${right}`,
+        content: `Are these semantically equivalent?\nA: ${first}\nB: ${second}`,
       },
-    ], { json: true });
+    ], {
+      responseFormat: this.jsonSchemaResponseFormat("semantic_compare", {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          equal: { type: "boolean" },
+        },
+        required: ["equal"],
+      }),
+    });
     const parsed = JSON.parse(content) as { equal?: boolean };
     if (typeof parsed.equal !== "boolean") {
       throw new Error("AI backend returned an invalid semantic comparison payload");
@@ -62,14 +109,16 @@ export class AiRuntime {
     return parsed.equal;
   }
 
-  private static chat(messages: Array<{ role: string; content: string }>, options?: { json?: boolean }): string {
+  private static chat(messages: ChatMessage[], options?: ChatOptions): string {
     const config = this.config(true);
-    const payload = {
+    const payload: Record<string, unknown> = {
       model: config.model,
       messages,
       temperature: 0,
-      response_format: options?.json ? { type: "json_object" } : undefined,
     };
+    if (options?.responseFormat) {
+      payload.response_format = options.responseFormat;
+    }
     const raw = execFileSync("curl", [
       "-sS",
       "-X",
@@ -85,27 +134,56 @@ export class AiRuntime {
     });
     const parsed = JSON.parse(raw) as {
       error?: { message?: string };
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{ message?: { content?: unknown; refusal?: string; parsed?: unknown } }>;
     };
     if (parsed.error?.message) {
       throw new Error(`AI backend error: ${parsed.error.message}`);
     }
-    const content = parsed.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("AI backend returned no completion content");
+    const message = parsed.choices?.[0]?.message;
+    if (!message) {
+      throw new Error(`AI backend returned no choices: ${this.truncate(raw)}`);
     }
-    return content;
+    if (typeof message.parsed === "object" && message.parsed !== null) {
+      return JSON.stringify(message.parsed);
+    }
+    if (typeof message.content === "string" && message.content.length > 0) {
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      const text = message.content
+        .map((chunk) => {
+          if (typeof chunk === "string") {
+            return chunk;
+          }
+          if (chunk && typeof chunk === "object") {
+            const record = chunk as Record<string, unknown>;
+            if (typeof record.text === "string") {
+              return record.text;
+            }
+          }
+          return "";
+        })
+        .join("")
+        .trim();
+      if (text.length > 0) {
+        return text;
+      }
+    }
+    if (message.refusal) {
+      throw new Error(`AI backend refused the request: ${message.refusal}`);
+    }
+    throw new Error(`AI backend returned no completion content: ${this.truncate(raw)}`);
   }
 
   private static config(requireModel = false): LmStudioConfig {
     const backend = process.env.COSM_AI_BACKEND ?? "lmstudio";
     const baseUrl = process.env.COSM_AI_BASE_URL ?? "http://127.0.0.1:1234/v1";
-    const model = process.env.COSM_AI_MODEL;
+    const model = process.env.COSM_AI_MODEL ?? (this.shouldDiscoverModel() ? this.discoverModel(baseUrl) : undefined);
     if (backend !== "lmstudio") {
       throw new Error(`AI backend '${backend}' is not supported in 0.3.5`);
     }
     if (requireModel && !model) {
-      throw new Error("AI backend is not configured: set COSM_AI_MODEL for LM Studio");
+      throw new Error("AI backend is not configured: set COSM_AI_MODEL or expose a model via LM Studio /v1/models");
     }
     return {
       backend,
@@ -113,5 +191,58 @@ export class AiRuntime {
       model,
       configured: Boolean(model),
     };
+  }
+
+  private static discoverModel(baseUrl: string): string | undefined {
+    const cached = this.discoveryCache.get(baseUrl);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value || undefined;
+    }
+
+    try {
+      const raw = execFileSync("curl", [
+        "-s",
+        "--connect-timeout",
+        "0.2",
+        "--max-time",
+        "0.5",
+        `${baseUrl}/models`,
+      ], {
+        encoding: "utf8",
+        maxBuffer: 2 * 1024 * 1024,
+      });
+      const parsed = JSON.parse(raw) as { data?: Array<{ id?: string }> };
+      const model = parsed.data?.find((entry) => typeof entry.id === "string" && entry.id.length > 0)?.id;
+      this.discoveryCache.set(baseUrl, {
+        value: model || false,
+        expiresAt: Date.now() + 1_000,
+      });
+      return model;
+    } catch {
+      this.discoveryCache.set(baseUrl, {
+        value: false,
+        expiresAt: Date.now() + 1_000,
+      });
+      return undefined;
+    }
+  }
+
+  private static shouldDiscoverModel(): boolean {
+    return process.env.COSM_AI_AUTO_DISCOVER_MODEL !== "0";
+  }
+
+  private static jsonSchemaResponseFormat(name: string, schema: Record<string, unknown>) {
+    return {
+      type: "json_schema",
+      json_schema: {
+        name,
+        strict: true,
+        schema,
+      },
+    };
+  }
+
+  private static truncate(value: string, limit = 400): string {
+    return value.length > limit ? `${value.slice(0, limit)}...` : value;
   }
 }
