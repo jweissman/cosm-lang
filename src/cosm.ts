@@ -250,22 +250,44 @@ namespace Cosm {
       let cursor = 0;
 
       while (cursor < source.length) {
-        const interpolationStart = source.indexOf('#{', cursor);
+        const nextHashInterpolation = source.indexOf('#{', cursor);
+        const nextErbInterpolation = source.indexOf('<%=', cursor);
+        const interpolationStart = this.nextTemplateInterpolation(nextHashInterpolation, nextErbInterpolation);
         if (interpolationStart === -1) {
           output += source.slice(cursor);
           break;
         }
         output += source.slice(cursor, interpolationStart);
-        const interpolationEnd = this.findTemplateExpressionEnd(source, interpolationStart + 2);
-        const expression = source.slice(interpolationStart + 2, interpolationEnd).trim();
+        if (source.startsWith('#{', interpolationStart)) {
+          const interpolationEnd = this.findTemplateExpressionEnd(source, interpolationStart + 2);
+          const expression = source.slice(interpolationStart + 2, interpolationEnd).trim();
+          const value = expression.length === 0
+            ? Construct.string("")
+            : this.evalInEnv(expression, env);
+          output += value.toCosmString('interpolate');
+          cursor = interpolationEnd + 1;
+          continue;
+        }
+        const interpolationEnd = this.findTemplateTagEnd(source, interpolationStart + 3);
+        const expression = source.slice(interpolationStart + 3, interpolationEnd).trim();
         const value = expression.length === 0
           ? Construct.string("")
           : this.evalInEnv(expression, env);
         output += value.toCosmString('interpolate');
-        cursor = interpolationEnd + 1;
+        cursor = interpolationEnd + 2;
       }
 
       return Construct.string(output);
+    }
+
+    private static nextTemplateInterpolation(hashIndex: number, erbIndex: number): number {
+      if (hashIndex === -1) {
+        return erbIndex;
+      }
+      if (erbIndex === -1) {
+        return hashIndex;
+      }
+      return Math.min(hashIndex, erbIndex);
     }
 
     private static createTemplateEnv(context?: CosmValue, body?: CosmValue): Env {
@@ -367,6 +389,72 @@ namespace Cosm {
       }
 
       throw new Error("Template parse error: missing closing } for interpolation");
+    }
+
+    private static findTemplateTagEnd(source: string, startIndex: number): number {
+      let index = startIndex;
+      let inSingle = false;
+      let inDouble = false;
+      let inTripleDouble = false;
+      let escaped = false;
+
+      while (index < source.length) {
+        const nextThree = source.slice(index, index + 3);
+        const nextTwo = source.slice(index, index + 2);
+        const char = source[index];
+
+        if (inTripleDouble) {
+          if (nextThree === '"""') {
+            inTripleDouble = false;
+            index += 3;
+            continue;
+          }
+          index += 1;
+          continue;
+        }
+
+        if (inSingle || inDouble) {
+          if (escaped) {
+            escaped = false;
+            index += 1;
+            continue;
+          }
+          if (char === '\\') {
+            escaped = true;
+            index += 1;
+            continue;
+          }
+          if (inSingle && char === '\'') {
+            inSingle = false;
+          } else if (inDouble && char === '"') {
+            inDouble = false;
+          }
+          index += 1;
+          continue;
+        }
+
+        if (nextThree === '"""') {
+          inTripleDouble = true;
+          index += 3;
+          continue;
+        }
+        if (char === '\'') {
+          inSingle = true;
+          index += 1;
+          continue;
+        }
+        if (char === '"') {
+          inDouble = true;
+          index += 1;
+          continue;
+        }
+        if (nextTwo === '%>') {
+          return index;
+        }
+        index += 1;
+      }
+
+      throw new Error("Template parse error: missing closing %> for interpolation");
     }
 
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
@@ -653,12 +741,27 @@ namespace Cosm {
           const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
           try {
             const callee = this.lookupProperty(receiver, calleeAst.value);
+            if (callee.type !== 'function' && callee.type !== 'method') {
+              if (receiver.type === 'class') {
+                const nativeMethod = receiver.nativeMethod(calleeAst.value);
+                if (nativeMethod) {
+                  return this.invokeFunction(RuntimeDispatch.bindMethod(receiver, nativeMethod), args, undefined, env, currentBlock);
+                }
+              }
+              return this.send(receiver, calleeAst.value, args, env);
+            }
             return this.invokeFunction(callee, args, undefined, env, currentBlock);
           } catch (error) {
             if (
               receiver.type !== 'class'
               && error instanceof Error
               && error.message.includes(`has no property '${calleeAst.value}'`)
+            ) {
+              return this.send(receiver, calleeAst.value, args, env);
+            }
+            if (
+              error instanceof Error
+              && error.message === `Type error: attempted to call a non-function value of type object`
             ) {
               return this.send(receiver, calleeAst.value, args, env);
             }
@@ -950,6 +1053,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.6";
+    export const version = "0.3.8";
 }
 export default Cosm;

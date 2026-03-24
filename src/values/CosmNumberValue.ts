@@ -97,6 +97,10 @@ export class CosmNumberValue extends CosmValueBase {
     return undefined;
   }
 
+  override visibleNativeMethodNames(): string[] {
+    return ['plus', 'pos', 'neg', 'subtract', 'multiply', 'divide', 'pow', 'lt', 'lte', 'gt', 'gte'];
+  }
+
   override toCosmString(): string {
     return String(this.value);
   }

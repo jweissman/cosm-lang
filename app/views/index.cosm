@@ -31,6 +31,8 @@ class HtmlView
   end
 end
 
+require("app/examples.cosm")
+
 class HomeView
   class << self
     def template()
@@ -67,7 +69,8 @@ class NotebookView
 
     def page(code, evaluation, session)
       let output = fragment(code, evaluation)
-      HtmlView.renderLayout("Cosm Notebook", pageTemplate(), { code: HtmlView.escape(code), output: output, pid: Process.pid(), platform: HtmlView.escape(Process.platform()), arch: HtmlView.escape(Process.arch()), now: HtmlView.escape(Time.isoNow()), sessionName: HtmlView.escape(session.name), historyLength: session.length }, HtmlView.head(), HtmlView.render(scriptTemplate(), { }))
+      let examplesMarkupValue = examplesMarkup()
+      HtmlView.renderLayout("Cosm Notebook", pageTemplate(), { code: HtmlView.escape(code), output: output, pid: Process.pid(), platform: HtmlView.escape(Process.platform()), arch: HtmlView.escape(Process.arch()), now: HtmlView.escape(Time.isoNow()), sessionName: HtmlView.escape(session.name), historyLength: session.length, examplesMarkup: examplesMarkupValue }, HtmlView.head(), HtmlView.render(scriptTemplate(), { }))
     end
 
     def fragment(code, evaluation)
@@ -80,6 +83,36 @@ class NotebookView
           HtmlView.render(errorTemplate(), { message: HtmlView.escape(evaluation.error.message), backtrace: HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) })
         end
       end
+    end
+
+    def examplesMarkup()
+      let cards =
+        exampleCard("Math + reflection", "Tiny arithmetic and runtime reflection smoke.", examples.mathReflection()) +
+        exampleCard("Receiver reflection", "Inspect a live value through the repaired methods() surface.", examples.reflectionSmoke()) +
+        exampleCard("Data model", "Define and cast a model on top of Schema.", examples.dataModel()) +
+        exampleCard("Schema export", "Inspect a raw structural schema.", examples.schemaExport()) +
+        exampleCard("Prompt object", "Inspect the explicit prompt runtime object.", examples.promptObject()) +
+        exampleCard("AI status", "Check the local LM Studio boundary.", examples.aiStatus()) +
+        exampleCard("AI cast helper", "Use the Cosm-authored ai helper with a model.", examples.aiCastHelper()) +
+        exampleCard("Router sketch", "Tiny object-first routing snippet.", examples.routerSketch())
+      """<section class="rounded-[2rem] border border-slate-800 bg-slate-900/70 p-6">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <p class="text-sm uppercase tracking-[0.35em] text-amber-300">Examples</p>
+      <h2 class="mt-2 text-2xl font-bold text-slate-100">Try the current surface</h2>
+    </div>
+    <p class="max-w-xl text-sm text-slate-400">These examples pressure the layers Cosm is trying to make real: data models, explicit AI, reflection, and object-first services.</p>
+  </div>
+  <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">#{cards}</div>
+</section>"""
+    end
+
+    def exampleCard(title, description, code)
+      """<button class="notebook-example rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-left transition hover:border-cyan-400 hover:bg-slate-900" type="button" data-code="#{HtmlView.escape(code)}">
+  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">#{HtmlView.escape(title)}</p>
+  <p class="mt-2 text-sm text-slate-300">#{HtmlView.escape(description)}</p>
+  <pre class="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-xl bg-slate-950/70 p-3 font-mono text-xs text-cyan-100">#{HtmlView.escape(code)}</pre>
+</button>"""
     end
   end
 end

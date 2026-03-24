@@ -54,6 +54,10 @@ export class CosmBoolValue extends CosmValueBase {
     return undefined;
   }
 
+  override visibleNativeMethodNames(): string[] {
+    return ['not', 'and', 'or'];
+  }
+
   override toCosmString(): string {
     return String(this.value);
   }

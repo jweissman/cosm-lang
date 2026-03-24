@@ -28,7 +28,7 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.6", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.8", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
@@ -84,6 +84,9 @@ assert(classes.class.name == "Namespace", "classes is a named reflective namespa
 assert(cosm.class.name == "Namespace", "cosm is a named reflective namespace object");
 assert(classes.Object.methods.send.name == "send", "Object reflects shared send through the runtime model");
 assert(classes.Object.methods.method.name == "method", "Object reflects shared method lookup through the runtime model");
+assert(Object.new().methods().has(:send) == true, "ordinary receivers expose visible methods through receiver-side reflection");
+assert(Object.methods().has(:send) == true, "class receivers expose visible methods through receiver-side reflection");
+assert(Kernel.methods().has(:assert) == true, "ambient services expose methods() through the shared reflection protocol");
 assert(classes.Class.methods.new.name == "new", "Class reflects constructor entry points through the runtime model");
 assert(classes.Function.methods.call.name == "call", "Function reflects call through the runtime model");
 assert(classes.Method.methods.call.name == "call", "Method reflects call through the runtime model");
@@ -120,6 +123,7 @@ assert(Kernel.inspect(HttpResponse.text("ok", 201)) == '#<HttpResponse 201 "ok">
 assert(Kernel.inspect(HttpRouter.new()) == '#<HttpRouter routes: 0>', "Kernel.inspect renders routers readably");
 assert(Kernel.inspect(Mirror.reflect([1, 2])) == '#<Mirror [1, 2]>', "Kernel.inspect renders mirror wrappers distinctly");
 assert(Mirror.reflect(Kernel).get(:assert).name == "assert", "Mirror can expose reflective property access without mutating the wrapped object");
+assert(Mirror.reflect(Object.new()).methods().has(:send) == true, "Mirror methods align with ordinary receiver reflection");
 assert(Mirror.reflect(cosm.test).targetClass.name == "Module", "Mirror can wrap module values readably");
 assert(:status.class.name == "Symbol", "symbol literals create first-class runtime values");
 assert(:status == Symbol.intern("status"), "symbol literals reuse interned symbol values");
@@ -259,6 +263,9 @@ assert(tuple.label() == "1:2", "methods can use ivar shorthand for field provena
 assert(tuple.sum() == 3, "ivars behave like direct instance-field reads");
 assert(tuple.classname() == "Pair", "instances can send methods with self");
 assert(Pair.new(1, 2) == Pair.new(1, 2), "instance equality now also flows through runtime eq");
+class InheritedPair < Pair
+end;
+assert(InheritedPair.new(1, 2).methods().has(:label) == true, "receiver-side methods include inherited visible methods");
 
 # class-side methods and metaclass ownership
 class Checked do

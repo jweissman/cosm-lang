@@ -276,7 +276,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   );
   const sessionClassMethods = manifestClassMethods(CosmSessionValue.manifest);
 
-  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "send", "to_s"]);
+  expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "methods", "send", "to_s"]);
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
   expect(Object.keys(functionMethods)).toEqual(["call"]);
   expect(Object.keys(methodMethods)).toEqual(["call"]);

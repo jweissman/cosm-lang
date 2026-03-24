@@ -1,3 +1,6 @@
+<%=
+examplesMarkup
+%>
 <main class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
   <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
     <div>
@@ -14,11 +17,11 @@
     <section class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/40">
       <form id="notebook-form" method="post" action="/notebook" class="space-y-4">
         <label class="block text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Code</label>
-        <textarea id="notebook-code" name="code" class="min-h-[24rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-cyan-100 outline-none ring-0 placeholder:text-slate-600" spellcheck="false">#{code}</textarea>
+        <textarea id="notebook-code" name="code" class="min-h-[24rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-cyan-100 outline-none ring-0 placeholder:text-slate-600" spellcheck="false"><%= code %></textarea>
         <div class="flex flex-wrap items-center gap-3">
           <button class="rounded-full bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300" type="submit">Run In Session</button>
           <button id="notebook-reset" class="rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-rose-400 hover:text-rose-200" type="button">Reset Session</button>
-          <p class="text-sm text-slate-400">Try: <code class="text-cyan-300">let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no") })</code></p>
+          <p id="notebook-status" class="text-sm text-slate-400">Live eval is idle.</p>
         </div>
       </form>
     </section>
@@ -27,9 +30,9 @@
       <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
         <p class="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">Runtime</p>
         <dl class="mt-4 grid gap-3 text-sm text-slate-300">
-          <div><dt class="font-semibold text-slate-100">Process</dt><dd>#{pid} on #{platform}/#{arch}</dd></div>
-          <div><dt class="font-semibold text-slate-100">Now</dt><dd>#{now}</dd></div>
-          <div><dt class="font-semibold text-slate-100">Session</dt><dd><code class="text-cyan-300">#{sessionName}</code> with #{historyLength} history entries</dd></div>
+          <div><dt class="font-semibold text-slate-100">Process</dt><dd><%= pid %> on <%= platform %>/<%= arch %></dd></div>
+          <div><dt class="font-semibold text-slate-100">Now</dt><dd><%= now %></dd></div>
+          <div><dt class="font-semibold text-slate-100">Session</dt><dd><code class="text-cyan-300"><%= sessionName %></code> with <%= historyLength %> history entries</dd></div>
           <div><dt class="font-semibold text-slate-100">Eval</dt><dd>Backed by <code class="text-cyan-300">Session.default().tryEval(...)</code></dd></div>
           <div><dt class="font-semibold text-slate-100">Data</dt><dd>Use <code class="text-cyan-300">Data.model(...)</code> to build model-shaped contracts on top of <code class="text-cyan-300">Schema</code>.</dd></div>
           <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code>, <code class="text-cyan-300">cosm.ai.cast(...)</code>, and <code class="text-cyan-300">require("cosm/ai.cosm")</code> stay explicit.</dd></div>
@@ -37,7 +40,7 @@
       </div>
 
       <div id="notebook-output">
-        #{output}
+        <%= output %>
       </div>
     </section>
   </div>

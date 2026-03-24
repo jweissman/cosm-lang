@@ -2,7 +2,6 @@ import { RuntimeValueManifest, manifestClassMethods, manifestMethod, manifestPro
 import { CosmClass, CosmValue } from "../types";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
-import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmBoolValue } from "./CosmBoolValue";
@@ -12,13 +11,16 @@ import { ValueAdapter } from "../ValueAdapter";
 export class CosmMirrorValue extends CosmObjectValue {
   private static classOfHandler?: (value: CosmValue) => CosmClass;
   private static lookupPropertyHandler?: (receiver: CosmValue, property: string) => CosmValue;
+  private static visibleMethodsHandler?: (receiver: CosmValue) => CosmValue;
 
   static installRuntimeHooks(hooks: {
     classOf: (value: CosmValue) => CosmClass;
     lookupProperty: (receiver: CosmValue, property: string) => CosmValue;
+    visibleMethods: (receiver: CosmValue) => CosmValue;
   }): void {
     this.classOfHandler = hooks.classOf;
     this.lookupPropertyHandler = hooks.lookupProperty;
+    this.visibleMethodsHandler = hooks.visibleMethods;
   }
 
   static readonly manifest: RuntimeValueManifest<CosmMirrorValue> = {
@@ -42,11 +44,10 @@ export class CosmMirrorValue extends CosmObjectValue {
         if (args.length !== 0) {
           throw new Error(`Arity error: Mirror.methods expects 0 arguments, got ${args.length}`);
         }
-        if (selfValue.target.type === "class") {
-          return new CosmNamespaceValue(selfValue.target.classMethods, selfValue.target.classRef);
+        if (!CosmMirrorValue.visibleMethodsHandler) {
+          throw new Error("Mirror runtime error: visible methods handler is not installed");
         }
-        const targetClass = selfValue.targetClass();
-        return new CosmNamespaceValue(targetClass.methods, targetClass.classRef);
+        return CosmMirrorValue.visibleMethodsHandler(selfValue.target);
       }),
       get: () => new CosmFunctionValue("get", (args, selfValue) => {
         if (!(selfValue instanceof CosmMirrorValue)) {

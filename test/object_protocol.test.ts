@@ -27,9 +27,43 @@ test("receiver-side inspect stays available on representative objects", () => {
   expect(cosmEval('Schema.string().inspect()')).toBe("Schema.string()");
 });
 
+test("receiver-side methods() exposes visible reflective methods consistently", () => {
+  expect(cosmEval("Object.new().methods().has(:send)")).toBe(true);
+  expect(cosmEval("Object.methods().has(:send)")).toBe(true);
+  expect(cosmEval("1.methods().has(:plus)")).toBe(true);
+  expect(cosmEval("Kernel.methods().has(:assert)")).toBe(true);
+  expect(cosmEval("HttpRouter.new().methods().draw.name")).toBe("draw");
+  expect(cosmEval("classes.Object.methods.get(:send).name")).toBe("send");
+});
+
+test("receiver-side methods() includes inherited methods and agrees with method(:name)", () => {
+  expect(cosmEval(`
+    class Base
+      def greet()
+        "hi"
+      end
+    end
+    class Child < Base
+    end
+    let child = Child.new()
+    [child.methods().has(:greet), child.method(:greet).name, child.methods().get(:greet).name]
+  `)).toEqual([true, "greet", "greet"]);
+});
+
 test("Mirror inspect remains wrapper-visible", () => {
   expect(cosmEval("Kernel.inspect(Mirror.reflect([1, 2]))")).toBe("#<Mirror [1, 2]>");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
+  expect(cosmEval("Mirror.reflect(Object.new()).methods().has(:send)")).toBe(true);
+  expect(cosmEval(`
+    class Base
+      def greet()
+        "hi"
+      end
+    end
+    class Child < Base
+    end
+    Mirror.reflect(Child.new()).methods().has(:greet)
+  `)).toBe(true);
 });
 
 test("print and puts use receiver-side to_s for non-strings", () => {

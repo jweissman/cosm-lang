@@ -1,0 +1,31 @@
+def mathReflection()
+  "1 + 2; Kernel.inspect(classes.Number)"
+end
+
+def dataModel()
+  "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.cast({ answer: \"hi\", choice: \"yes\" })"
+end
+
+def schemaExport()
+  "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()"
+end
+
+def promptObject()
+  "Prompt.text(\"Summarize Cosm in one sentence.\")"
+end
+
+def aiStatus()
+  "cosm.ai.status()"
+end
+
+def aiCastHelper()
+  "require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)"
+end
+
+def routerSketch()
+  "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)"
+end
+
+def reflectionSmoke()
+  "Object.new().methods().get(:send).name"
+end

@@ -44,6 +44,27 @@ export class CosmKernelValue extends CosmObjectValue {
     super('Kernel', fields, classRef);
   }
 
+  private static messageName(value: CosmValue): string | undefined {
+    if (value.type === 'symbol') {
+      return value.name;
+    }
+    if (value.type === 'string') {
+      return value.value;
+    }
+    return undefined;
+  }
+
+  private static canHandleSelfSend(selfValue: CosmValue | undefined, messageValue: CosmValue): boolean {
+    if (!selfValue) {
+      return false;
+    }
+    const message = CosmKernelValue.messageName(messageValue);
+    if (!message) {
+      return false;
+    }
+    return selfValue.nativeMethod(message) !== undefined;
+  }
+
   static readonly manifest: RuntimeValueManifest<CosmKernelValue> = {
     methods: {
       assert: () => new CosmFunctionValue('assert', (args) => {
@@ -200,11 +221,15 @@ export class CosmKernelValue extends CosmObjectValue {
         return milliseconds;
       }),
       send: () => new CosmFunctionValue('send', (args, _selfValue, env) => {
-        if (args.length < 2) {
-          throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);
-        }
         if (!CosmKernelValue.sendHandler) {
           throw new Error('Kernel runtime error: send handler is not installed');
+        }
+        if (CosmKernelValue.canHandleSelfSend(_selfValue, args[0])) {
+          const [messageValue, ...messageArgs] = args;
+          return CosmKernelValue.sendHandler(_selfValue!, messageValue, messageArgs, env);
+        }
+        if (args.length < 2) {
+          throw new Error(`Arity error: Kernel.send expects at least 2 arguments, got ${args.length}`);
         }
         const [receiver, messageValue, ...messageArgs] = args;
         return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);

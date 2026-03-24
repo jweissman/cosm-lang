@@ -72,6 +72,10 @@ export class CosmStringValue extends CosmValueBase {
     return undefined;
   }
 
+  override visibleNativeMethodNames(): string[] {
+    return ['plus', 'semanticEq'];
+  }
+
   override toCosmString(): string {
     return this.value;
   }

@@ -96,6 +96,9 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Number.class.name")).toBe("Number class");
   expect(cosmEval("classes.Object.methods.send.name")).toBe("send");
   expect(cosmEval("classes.Object.methods.method.name")).toBe("method");
+  expect(cosmEval("Object.new().methods().has(:send)")).toBe(true);
+  expect(cosmEval("Object.methods().has(:send)")).toBe(true);
+  expect(cosmEval("Kernel.methods().has(:assert)")).toBe(true);
   expect(cosmEval("classes.Class.methods.new.name")).toBe("new");
   expect(cosmEval("classes.Class.methods.classMethod.name")).toBe("classMethod");
   expect(cosmEval("classes.Function.methods.call.name")).toBe("call");
@@ -163,6 +166,8 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
   expect(cosmEval('require("cosm/data")')).toMatchObject({ kind: "module", name: "cosm/data" });
   expect(cosmEval('require("cosm/ai.cosm")')).toMatchObject({ kind: "module", name: "cosm/ai.cosm" });
+  expect(cosmEval('require("app/examples.cosm"); examples.class.name')).toBe("Module");
+  expect(cosmEval('require("app/examples.cosm"); examples.reflectionSmoke()')).toBe("Object.new().methods().get(:send).name");
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
@@ -173,13 +178,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.6");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.8");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.6");
+  expect(cosmEval("cosm.version")).toBe("0.3.8");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -188,6 +193,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
 
 test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", () => {
   expect(cosmEval('classes.Kernel.send(:assert, true, "ok")')).toBe(true);
+  expect(cosmEval("Kernel.send(:assert, true)")).toBe(true);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval('Symbol.intern("ok").inspect()')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
@@ -255,9 +261,24 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval("Mirror.reflect(Kernel).has(:assert)")).toBe(true);
   expect(cosmEval("Mirror.reflect(Kernel).get(:assert).name")).toBe("assert");
   expect(cosmEval("Mirror.reflect(Kernel).methods().has(:assert)")).toBe(true);
+  expect(cosmEval("Mirror.reflect(Object.new()).methods().has(:send)")).toBe(true);
   expect(cosmEval('Mirror.reflect(cosm.test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
   expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
+});
+
+test("receiver-side methods() reflects inherited visible methods consistently", () => {
+  expect(cosmEval(`
+    class Base
+      def greet()
+        "hi"
+      end
+    end
+    class Child < Base
+    end
+    let child = Child.new()
+    [child.methods().has(:greet), child.method(:greet).name, child.methods().get(:greet).name]
+  `)).toEqual([true, "greet", "greet"]);
 });
 
 test("Process.exit can be hooked and validates codes", () => {
@@ -628,14 +649,27 @@ test("module-organized app can be exercised as a request spec without listen", (
   const homeHeaders = home.nativeProperty?.("headers");
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.6");
+  const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
+  expect(homeBody).toContain("Cosm 0.3.8");
+  expect(homeBody).toContain("Reflective server slice");
 
   const notebook = dispatchService(`
     require("app/app.cosm")
     app.App.build()
-  `, "POST", "/notebook/eval", "code=1%20%2B%202");
+  `, "GET", "/notebook");
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"))).toContain("3");
+  const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
+  expect(notebookBody).toContain("Live eval is idle.");
+  expect(notebookBody).toContain("Try the current surface");
+  expect(notebookBody).toContain("Data.model(");
+  expect(notebookBody).toContain("require(&quot;cosm/ai.cosm&quot;)");
+
+  const notebookEval = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/notebook/eval", "code=1%20%2B%202");
+  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("status"))).toBe(200);
+  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("body"))).toContain("3");
 
   const modelNotebook = dispatchService(`
     require("app/app.cosm")

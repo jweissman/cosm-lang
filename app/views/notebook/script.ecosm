@@ -3,18 +3,60 @@
   const output = document.getElementById("notebook-output");
   const reset = document.getElementById("notebook-reset");
   const code = document.getElementById("notebook-code");
-  if (form && output) {
+  const status = document.getElementById("notebook-status");
+  const exampleButtons = Array.from(document.querySelectorAll(".notebook-example"));
+  let pendingTimer = null;
+  let latestRequest = 0;
+
+  const setStatus = (text) => {
+    if (status) {
+      status.textContent = text;
+    }
+  };
+
+  const setRunning = () => {
+    output.innerHTML = '<div class="rounded-3xl border border-slate-700 bg-slate-900/60 p-6 text-slate-300">Running...</div>';
+  };
+
+  const submitEval = async (mode) => {
+    if (!form || !output) {
+      return;
+    }
+    const requestId = ++latestRequest;
+    setStatus(mode === "live" ? "Live eval is running..." : "Running explicit eval...");
+    setRunning();
+    const response = await fetch("/notebook/eval", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams(new FormData(form)).toString()
+    });
+    const body = await response.text();
+    if (requestId !== latestRequest) {
+      return;
+    }
+    output.innerHTML = body;
+    setStatus(mode === "live" ? "Live eval updated." : "Run complete.");
+  };
+
+  if (form && output && code) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      output.innerHTML = '<div class="rounded-3xl border border-slate-700 bg-slate-900/60 p-6 text-slate-300">Running...</div>';
-      const response = await fetch("/notebook/eval", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams(new FormData(form)).toString()
-      });
-      output.innerHTML = await response.text();
+      await submitEval("run");
+    });
+
+    code.addEventListener("input", () => {
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+      }
+      setStatus("Waiting to live-evaluate...");
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        submitEval("live").catch((error) => {
+          setStatus(`Live eval failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
+      }, 350);
     });
   }
   if (reset && output && code) {
@@ -22,6 +64,25 @@
       await fetch("/notebook/reset", { method: "POST" });
       code.value = "";
       output.innerHTML = '<div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300">Run some Cosm code to inspect the explicit server-side session.</div>';
+      latestRequest += 1;
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingTimer = null;
+      }
+      setStatus("Session reset.");
+    });
+  }
+  if (code && exampleButtons.length > 0) {
+    exampleButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        code.value = button.dataset.code || "";
+        setStatus("Loaded example. Running live eval...");
+        if (pendingTimer) {
+          clearTimeout(pendingTimer);
+          pendingTimer = null;
+        }
+        await submitEval("live");
+      });
     });
   }
 </script>

@@ -1,5 +1,7 @@
 import { Construct } from "../Construct";
 import { CosmClass, CosmFunction, CosmValue, CosmEnv } from "../types";
+import { CosmFunctionValue } from "../values/CosmFunctionValue";
+import { CosmValueBase } from "../values/CosmValueBase";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -68,6 +70,31 @@ export class RuntimeDispatch {
 
   static lookupMethod(classValue: CosmClass, name: string): CosmFunction | undefined {
     return classValue.lookupInstanceMethod(name);
+  }
+
+  static visibleMethodsNamespace(receiver: CosmValue, repository: RuntimeRepository): CosmValue {
+    const methodOwner = receiver.type === 'class' ? receiver : this.classOf(receiver, repository.classes);
+    const methods = this.visibleMethods(methodOwner);
+    const boundMethods = Object.fromEntries(
+      Object.entries(methods).map(([name, method]) => [name, this.bindMethod(receiver, method)]),
+    );
+    if (receiver instanceof CosmValueBase && receiver.type !== 'class') {
+      for (const name of receiver.visibleNativeMethodNames()) {
+        const nativeMethod = receiver.nativeMethod(name);
+        if (nativeMethod) {
+          boundMethods[name] = this.bindMethod(receiver, nativeMethod);
+        }
+      }
+    }
+    return Construct.namespace(boundMethods, repository.classes.Namespace);
+  }
+
+  static visibleMethods(classValue: CosmClass): Record<string, CosmFunctionValue> {
+    const inherited = classValue.superclass ? this.visibleMethods(classValue.superclass) : {};
+    return {
+      ...inherited,
+      ...classValue.methods,
+    };
   }
 
   static bindMethod(receiver: CosmValue, method: CosmFunction): CosmValue {
