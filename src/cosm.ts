@@ -30,6 +30,11 @@ namespace Cosm {
     private static readonly repository = this.createRepository();
     private static readonly symbolTable = new Map<string, CosmValue>();
     private static defaultSessionValue?: CosmSessionValue;
+    private static bootRepository?: Repository;
+
+    private static repo(): Repository {
+      return this.bootRepository ?? this.repository;
+    }
 
     static evalNode(ast: CoreNode, env: Env): CosmValue {
       switch (ast.kind) {
@@ -144,7 +149,9 @@ namespace Cosm {
         defaultSession: () => this.defaultSession(),
         resetEvalSource: () => this.resetSharedKernelEnv(),
       });
+      this.bootRepository = repository;
       Bootstrap.setCurrentRepository(repository);
+      this.preloadStdlibModules(repository);
       return repository;
     }
 
@@ -166,7 +173,7 @@ namespace Cosm {
 
     private static defaultSession(): CosmSessionValue {
       if (!this.defaultSessionValue) {
-        this.defaultSessionValue = new CosmSessionValue('default', this.repository.classes.Session, this.repository.classes.Error);
+        this.defaultSessionValue = new CosmSessionValue('default', this.repo().classes.Session, this.repo().classes.Error);
       }
       return this.defaultSessionValue;
     }
@@ -185,15 +192,29 @@ namespace Cosm {
 
     private static evalRequire(ast: CoreNode, env: Env): CosmValue {
       const target = this.evalNode(this.expectChild(ast, 'require'), env);
-      return this.invokeFunction(this.repository.globals.require, [target], undefined, env);
+      return this.invokeFunction(this.repo().globals.require, [target], undefined, env);
     }
 
     private static loadModule(name: string, _env: Env): CosmObject | undefined {
+      return this.loadModuleIntoRepository(name, this.repo());
+    }
+
+    private static preloadStdlibModules(repository: Repository): void {
+      for (const name of ["cosm/ai.cosm"]) {
+        const loaded = this.loadModuleIntoRepository(name, repository);
+        if (loaded) {
+          repository.modules[name] = loaded;
+          repository.modules[name.replace(/\.cosm$/u, "")] = loaded;
+        }
+      }
+    }
+
+    private static loadModuleIntoRepository(name: string, repository: Repository): CosmObject | undefined {
       if (!name.endsWith(".cosm")) {
         if (!name.endsWith(".ecosm")) {
           return undefined;
         }
-        const cachedTemplate = this.repository.modules[name];
+        const cachedTemplate = repository.modules[name];
         if (cachedTemplate instanceof CosmModuleValue) {
           return cachedTemplate;
         }
@@ -207,19 +228,19 @@ namespace Cosm {
             const [context, body] = args;
             return this.renderTemplateSource(source, context, body);
           }),
-        }, this.repository.classes.Module);
-        this.repository.modules[name] = templateModule;
+        }, repository.classes.Module);
+        repository.modules[name] = templateModule;
         return templateModule;
       }
-      const cachedModule = this.repository.modules[name];
+      const cachedModule = repository.modules[name];
       if (cachedModule instanceof CosmModuleValue) {
         return cachedModule;
       }
       const source = readFileSync(resolve(process.cwd(), name), "utf8");
       const moduleEnv = this.createEnv();
       this.evalInEnv(source, moduleEnv);
-      const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, this.repository.classes.Module);
-      this.repository.modules[name] = loadedModule;
+      const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);
+      repository.modules[name] = loadedModule;
       return loadedModule;
     }
 
@@ -357,7 +378,7 @@ namespace Cosm {
       const methods = this.collectClassMethods(ast.value, ast.children ?? [], env);
       const classMethods = this.collectClassMethods(ast.value, ast.children ?? [], env, 'class_def');
       const slots = this.collectClassSlots(ast.value, methods, superclass);
-      const metaclass = Bootstrap.createMetaclass(ast.value, superclass.classRef ?? this.repository.classes.Class, classMethods, this.repository.classes.Class);
+      const metaclass = Bootstrap.createMetaclass(ast.value, superclass.classRef ?? this.repo().classes.Class, classMethods, this.repo().classes.Class);
       const classValue = Construct.class(ast.value, superclass.name, slots, methods, classMethods, superclass, metaclass);
       env.bindings[ast.value] = classValue;
       return classValue;
@@ -532,7 +553,7 @@ namespace Cosm {
       if (selfValue !== undefined) {
         return selfValue;
       }
-      const value = this.repository.globals[name];
+      const value = this.repo().globals[name];
       if (value === undefined) {
         throw new Error(`Name error: unknown identifier '${name}'`);
       }
@@ -545,7 +566,7 @@ namespace Cosm {
         return undefined;
       }
       try {
-        return RuntimeDispatch.resolveSendTarget(selfValue, name, this.repository);
+        return RuntimeDispatch.resolveSendTarget(selfValue, name, this.repo());
       } catch (error) {
         if (
           error instanceof Error
@@ -570,7 +591,7 @@ namespace Cosm {
     }
 
     private static classesObject(env: Env): CosmValue {
-      const classes = { ...this.repository.classes };
+      const classes = { ...this.repo().classes };
       for (let scope: Env | undefined = env; scope; scope = scope.parent) {
         for (const [name, value] of Object.entries(scope.bindings)) {
           if (value.type === 'class') {
@@ -578,30 +599,41 @@ namespace Cosm {
           }
         }
       }
-      return Construct.namespace(classes, this.repository.classes.Namespace);
+      return Construct.namespace(classes, this.repo().classes.Namespace);
     }
 
     private static cosmObject(env: Env): CosmValue {
+      const moduleEntries = Object.fromEntries(
+        Object.entries(this.repo().modules)
+          .filter(([name]) => name.startsWith("cosm/") && !name.endsWith(".ecosm"))
+          .map(([name, value]) => {
+            const key = name
+              .replace(/^cosm\//u, "")
+              .replace(/\.(cosm)$/u, "")
+              .split("/")
+              .at(-1) as string;
+            return [key, value];
+          }),
+      );
       return Construct.namespace({
-        Kernel: this.repository.globals.Kernel,
-        Process: this.repository.globals.Process,
-        Time: this.repository.globals.Time,
-        Random: this.repository.globals.Random,
-        Mirror: this.repository.globals.Mirror,
-        Error: this.repository.globals.Error,
-        Schema: this.repository.globals.Schema,
-        Prompt: this.repository.globals.Prompt,
-        Session: this.repository.globals.Session,
-        HttpRouter: this.repository.globals.HttpRouter,
-        ai: this.repository.globals.ai,
-        http: this.repository.globals.http,
-        modules: Construct.namespace({
-          test: this.repository.modules["cosm/test"],
-        }, this.repository.classes.Namespace),
+        Kernel: this.repo().globals.Kernel,
+        Process: this.repo().globals.Process,
+        Time: this.repo().globals.Time,
+        Random: this.repo().globals.Random,
+        Mirror: this.repo().globals.Mirror,
+        Error: this.repo().globals.Error,
+        Schema: this.repo().globals.Schema,
+        Prompt: this.repo().globals.Prompt,
+        Session: this.repo().globals.Session,
+        Data: this.repo().globals.Data,
+        HttpRouter: this.repo().globals.HttpRouter,
+        ai: this.repo().globals.ai,
+        http: this.repo().globals.http,
+        modules: Construct.namespace(moduleEntries, this.repo().classes.Namespace),
         classes: this.classesObject(env),
-        test: this.repository.modules["cosm/test"],
+        test: this.repo().modules["cosm/test"],
         version: Construct.string(version),
-      }, this.repository.classes.Namespace);
+      }, this.repo().classes.Namespace);
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
@@ -707,11 +739,11 @@ namespace Cosm {
     }
 
     private static lookupProperty(receiver: CosmValue, property: string): CosmValue {
-      return RuntimeDispatch.lookupProperty(receiver, property, this.repository);
+      return RuntimeDispatch.lookupProperty(receiver, property, this.repo());
     }
 
     private static classOf(value: CosmValue): CosmClass {
-      return RuntimeDispatch.classOf(value, this.repository.classes);
+      return RuntimeDispatch.classOf(value, this.repo().classes);
     }
 
     static evalInEnv(input: string, env: Env): CosmValue {
@@ -761,10 +793,10 @@ namespace Cosm {
 
     private static buildInstance(classValue: CosmClass, args: CosmValue[]): CosmObject {
       if (classValue.name === 'HttpRouter') {
-        return new CosmHttpRouterValue({}, classValue, this.repository.classes.HttpResponse, this.repository.classes.Namespace);
+        return new CosmHttpRouterValue({}, classValue, this.repo().classes.HttpResponse, this.repo().classes.Namespace);
       }
       if (classValue.name === 'Session') {
-        return new CosmSessionValue(undefined, classValue, this.repository.classes.Error);
+        return new CosmSessionValue(undefined, classValue, this.repo().classes.Error);
       }
       const fields = Object.fromEntries(
         classValue.slots.map((slot, index) => [slot, args[index]]),
@@ -800,7 +832,7 @@ namespace Cosm {
     private static send(receiver: CosmValue, message: string, args: CosmValue[], env?: Env): CosmValue {
       const currentBlock = env ? this.findCurrentBlock(env) : undefined;
       return this.withFrame(`send ${this.describeValue(receiver)}.${message}`, () =>
-        RuntimeDispatch.send(receiver, message, args, this.repository, (callee, invokeArgs, selfValue, env) =>
+        RuntimeDispatch.send(receiver, message, args, this.repo(), (callee, invokeArgs, selfValue, env) =>
           this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
         )
       );
@@ -809,7 +841,7 @@ namespace Cosm {
     private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: Env): CosmValue {
       const currentBlock = env ? this.findCurrentBlock(env) : undefined;
       return this.withFrame(`send ${this.describeValue(receiver)}.${RuntimeDispatch.messageName(messageValue)}`, () =>
-        RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repository, (callee, invokeArgs, selfValue, env) =>
+        RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repo(), (callee, invokeArgs, selfValue, env) =>
           this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
         , env)
       );
@@ -824,7 +856,7 @@ namespace Cosm {
     }
 
     private static wrapWithFrame(error: unknown, frame: string): CosmRaisedError {
-      const cosmError = CosmErrorValue.fromUnknown(error, this.repository.classes.Error);
+      const cosmError = CosmErrorValue.fromUnknown(error, this.repo().classes.Error);
       if (cosmError.backtraceItems[cosmError.backtraceItems.length - 1] !== frame) {
         cosmError.backtraceItems.push(frame);
       }
@@ -918,6 +950,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.5";
+    export const version = "0.3.6";
 }
 export default Cosm;

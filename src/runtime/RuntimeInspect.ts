@@ -65,6 +65,9 @@ export class RuntimeInspect {
           const length = value.nativeProperty("length");
           return `#<Session ${JSON.stringify(String(value.sessionName))} history: ${length ? this.format(length) : "0"}>`;
         }
+        if (value.className === "DataModel" && "modelName" in value) {
+          return `#<Data::Model ${JSON.stringify(String(value.modelName))}>`;
+        }
         const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(", ");
         if (value.className === "Object") {
           return `{ ${entries} }`;

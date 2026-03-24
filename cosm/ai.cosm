@@ -1,0 +1,24 @@
+def status()
+  cosm.ai.status()
+end
+
+def complete(prompt)
+  cosm.ai.complete(prompt)
+end
+
+def compare(left, right)
+  cosm.ai.compare(left, right)
+end
+
+def schemaFor(target)
+  let maybeSchema = Kernel.try(->() { target.schema() })
+  if maybeSchema.ok then
+    maybeSchema.value
+  else
+    target
+  end
+end
+
+def cast(prompt, target)
+  cosm.ai.cast(prompt, schemaFor(target))
+end

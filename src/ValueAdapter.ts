@@ -11,6 +11,7 @@ import { CosmSchemaValue } from "./values/CosmSchemaValue";
 import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
 import { CosmSessionValue } from "./values/CosmSessionValue";
+import { CosmDataModelValue } from "./values/CosmDataModelValue";
 import { RuntimeInspect } from "./runtime/RuntimeInspect";
 import { Construct } from "./Construct";
 
@@ -155,6 +156,13 @@ export class ValueAdapter {
             kind: "session",
             name: value.nativeProperty("name") ? this.cosmToJS(value.nativeProperty("name")!) : null,
             length: value.nativeProperty("length") ? this.cosmToJS(value.nativeProperty("length")!) : 0,
+          };
+        }
+        if (value instanceof CosmDataModelValue) {
+          return {
+            kind: "data_model",
+            name: value.nativeProperty("name") ? this.cosmToJS(value.nativeProperty("name")!) : null,
+            fields: value.nativeProperty("fields") ? this.cosmToJS(value.nativeProperty("fields")!) : {},
           };
         }
         return Object.fromEntries(

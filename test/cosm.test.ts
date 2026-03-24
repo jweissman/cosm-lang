@@ -152,6 +152,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("HttpRouter.class.name")).toBe("HttpRouter class");
   expect(cosmEval("Time.class.name")).toBe("Time");
   expect(cosmEval("Random.class.name")).toBe("Random");
+  expect(cosmEval("Data.class.name")).toBe("Module");
+  expect(cosmEval("Data.Model.name")).toBe("DataModel");
   expect(cosmEval("http.class.name")).toBe("Http");
   expect(cosmEval("cosm.http.class.name")).toBe("Http");
 });
@@ -159,6 +161,8 @@ test("Kernel and cosm expose ambient reflective services", () => {
 test("modules, views, and runtime roots expose predictable reflective surfaces", () => {
   expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
   expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
+  expect(cosmEval('require("cosm/data")')).toMatchObject({ kind: "module", name: "cosm/data" });
+  expect(cosmEval('require("cosm/ai.cosm")')).toMatchObject({ kind: "module", name: "cosm/ai.cosm" });
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
@@ -169,13 +173,16 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.5");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.6");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.5");
+  expect(cosmEval("cosm.version")).toBe("0.3.6");
+  expect(cosmEval("cosm.Data.class.name")).toBe("Module");
+  expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
+  expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
 });
 
@@ -241,6 +248,8 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Kernel.try(->() { cosm.ai.complete("hi") }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Kernel.try(->() { cosm.ai.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEval('Data.model("Reason", { answer: Data.string() }).inspect()')).toBe('#<Data::Model "Reason">');
+  expect(cosmEval('Data.model("Reason", { answer: Data.string() }).schema().inspect()')).toBe('Schema.object({ answer: Schema.string() })');
   expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
   expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('#<Mirror { answer: 42 }>');
   expect(cosmEval("Mirror.reflect(Kernel).has(:assert)")).toBe(true);
@@ -619,7 +628,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const homeHeaders = home.nativeProperty?.("headers");
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.5");
+  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("body"))).toContain("Cosm 0.3.6");
 
   const notebook = dispatchService(`
     require("app/app.cosm")
@@ -627,6 +636,13 @@ test("module-organized app can be exercised as a request spec without listen", (
   `, "POST", "/notebook/eval", "code=1%20%2B%202");
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"))).toContain("3");
+
+  const modelNotebook = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/notebook/eval", "code=let%20Reason%20%3D%20Data.model(%22Reason%22%2C%20%7B%20answer%3A%20Data.string()%2C%20choice%3A%20Data.enum(%22yes%22%2C%20%22no%22)%20%7D)%3B%20Reason.cast(%7B%20answer%3A%20%22hi%22%2C%20choice%3A%20%22yes%22%20%7D)");
+  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("status"))).toBe(200);
+  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("body"))).toContain("answer: &quot;hi&quot;");
 });
 
 test(".ecosm templates can be required and rendered directly", () => {

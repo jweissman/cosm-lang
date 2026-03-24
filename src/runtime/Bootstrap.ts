@@ -24,6 +24,7 @@ import { CosmSchemaValue } from "../values/CosmSchemaValue";
 import { CosmPromptValue } from "../values/CosmPromptValue";
 import { CosmAiValue } from "../values/CosmAiValue";
 import { CosmSessionValue } from "../values/CosmSessionValue";
+import { CosmDataModelValue } from "../values/CosmDataModelValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
 import { basename } from "node:path";
@@ -136,7 +137,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -208,6 +209,10 @@ export class Bootstrap {
     Object.assign(classes.Session.methods, manifestMethods(
       new CosmSessionValue("example", classes.Session, classes.Error),
       CosmSessionValue.manifest,
+    ));
+    Object.assign(classes.DataModel.methods, manifestMethods(
+      new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace),
+      CosmDataModelValue.manifest,
     ));
     Object.assign(classes.Http.methods, manifestMethods(
       new CosmHttpValue(
@@ -297,6 +302,7 @@ export class Bootstrap {
       Prompt: classes.Prompt,
       Ai: classes.Ai,
       Session: classes.Session,
+      DataModel: classes.DataModel,
       Http: classes.Http,
       HttpRequest: classes.HttpRequest,
       HttpResponse: classes.HttpResponse,
@@ -332,6 +338,7 @@ export class Bootstrap {
     globals.Time = timeObject;
     globals.Random = randomObject;
     globals.ai = aiObject;
+    globals.Data = modules["cosm/data"];
     globals.Session = sessionClass;
     globals.http = httpObject;
     globals.assert = kernelMethods.assert;
@@ -356,9 +363,84 @@ export class Bootstrap {
       testSummary: classes.Kernel.methods.testSummary,
     }, classes.Module);
 
+    const dataModule = Construct.module("cosm/data", {
+      Model: classes.DataModel,
+      string: RuntimeDispatch.reflectClassMethod(classes.Schema, Construct.symbol("string"), { classes, globals: {} }),
+      number: RuntimeDispatch.reflectClassMethod(classes.Schema, Construct.symbol("number"), { classes, globals: {} }),
+      boolean: RuntimeDispatch.reflectClassMethod(classes.Schema, Construct.symbol("boolean"), { classes, globals: {} }),
+      enum: RuntimeDispatch.reflectClassMethod(classes.Schema, Construct.symbol("enum"), { classes, globals: {} }),
+      array: Construct.nativeFunc("array", (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: Data.array expects 1 arguments, got ${args.length}`);
+        }
+        return new CosmSchemaValue("array", { item: this.expectDataSchema(args[0], classes.Error) }, classes.Schema, classes.Error);
+      }),
+      optional: Construct.nativeFunc("optional", (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: Data.optional expects 1 arguments, got ${args.length}`);
+        }
+        return new CosmSchemaValue("optional", { inner: this.expectDataSchema(args[0], classes.Error) }, classes.Schema, classes.Error);
+      }),
+      object: Construct.nativeFunc("object", (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: Data.object expects 1 arguments, got ${args.length}`);
+        }
+        return new CosmSchemaValue("object", { fields: new CosmNamespaceValue(this.expectDataFields(args[0], classes.Error), classes.Namespace) }, classes.Schema, classes.Error);
+      }),
+      model: Construct.nativeFunc("model", (args) => {
+        if (args.length !== 2) {
+          throw new Error(`Arity error: Data.model expects 2 arguments, got ${args.length}`);
+        }
+        const [name, fields] = args;
+        if (name.type !== "string") {
+          throw new Error("Type error: Data.model expects a string model name");
+        }
+        return new CosmDataModelValue(
+          name.value,
+          this.expectDataFields(fields, classes.Error),
+          classes.DataModel,
+          classes.Schema,
+          classes.Error,
+          classes.Namespace,
+        );
+      }),
+    }, classes.Module);
+
     return {
       "cosm/test": testModule,
+      "cosm/data": dataModule,
+      "cosm/data.cosm": dataModule,
     };
+  }
+
+  private static expectDataSchema(value: CosmValue, errorClass?: CosmClassValue): CosmSchemaValue {
+    if (value instanceof CosmSchemaValue) {
+      return value;
+    }
+    if (value instanceof CosmDataModelValue) {
+      return value.toSchema();
+    }
+    CosmErrorValue.raise(
+      Construct.string("Type error: Data expects a Schema or Data model"),
+      errorClass,
+    );
+  }
+
+  private static expectDataFields(value: CosmValue, errorClass?: CosmClassValue): Record<string, CosmSchemaValue> {
+    const entries = value.type === "hash"
+      ? value.entries
+      : value.type === "object"
+        ? value.fields
+        : undefined;
+    if (!entries) {
+      CosmErrorValue.raise(
+        Construct.string("Type error: Data.model expects a hash, namespace, or object of field definitions"),
+        errorClass,
+      );
+    }
+    return Object.fromEntries(
+      Object.entries(entries).map(([key, entry]) => [key, this.expectDataSchema(entry, errorClass)]),
+    );
   }
 
   private static createRequireFunction(modules: Record<string, CosmObject>, runtime: BootstrapRuntime): CosmFunction {

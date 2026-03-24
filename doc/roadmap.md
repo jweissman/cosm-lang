@@ -77,13 +77,13 @@ What still feels missing or provisional:
 - Browser-side Cosm execution and broader host/browser runtime decisions.
 - Final CLI/dev-loop polish is much better now, but broader project/module watch semantics are still intentionally deferred.
 
-What is deliberately not part of `0.3.5` even if it is attractive:
+What is deliberately not part of `0.3.6` even if it is attractive:
 
 - ampersand block capture/passing
 - notebook UI beyond the tiny shared-session demo page
 - browser-side Cosm runtime
 - Slack/MCP or persistent agent runtime surfaces
-- `Data` syntax or model-declaration syntax
+- `data` syntax or model-declaration syntax
 - Tailwind/frontend stack decisions as language/runtime commitments
 - route params, wildcards, middleware groups, or route macros
 - lexical `module ... end`
@@ -104,9 +104,9 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 
 This is the current center of gravity.
 
-### v0.3.5 Target
+### v0.3.6 Target
 
-v0.3.5 should mean:
+v0.3.6 should mean:
 
 - a stable reflective runtime core
 - clearer TS-backed ownership for the main runtime classes
@@ -119,11 +119,13 @@ v0.3.5 should mean:
 - real `inspect()` and `to_s()` protocols across runtime values
 - `Session` as an explicit runtime object for notebook/server eval, with worker-backed isolation and timeout/error wrapping
 - a usable explicit AI boundary through `Prompt`, `Schema`, `cosm.ai`, `~=`, and LM Studio defaults, including model auto-discovery through `/v1/models`
+- a library-first `Data` module and `DataModel` runtime values on top of `Schema`
+- a first Cosm-authored stdlib helper layer through `require("cosm/ai.cosm")`
 - `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app, with layout composition aligned around narrow `yield()`
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
 
-v0.3.5 intentionally does not include:
+v0.3.6 intentionally does not include:
 
 - ampersand block capture/passing
 - a notebook app beyond the tiny shared-session demo page
@@ -162,7 +164,7 @@ Current focus:
 - Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
 - Reflective module objects and a first minimal `does_not_understand(message, args)` fallback now exist as the bridge toward future DSL work. The first concrete payoff is a tiny `router.draw(...)` builder path for route registration, while lexical `module ... end`, splats, and block capture remain deliberately deferred.
 - The next useful consolidation step is to make the app/module split feel canonical, so `app/server.cosm` reads like a boot entry and `app/app.cosm` reads like the service module.
-- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.5`; we should not broaden the release into full Ruby-shaped block syntax.
+- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.6`; we should not broaden the release into full Ruby-shaped block syntax.
 - A narrow `cosm --watch <file>` loop now exists as a child-process restart convenience; the remaining CLI work is mainly polish around argument parsing, help, and error handling.
 
 Questions this track should answer:
@@ -175,7 +177,7 @@ Questions this track should answer:
 - How should future wrapper concepts like mirrors and holograms relate to ordinary objects, metaclasses, and host interop boundaries?
 - If Cosm eventually gains `template`-style structure definitions, what metaobject protocol should those forms lower onto?
 
-### v0.3.5 Definition Of Done
+### v0.3.6 Definition Of Done
 
 - Core reflective/runtime classes keep one explicit exposure protocol.
 - `cosm.ts` is not the main declaration site for runtime surfaces.
@@ -186,6 +188,8 @@ Questions this track should answer:
 - `Process`, `Kernel`, and `Time` cover the additional tiny comfort surface needed for service/notebook work: `platform`, `arch`, `sleep`, and `fromIso`.
 - `inspect()`, `to_s()`, and `Kernel.blockGiven()` behave consistently through runtime dispatch.
 - `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable, while `Schema.jsonSchema()` gives the casting path a stable structural contract.
+- `Data` and `DataModel` provide an ergonomic schema-backed model layer for app/notebook/AI code.
+- `cosm/ai.cosm` proves that higher-level helper code can now live in Cosm instead of only TS.
 - A dedicated live LM Studio integration target is documented and passes against a real local LM Studio instance: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains optional when auto-discovery is insufficient or you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are documented and test-covered.
 - The canonical app demonstrates a split boot/app/views structure, router middleware, `router.draw do ... end`, `get "/" do |req| ... end`, and a tiny `/notebook` route without introducing full block semantics or browser execution.
@@ -203,7 +207,7 @@ Concrete next construction ideas:
 - Keep the near-term web-service path intentionally object-oriented: `http.serve(port, App.new())` should feel like the canonical minimal service shape before any route DSLs appear.
 - Keep the routing DSL runtime-backed and narrow for now: `router.draw(...)` can smooth over bare verb calls, but route params, wildcards, middleware, and route macros should stay deferred.
 - Make `Mirror` the first readonly reflective wrapper before reaching for richer hologram/delegation concepts.
-- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.5`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
+- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.6`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
@@ -213,9 +217,8 @@ Concrete next construction ideas:
 
 Recommended next slice:
 
-- Treat `0.3.5` as the point where the runtime starts behaving like a real operational surface instead of just a semantically promising demo slice.
-- Use the immediate next track to add a library-first `Data::Model` layer on top of `Schema`, plus more Cosm-authored stdlib surfaces where the host boundary is already stable.
-- Then deepen the notebook shell from the new module/app/views + middleware structure.
+- Treat `0.3.6` as the point where the runtime starts behaving like a more usable platform surface instead of only a semantically promising demo slice.
+- Use the immediate next track to deepen the notebook shell from the new module/app/views + middleware + data-model structure.
 - Then decide browser/runtime exposure from that stronger server-side notebook footing.
 - Only after those foundations, reach for a tiny persistent agent runtime with Slack/MCP-style adapters as standard/runtime libraries rather than syntax features.
 - Leave ampersand block capture, variadics, and richer callable/block syntax for after those steps.
