@@ -1,0 +1,19 @@
+require("cosm/test")
+
+describe("Kernel", ->() {
+  test("ambient assertions and dispatch stay available", ->() {
+    assert(Kernel.assert(true) == true)
+    assert(Kernel.dispatch(1, :plus, 2) == 3)
+  })
+  test("explicit scalar helpers stay available", ->() {
+    assert("42".to_i() == 42)
+    assert("3.5".to_f() == 3.5)
+    assert(:status.to_s() == "status")
+  })
+  test("trace and validation helpers stay available", ->() {
+    assert(Kernel.trace("kernel spec", 41) == 41)
+    assert(Kernel.tryValidate(42, Schema.number()).ok == true)
+  })
+})
+
+"kernel spec complete"

@@ -80,6 +80,8 @@ export type IrInstruction =
   | { op: "push_bool"; value: boolean }
   | { op: "push_string"; value: string }
   | { op: "push_symbol"; value: string }
+  | { op: "build_array"; length: number }
+  | { op: "build_hash"; keys: string[] }
   | { op: "load_name"; name: string }
   | { op: "store_name"; name: string }
   | { op: "load_property"; name: string }

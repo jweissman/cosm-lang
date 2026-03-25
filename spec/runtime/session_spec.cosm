@@ -1,0 +1,14 @@
+require("cosm/test")
+
+describe("Session", ->() {
+  test("default session stays explicit", ->() {
+    assert(Session.default().name == "default")
+    assert(Kernel.session().name == "default")
+  })
+  test("eval helpers stay structured", ->() {
+    assert(Kernel.tryEval("1 + 2").ok == true)
+    assert(Kernel.tryEval("1 + 2").inspect == "3")
+  })
+})
+
+"session spec complete"

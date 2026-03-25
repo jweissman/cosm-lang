@@ -147,7 +147,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("app/examples.cosm"); examples.class.name')).toBe("Module");
   expect(cosmEval('require("app/examples.cosm"); examples.receiverReflection().code')).toBe("Object.new().methods()");
   expect(cosmEval('require("app/examples.cosm"); examples.dispatchHelper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(12);
+  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(13);
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");

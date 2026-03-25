@@ -1,0 +1,15 @@
+require("cosm/test")
+
+describe("Process", ->() {
+  test("host process helpers stay available", ->() {
+    assert(Process.cwd().length > 0)
+    assert(Process.argv().length >= 1)
+    assert(Process.pid() > 0)
+  })
+  test("platform helpers stay available", ->() {
+    assert(Process.platform().length > 0)
+    assert(Process.arch().length > 0)
+  })
+})
+
+"process spec complete"

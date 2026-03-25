@@ -1,0 +1,15 @@
+require("cosm/test")
+
+describe("Random", ->() {
+  test("numeric helpers stay in expected bounds", ->() {
+    assert(Random.float() >= 0)
+    assert(Random.float() < 1)
+    assert(Random.int(5) >= 0)
+    assert(Random.int(5) < 5)
+  })
+  test("choice can select from arrays", ->() {
+    assert(Random.choice(["a", "b", "c"]).class.name == "String")
+  })
+})
+
+"random spec complete"

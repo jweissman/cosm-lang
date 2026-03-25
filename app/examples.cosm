@@ -46,6 +46,10 @@ def supportAgentPreview()
   example("AI", "Support agent prompt", "Preview the tiny Slack support-agent prompt and reply loop surface.", "require(\"support/agent.cosm\"); agent.preview()")
 end
 
+def supportChatStep()
+  example("Support", "Chat step", "Run one pure-Cosm support-chat step without Slack in the loop.", "require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+end
+
 def routerSketch()
   example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
@@ -70,6 +74,10 @@ def services()
   [routerSketch()]
 end
 
+def support()
+  [supportChatStep()]
+end
+
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), supportChatStep(), routerSketch()]
 end

@@ -26,11 +26,21 @@ export class CosmSessionValue extends CosmObjectValue {
   private static nextId = 1;
 
   static installRuntimeHooks(hooks: {
-    createHandle: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
-    defaultSession: () => CosmSessionValue;
+    createHandle?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
+    defaultSession?: () => CosmSessionValue;
   }): void {
     this.createHandleHandler = hooks.createHandle;
     this.defaultSessionHandler = hooks.defaultSession;
+  }
+
+  static currentRuntimeHooks(): {
+    createHandle?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
+    defaultSession?: () => CosmSessionValue;
+  } {
+    return {
+      createHandle: this.createHandleHandler,
+      defaultSession: this.defaultSessionHandler,
+    };
   }
 
   static readonly manifest: RuntimeValueManifest<CosmSessionValue> = {

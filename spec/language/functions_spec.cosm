@@ -1,0 +1,1 @@
+require("spec/language/callables_and_blocks.cosm")

@@ -37,7 +37,7 @@
           <div><dt class="font-semibold text-slate-100">Eval</dt><dd>Backed by <code class="text-cyan-300">Session.default().tryEval(...)</code></dd></div>
           <div><dt class="font-semibold text-slate-100">Reflection</dt><dd>Use <code class="text-cyan-300">value.methods()</code> for symbol names and <code class="text-cyan-300">value.method(:name)</code> for the callable method object.</dd></div>
           <div><dt class="font-semibold text-slate-100">Data</dt><dd>Use <code class="text-cyan-300">Data.model(...)</code> to build model-shaped contracts on top of <code class="text-cyan-300">Schema</code>.</dd></div>
-          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code>, <code class="text-cyan-300">cosm.ai.cast(...)</code>, <code class="text-cyan-300">require("cosm/ai.cosm")</code>, and <code class="text-cyan-300">require("support/agent.cosm")</code> keep the agent loop explicit.</dd></div>
+          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code>, <code class="text-cyan-300">cosm.ai.cast(...)</code>, <code class="text-cyan-300">require("cosm/ai.cosm")</code>, <code class="text-cyan-300">require("support/agent.cosm")</code>, and <code class="text-cyan-300">require("support/chat.cosm")</code> keep the support loop explicit.</dd></div>
           <div><dt class="font-semibold text-slate-100">Dispatch</dt><dd><code class="text-cyan-300">receiver.send(...)</code> is the ordinary message-send path; <code class="text-cyan-300">Kernel.dispatch(...)</code> is the explicit helper form.</dd></div>
         </dl>
       </div>

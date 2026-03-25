@@ -1,8 +1,8 @@
 ## Core spec smoke runner
 
-require("spec/language/core_expressions.cosm");
-require("spec/runtime/baseline.cosm");
-require("spec/language/callables_and_blocks.cosm");
-require("spec/language/classes_and_reflection.cosm");
+require("spec/language/scalars_spec.cosm");
+require("spec/language/functions_spec.cosm");
+require("spec/language/classes_spec.cosm");
+require("spec/language/reflection_spec.cosm");
 
 classes.String.name

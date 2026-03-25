@@ -175,7 +175,7 @@ export class CosmSlackValue extends CosmObjectValue {
 
     return {
       shouldReply: true,
-      text: "I hit a support-agent hiccup while handling that message. Please try again in a bit.",
+      text: "I hit a support-agent hiccup while handling that DM. Please try again in a bit.",
       rationale: typeof result.inspect === "string" ? result.inspect : false,
     };
   }

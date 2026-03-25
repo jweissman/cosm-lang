@@ -1,17 +1,23 @@
 require("support/models.cosm")
 
-def replyPrompt(conversation, inbound)
+def replyPromptFromTranscript(transcript, latestText)
   Prompt.text("""
-You are the first tiny Cosm Slack support assistant.
-Answer briefly, clearly, and honestly. Prefer actionable answers.
+You are Iapetus, the first tiny Cosm local-model support assistant.
+Stay narrow, support-oriented, and honest.
+Prefer actionable troubleshooting steps.
 If you are unsure, say so plainly instead of pretending.
+Do not invent tool results or hidden capabilities.
 Return JSON matching this schema:
 #{Kernel.inspect(models.AgentReply.jsonSchema())}
 
-Conversation:
-#{Kernel.inspect(conversation)}
+Transcript so far:
+#{transcript}
 
-Inbound message:
-#{Kernel.inspect(inbound)}
+Latest user message:
+#{latestText}
 """)
+end
+
+def replyPrompt(conversation, inbound)
+  replyPromptFromTranscript(Kernel.inspect(conversation.messages), inbound.text)
 end

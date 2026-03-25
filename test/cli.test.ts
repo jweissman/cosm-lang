@@ -333,6 +333,23 @@ test("cli help command prints usage", () => {
 test("cli can run the cosm self-test file", () => {
   const result = runCli(["spec/core.cosm"]);
   expect(result.exitCode).toBe(0);
-  expect(result.stderr).toContain("core warning");
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("Cosm version:");
   expect(result.stdout).toContain("String");
+});
+
+test("cli can run the dedicated runtime harness spec bundle", () => {
+  const result = runCli(["--test", "spec/runtime/baseline.cosm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("# Kernel");
+  expect(result.stdout).toContain("# Support chatbot helpers");
+  expect(result.stdout).toContain("passed");
+});
+
+test("cli can execute the support-oriented vm smoke file", () => {
+  const result = runCli(["test/vm_support.cosm", "--vm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("Try the Reset Session button.");
 });

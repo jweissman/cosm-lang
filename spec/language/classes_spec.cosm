@@ -1,0 +1,1 @@
+require("spec/language/classes_and_reflection.cosm")

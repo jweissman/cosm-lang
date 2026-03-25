@@ -55,6 +55,18 @@ export class RuntimeIr {
         case "push_symbol":
           stack.push(hooks.internSymbol(instruction.value));
           break;
+        case "build_array": {
+          const items = popArgs(instruction.length);
+          stack.push(Construct.array(items));
+          break;
+        }
+        case "build_hash": {
+          const values = popArgs(instruction.keys.length);
+          stack.push(Construct.hash(Object.fromEntries(
+            instruction.keys.map((key, index) => [key, values[index]]),
+          )));
+          break;
+        }
         case "load_name":
           stack.push(hooks.lookupName(instruction.name, currentEnv));
           break;
@@ -157,6 +169,29 @@ export class RuntimeIr {
         return;
       case "symbol":
         instructions.push({ op: "push_symbol", value: ast.value });
+        return;
+      case "array":
+        for (const child of ast.children ?? []) {
+          this.compileNode(child, instructions);
+        }
+        instructions.push({ op: "build_array", length: (ast.children ?? []).length });
+        return;
+      case "hash":
+        for (const child of ast.children ?? []) {
+          if (child.kind !== "pair" || !child.left) {
+            throw new Error("IR compile error: hash entries must be key-value pairs");
+          }
+          this.compileNode(child.left, instructions);
+        }
+        instructions.push({
+          op: "build_hash",
+          keys: (ast.children ?? []).map((child) => {
+            if (child.kind !== "pair") {
+              throw new Error("IR compile error: hash entries must be key-value pairs");
+            }
+            return child.value;
+          }),
+        });
         return;
       case "ident":
         instructions.push({ op: "load_name", name: ast.value });

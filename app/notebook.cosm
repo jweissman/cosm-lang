@@ -31,12 +31,16 @@ class NotebookExamples
       category("AI", "Prompt objects, runtime AI status, AI-assisted cast, and the tiny Slack-support helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()))
     end
 
+    def supportMarkup()
+      category("Support", "The narrow proving wedge is a pure Cosm support assistant first, with Slack as a thin adapter around the same prompt/reply core.", card(examples.supportChatStep()))
+    end
+
     def servicesMarkup()
       category("Services", "The service layer stays object-first and deliberately small.", card(examples.routerSketch()))
     end
 
     def markup()
-      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + aiMarkup() + servicesMarkup() })
+      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + aiMarkup() + supportMarkup() + servicesMarkup() })
     end
 
     def category(title, description, cards)

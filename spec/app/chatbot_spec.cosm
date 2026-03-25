@@ -1,0 +1,14 @@
+require("cosm/test")
+require("support/chat.cosm")
+
+describe("Support chatbot helpers", ->() {
+  test("transcript appends stay stable", ->() {
+    assert(chat.appendTranscript("", "user", "hello") == "user: hello")
+    assert(chat.appendTranscript("user: hello", "assistant", "hi") == "user: hello\nassistant: hi")
+  })
+  test("banner stays descriptive", ->() {
+    assert(chat.banner().length > 20)
+  })
+})
+
+"chatbot spec complete"

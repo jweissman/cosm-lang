@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.11` is aimed at re-centering Cosm around semantic coherence and a first real VM down payment while also proving the first tiny app wedge:
+The current tree is best read as **`0.3.11-gamma`**: it is re-centering Cosm around semantic coherence and a first real VM down payment while also proving the first tiny app wedge:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -31,8 +31,9 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 - a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
 - a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
 - a tiny DM-first Slack support path through `/slack/events`, `slack.events(req)`, and Cosm-authored `support/` modules
+- a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`
 
-This is intentionally still below a full notebook product or framework layer. `0.3.11` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, and a notebook that teaches those layers without pretending to be the next product yet.
+This is intentionally still below a full notebook product or framework layer. `0.3.11-gamma` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding
@@ -176,6 +177,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `just http-test`
 - `bun bin/cosm --test test/test.cosm`
 - `bun bin/cosm spec/core.cosm`
+- `bun bin/cosm --test spec/runtime/baseline.cosm`
 - `bun bin/cosm --watch app/server.cosm`
 - `bun bin/cosm app/server.cosm --watch`
 - `bun bin/cosm --help`

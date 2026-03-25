@@ -3,12 +3,20 @@ require("support/models.cosm")
 require("support/prompts.cosm")
 require("support/replies.cosm")
 
+def handleTranscript(transcript, latestText)
+  let reply = ai.reply(prompts.replyPromptFromTranscript(transcript, latestText), models.AgentReply)
+  models.AgentReply.validate(reply)
+  reply
+end
+
+def transcriptFromConversation(conversation)
+  Kernel.inspect(conversation.messages)
+end
+
 def handle(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  let reply = ai.reply(prompts.replyPrompt(conversation, inbound), models.AgentReply)
-  models.AgentReply.validate(reply)
-  reply
+  handleTranscript(transcriptFromConversation(conversation), inbound.text)
 end
 
 def fallback(conversation, inbound, errorMessage)
@@ -26,5 +34,5 @@ def exampleInbound()
 end
 
 def preview()
-  prompts.replyPrompt(exampleConversation(), exampleInbound())
+  prompts.replyPromptFromTranscript(transcriptFromConversation(exampleConversation()), exampleInbound().text)
 end

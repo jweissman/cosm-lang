@@ -1,0 +1,35 @@
+require("support/agent.cosm")
+
+def banner()
+  "Iapetus is a tiny local-model Cosm support assistant. Press enter on an empty line to exit."
+end
+
+def appendTranscript(transcript, role, text)
+  if transcript == "" then
+    role + ": " + text
+  else
+    transcript + "\n" + role + ": " + text
+  end
+end
+
+def step(transcript, input)
+  let reply = agent.handleTranscript(transcript, input)
+  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", input), "assistant", reply.text)
+  { transcript: nextTranscript, reply: reply }
+end
+
+def run()
+  Kernel.puts(banner())
+  loop("")
+end
+
+def loop(transcript)
+  let input = Kernel.readline("you> ")
+  if input == "" then
+    Kernel.puts("iapetus> Goodbye for now.")
+  else
+    let result = step(transcript, input)
+    Kernel.puts("iapetus> " + result.reply.text)
+    loop(result.transcript)
+  end
+end

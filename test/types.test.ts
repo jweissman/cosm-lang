@@ -117,6 +117,7 @@ test("callable and reflective constructors preserve metadata", () => {
 });
 
 test("core runtime manifests expose a consistent boot surface", () => {
+  const previousSessionHooks = CosmSessionValue.currentRuntimeHooks();
   const objectClass = new CosmClassValue("Object");
   const classClass = new CosmClassValue("Class", "Object");
   const kernelClass = new CosmClassValue("Kernel", "Object");
@@ -226,20 +227,26 @@ test("core runtime manifests expose a consistent boot surface", () => {
     new CosmAiValue({}, aiClass, errorClass),
     CosmAiValue.manifest,
   );
-  CosmSessionValue.installRuntimeHooks({
-    createHandle: () => ({
-      eval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
-      tryEval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
-      reset: () => undefined,
-      history: () => [],
-    }),
-    defaultSession: () => new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
-  });
-  const sessionMethods = manifestMethods(
-    new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
-    CosmSessionValue.manifest,
-  );
-  const sessionClassMethods = manifestClassMethods(CosmSessionValue.manifest);
+  let sessionMethods;
+  let sessionClassMethods;
+  try {
+    CosmSessionValue.installRuntimeHooks({
+      createHandle: () => ({
+        eval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
+        tryEval: () => ({ ok: true, value: Val.bool(true), inspect: "true", error: false, history: [] }),
+        reset: () => undefined,
+        history: () => [],
+      }),
+      defaultSession: () => new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
+    });
+    sessionMethods = manifestMethods(
+      new CosmSessionValue("default", new CosmClassValue("Session"), errorClass),
+      CosmSessionValue.manifest,
+    );
+    sessionClassMethods = manifestClassMethods(CosmSessionValue.manifest);
+  } finally {
+    CosmSessionValue.installRuntimeHooks(previousSessionHooks);
+  }
 
   expect(Object.keys(objectMethods).sort()).toEqual(["eq", "inspect", "method", "methods", "send", "to_s"]);
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
