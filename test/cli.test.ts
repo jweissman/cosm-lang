@@ -331,7 +331,7 @@ test("cli help command prints usage", () => {
 });
 
 test("cli can run the cosm self-test file", () => {
-  const result = runCli(["test/core.cosm"]);
+  const result = runCli(["spec/core.cosm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toContain("core warning");
   expect(result.stdout).toContain("String");

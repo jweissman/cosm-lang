@@ -109,15 +109,19 @@ export class RuntimeDispatch {
 
   static reflectMethod(receiver: CosmValue, messageValue: CosmValue, repository: RuntimeRepository): CosmValue {
     const message = this.messageName(messageValue);
-    if (receiver.type === 'class') {
-      const method = this.lookupMethod(this.classOf(receiver, repository.classes), message);
-      if (!method) {
-        throw new Error(`Property error: class ${receiver.name} has no method '${message}'`);
+    if (receiver.type === "class") {
+      const nativeMethod = receiver.nativeMethod(message);
+      if (nativeMethod) {
+        return this.bindMethod(receiver, nativeMethod);
       }
-      return this.bindMethod(receiver, method);
+      const candidate = this.lookupProperty(receiver, message, repository);
+      if (!this.isCallable(candidate)) {
+        throw new Error(`Type error: property '${message}' is not a method`);
+      }
+      return candidate;
     }
-    const candidate = this.lookupProperty(receiver, message, repository);
-    if (candidate.type !== 'function' && candidate.type !== 'method') {
+    const candidate = this.resolveSendTarget(receiver, message, repository);
+    if (!this.isCallable(candidate)) {
       throw new Error(`Type error: property '${message}' is not a method`);
     }
     return candidate;
@@ -177,30 +181,11 @@ export class RuntimeDispatch {
     invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
     env?: CosmEnv,
   ): CosmValue {
-    try {
-      const callee = this.lookupProperty(receiver, property, repository);
-      if (callee.type !== "function" && callee.type !== "method") {
-        if (receiver.type === "class") {
-          const nativeMethod = receiver.nativeMethod(property);
-          if (nativeMethod) {
-            return invokeFunction(this.bindMethod(receiver, nativeMethod), args, undefined, env);
-          }
-        }
-        return this.send(receiver, property, args, repository, invokeFunction);
-      }
-      return invokeFunction(callee, args, undefined, env);
-    } catch (error) {
-      if (
-        error instanceof Error
-        && (
-          (receiver.type !== "class" && error.message.includes(`has no property '${property}'`))
-          || error.message === "Type error: attempted to call a non-function value of type object"
-        )
-      ) {
-        return this.send(receiver, property, args, repository, invokeFunction);
-      }
-      throw error;
+    const resolution = this.resolveAccessCallTarget(receiver, property, repository);
+    if (resolution.kind === "send") {
+      return this.send(receiver, property, args, repository, invokeFunction);
     }
+    return invokeFunction(resolution.callee, args, undefined, env);
   }
 
   static resolveSendTarget(
@@ -235,6 +220,64 @@ export class RuntimeDispatch {
       return undefined;
     }
     return this.bindMethod(receiver, fallback);
+  }
+
+  private static resolveAccessCallTarget(
+    receiver: CosmValue,
+    property: string,
+    repository: RuntimeRepository,
+  ): { kind: "invoke"; callee: CosmValue } | { kind: "send" } {
+    if (receiver.type === "class") {
+      try {
+        const callee = this.lookupProperty(receiver, property, repository);
+        if (this.isCallable(callee)) {
+          return { kind: "invoke", callee };
+        }
+        const nativeMethod = receiver.nativeMethod(property);
+        if (nativeMethod) {
+          return { kind: "invoke", callee: this.bindMethod(receiver, nativeMethod) };
+        }
+        return { kind: "invoke", callee };
+      } catch (error) {
+        const nativeMethod = receiver.nativeMethod(property);
+        if (nativeMethod) {
+          return { kind: "invoke", callee: this.bindMethod(receiver, nativeMethod) };
+        }
+        throw error;
+      }
+    }
+
+    try {
+      const callee = this.lookupProperty(receiver, property, repository);
+      if (this.isCallable(callee)) {
+        return { kind: "invoke", callee };
+      }
+      if (this.canHandleMessage(receiver, property, repository)) {
+        return { kind: "send" };
+      }
+      return { kind: "invoke", callee };
+    } catch (error) {
+      if (this.canHandleMessage(receiver, property, repository)) {
+        return { kind: "send" };
+      }
+      throw error;
+    }
+  }
+
+  private static canHandleMessage(receiver: CosmValue, message: string, repository: RuntimeRepository): boolean {
+    try {
+      const candidate = this.resolveSendTarget(receiver, message, repository);
+      if (this.isCallable(candidate)) {
+        return true;
+      }
+    } catch {
+      // fall through to does_not_understand lookup
+    }
+    return this.lookupMissingMethodHandler(receiver, repository) !== undefined;
+  }
+
+  private static isCallable(value: CosmValue): boolean {
+    return value.type === "function" || value.type === "method";
   }
 
   static messageName(messageValue: CosmValue): string {

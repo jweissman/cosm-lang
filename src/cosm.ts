@@ -737,35 +737,48 @@ namespace Cosm {
     private static evalCall(ast: CoreNode, env: Env): CosmValue {
       const calleeAst = this.expectChild(ast, 'call');
       return this.withFrame(`call ${this.describeCallTarget(calleeAst)}`, () => {
-        const blockArg = ast.target === 'trailing_block' ? (ast.children ?? []).at(-1) : undefined;
-        const currentBlock = blockArg ? this.evalNode(blockArg, env) : undefined;
-        const args = (ast.children ?? []).map((child) => child === blockArg && currentBlock ? currentBlock : this.evalNode(child, env));
-        if (calleeAst.kind === 'access') {
-          const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
-          return RuntimeDispatch.invokeAccessCall(
-            receiver,
-            calleeAst.value,
-            args,
-            this.repo(),
-            (callee, invokeArgs, selfValue, scope) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
-            env,
-          );
-        }
-        if (calleeAst.kind === 'ident') {
-          try {
-            const callee = this.lookupName(calleeAst.value, env);
-            return this.invokeFunction(callee, args, undefined, env, currentBlock);
-          } catch (error) {
-            const selfValue = this.findSelfBinding(env);
-            if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${calleeAst.value}'`) {
-              return this.send(selfValue, calleeAst.value, args, env);
-            }
-            throw error;
-          }
-        }
-        const callee = this.evalNode(calleeAst, env);
-        return this.invokeFunction(callee, args, undefined, env, currentBlock);
+        const { args, currentBlock } = this.evaluateCallArgs(ast, env);
+        return this.invokeCallTarget(calleeAst, args, env, currentBlock);
       });
+    }
+
+    private static evaluateCallArgs(ast: CoreNode, env: Env): { args: CosmValue[]; currentBlock?: CosmValue } {
+      const blockArg = ast.target === 'trailing_block' ? (ast.children ?? []).at(-1) : undefined;
+      const currentBlock = blockArg ? this.evalNode(blockArg, env) : undefined;
+      const args = (ast.children ?? []).map((child) => child === blockArg && currentBlock ? currentBlock : this.evalNode(child, env));
+      return { args, currentBlock };
+    }
+
+    private static invokeCallTarget(calleeAst: CoreNode, args: CosmValue[], env: Env, currentBlock?: CosmValue): CosmValue {
+      if (calleeAst.kind === 'access') {
+        const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
+        return RuntimeDispatch.invokeAccessCall(
+          receiver,
+          calleeAst.value,
+          args,
+          this.repo(),
+          (callee, invokeArgs, selfValue, scope) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+          env,
+        );
+      }
+      if (calleeAst.kind === 'ident') {
+        return this.invokeNamedCall(calleeAst.value, args, env, currentBlock);
+      }
+      const callee = this.evalNode(calleeAst, env);
+      return this.invokeFunction(callee, args, undefined, env, currentBlock);
+    }
+
+    private static invokeNamedCall(name: string, args: CosmValue[], env: Env, currentBlock?: CosmValue): CosmValue {
+      try {
+        const callee = this.lookupName(name, env);
+        return this.invokeFunction(callee, args, undefined, env, currentBlock);
+      } catch (error) {
+        const selfValue = this.findSelfBinding(env);
+        if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${name}'`) {
+          return this.send(selfValue, name, args, env);
+        }
+        throw error;
+      }
     }
 
     private static evalYield(ast: CoreNode, env: Env): CosmValue {

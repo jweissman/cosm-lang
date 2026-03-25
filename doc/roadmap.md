@@ -61,7 +61,7 @@ Those should begin as standard/runtime libraries rather than syntax features, so
 
 ## Where We Are Now
 
-- The language already has a stable-enough expression, function, and class surface to keep growing top-down through [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
+- The language already has a stable-enough expression, function, and class surface to keep growing top-down through [spec/core.cosm](/Users/joe/Work/cosm-lang/spec/core.cosm).
 - Ordinary inheritance works for instance methods and `init`-driven construction.
 - Explicit class-side methods exist via `def self.name(...)`.
 - Minimal per-class metaclasses exist, and class-side lookup already follows the metaclass chain.
@@ -87,7 +87,7 @@ What already feels real enough for everyday experiments:
 - Numbers, strings, booleans, symbols, arrays, hashes, blocks, conditionals, functions, classes, and reflective roots.
 - A persistent REPL/session loop.
 - Assertions, inspection, explicit send, reflective namespace/class exploration, and basic stdio through `Kernel`.
-- A language-level smoke test in [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
+- A language-level smoke test in [spec/core.cosm](/Users/joe/Work/cosm-lang/spec/core.cosm), with [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm) retained as a compatibility wrapper.
 - A tiny Cosm-native test flow through `require("cosm/test")`, `test(...)`, `describe(...)`, and `bin/cosm --test`.
 
 What still feels missing or provisional:
@@ -120,7 +120,7 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 
 - Parser, lowering, and evaluation are separated.
 - Core authoring ergonomics are in place: comments, strings, interpolation, lexical blocks, `if`, lambdas, `def`, and persistent REPL/session bindings.
-- `test/core.cosm` acts as a language-level smoke test, backed by Bun specs and direct runtime tests.
+- `spec/core.cosm` now acts as the language-level smoke test, backed by Bun specs and direct runtime tests.
 - Class syntax, instance construction, inheritance, explicit class methods, and minimal metaclasses are working.
 
 ## Active Track: Runtime + Stdlib Consolidation

@@ -175,6 +175,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `just self-test`
 - `just http-test`
 - `bun bin/cosm --test test/test.cosm`
+- `bun bin/cosm spec/core.cosm`
 - `bun bin/cosm --watch app/server.cosm`
 - `bun bin/cosm app/server.cosm --watch`
 - `bun bin/cosm --help`

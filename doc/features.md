@@ -88,7 +88,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - A minimal `does_not_understand(message, args)` fallback protocol for missing instance sends, with `message` passed as a `Symbol` and `args` passed as an `Array`. The first concrete use is a tiny router builder layer, where `router.draw(...)` can interpret bare `get(...)` / `post(...)` calls without new route syntax.
 - Primitive ownership beginning to move into TS runtime classes via native properties/methods such as numeric/string `plus` and string/array/hash `length`.
 - Scalar equality and numeric ordering are now beginning to route through runtime message methods as well, instead of only evaluator branches.
-- Bun tests, direct runtime tests, a CLI runner, and `test/core.cosm` as a language-level smoke test.
+- Bun tests, direct runtime tests, a CLI runner, and `spec/core.cosm` as the main language-level smoke test, with `test/core.cosm` kept as a compatibility shim.
 
 ## In Progress
 
@@ -117,7 +117,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - The notebook supports debounced live eval, ships with one-click examples that pressure data, AI, and reflection together, and keeps a lightweight browser-local recent snippet list.
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
-- REPL, CLI, `test/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
+- REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
 - Full notebook/framework work is still intentionally post-`0.3.11`, and the next proving step is deepening the tiny DM-first Slack support path already in the tree.
 
 ## Explicitly Not In v0.3.11

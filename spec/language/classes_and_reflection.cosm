@@ -1,0 +1,92 @@
+## Classes, metaclasses, ordinary object access, and service-oriented runtime objects
+
+assert(1.plus(2) == 3, "number instances can send plus directly");
+assert(Class.name == "Class", "Class is available as a reflective built-in");
+assert(Number.class.name == "Number class", "built-in classes now have explicit metaclasses");
+assert(Number.metaclass.name == "Number class", "class objects expose their metaclass directly");
+assert(Number.metaclass.class.name == "Class", "metaclasses are themselves instances of Class");
+assert(Number.class.superclass.name == "Object class", "built-in metaclasses follow the class inheritance chain");
+
+class Pair do
+  def init(left, right) do
+    true
+  end
+  def label() do
+    "#{@left}:#{@right}"
+  end
+  def sum() do
+    @left + @right
+  end
+  def classname() do
+    self.class.name
+  end
+end;
+let tuple = Pair.new(1, 2);
+assert(Pair.name == "Pair", "class definitions bind a class value");
+assert(classes.Pair.name == "Pair", "class definitions appear in the reflective classes view");
+assert(Pair.slots.length == 2, "class definitions collect slots reflectively");
+assert(Pair.methods.label.name == "label", "class defs collect methods reflectively");
+assert(tuple.left == 1, "constructors assign slot values in order");
+assert(tuple.right == 2, "constructors assign later slot values in order");
+assert(tuple.label() == "1:2", "methods can use ivar shorthand for field provenance");
+assert(tuple.sum() == 3, "ivars behave like direct instance-field reads");
+assert(tuple.classname() == "Pair", "instances can send methods with self");
+assert(Pair.new(1, 2) == Pair.new(1, 2), "instance equality now also flows through runtime eq");
+
+class InheritedPair < Pair
+end;
+assert(InheritedPair.new(1, 2).method(:label).name == "label", "receiver-side reflection can still look up inherited methods directly");
+
+class Checked do
+  def init(value) do
+    assert(@value == value, "init bodies can observe assigned fields");
+  end
+end;
+
+class Greeter do
+  def self.label() do
+    self.name + "!"
+  end
+  def self.kind() do
+    self.class.name
+  end
+end;
+
+class MetaGreeter
+  class << self
+    def label()
+      self.name + "!"
+    end
+  end
+end;
+
+class BaseLabel do
+  def self.label() do
+    "base"
+  end
+end;
+
+class ChildLabel < BaseLabel do end;
+assert(Checked.new(4).value == 4, "init signatures drive constructor arity and fields");
+assert(Greeter.classMethods.label.name == "label", "class methods reflect separately from instance methods");
+assert(MetaGreeter.label() == "MetaGreeter!", "class << self can define class-side methods explicitly");
+assert(Greeter.classMethod(:label).name == "label", "class objects can introspect bound class methods directly");
+assert(Greeter.classMethod(:label).call() == "Greeter!", "bound class methods can be invoked through call");
+assert(Greeter.label() == "Greeter!", "class objects can participate in method send when explicitly declared");
+assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
+assert(ChildLabel.metaclass.superclass.name == "BaseLabel class", "user metaclasses inherit through the class hierarchy");
+assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
+
+assert({ greeting: "hello" }.greeting == "hello", "hash access works");
+
+let router = HttpRouter.new();
+router.use do |req, next|
+  next()
+end;
+router.draw do
+  get "/" do |req|
+    HttpResponse.html("<h1>ok</h1>", 200)
+  end
+end;
+assert(router.length == 1, "HttpRouter can register exact routes through draw");
+assert(Mirror.reflect(router).inspect() == '#<Mirror #<HttpRouter routes: 1>>', "Mirror can inspect service-oriented runtime objects");

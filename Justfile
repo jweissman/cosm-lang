@@ -13,7 +13,7 @@ lint-fix:
   bun run lint:fix
 
 self-test:
-  cosm test/core.cosm
+  cosm spec/core.cosm
 
 repl:
   cosm
