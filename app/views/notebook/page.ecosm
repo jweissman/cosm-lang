@@ -1,6 +1,3 @@
-<%=
-examplesMarkup
-%>
 <main class="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-10">
   <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
     <div>
@@ -27,6 +24,10 @@ examplesMarkup
     </section>
 
     <section class="space-y-4">
+      <div id="notebook-output">
+        <%= output %>
+      </div>
+
       <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
         <p class="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">Runtime</p>
         <dl class="mt-4 grid gap-3 text-sm text-slate-300">
@@ -48,10 +49,10 @@ examplesMarkup
           <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400">Recent snippets will appear here after you run a few examples.</div>
         </div>
       </div>
-
-      <div id="notebook-output">
-        <%= output %>
-      </div>
     </section>
   </div>
+
+  <section>
+    <%= examplesMarkup %>
+  </section>
 </main>

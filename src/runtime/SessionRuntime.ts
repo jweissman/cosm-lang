@@ -41,6 +41,7 @@ type RuntimeHandleOptions = {
   name: string;
   errorClassRef?: CosmClassValue;
   evalInEnv: (source: string, env: CosmEnv) => CosmValue;
+  inspectValue: (value: CosmValue, env?: CosmEnv) => string;
   createEnv: () => CosmEnv;
   inline?: boolean;
 };
@@ -85,7 +86,7 @@ class InlineSessionRuntimeHandle implements SessionRuntimeHandle {
   }
 
   private recordSuccess(source: string, value: CosmValue): SessionRuntimeResult {
-    const inspect = ValueAdapter.format(value);
+    const inspect = this.options.inspectValue(value, this.env);
     const entry = { source, ok: true, inspect };
     this.historyEntries.push(entry);
     return {

@@ -83,8 +83,9 @@ class NotebookView
         if evaluation.ok then
           rendering.HtmlView.render(resultTemplate(), { inspect: rendering.HtmlView.escape(evaluation.inspect) })
         else
-          let details = if evaluation.error.details == false then "" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.details)) end
-          rendering.HtmlView.render(errorTemplate(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: rendering.HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) })
+          let details = if evaluation.error.details == false then "(none)" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.details)) end
+          let backtrace = if evaluation.error.backtrace == false then "(none)" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) end
+          rendering.HtmlView.render(errorTemplate(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: backtrace })
         end
       end
     end

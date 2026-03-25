@@ -171,12 +171,13 @@ export class CosmSessionValue extends CosmObjectValue {
 
   private resultNamespace(value: CosmValue, error: unknown = false): CosmNamespaceValue {
     const wrappedError = error === false ? false : this.wrapError(error);
+    const latestInspect = this.runtimeHandle.history().at(-1)?.inspect;
     return new CosmNamespaceValue({
       ok: new CosmBoolValue(wrappedError === false),
       value: wrappedError === false ? value : Construct.bool(false),
       inspect: new CosmStringValue(
         wrappedError === false
-          ? ValueAdapter.format(value)
+          ? (latestInspect ?? ValueAdapter.format(value))
           : wrappedError.toDisplayString(),
       ),
       error: wrappedError === false ? Construct.bool(false) : wrappedError,

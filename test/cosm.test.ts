@@ -180,13 +180,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.9");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.10");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.9");
+  expect(cosmEval("cosm.version")).toBe("0.3.10");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -198,6 +198,7 @@ test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", 
   expect(cosmEval("Kernel.send(:assert, true)")).toBe(true);
   expect(cosmEval("Kernel.dispatch(1, :plus, 2)")).toBe(3);
   expect(cosmEval("Kernel.uuid().length >= 32")).toBe(true);
+  expect(cosmEval('Kernel.trace("value", 41)')).toBe(41);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval('Symbol.intern("ok").inspect()')).toBe(":ok");
   expect(cosmEval("Kernel.inspect(Kernel)")).toBe("#<Kernel>");
@@ -670,7 +671,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
   const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
-  expect(homeBody).toContain("Cosm 0.3.9");
+  expect(homeBody).toContain("Cosm 0.3.10");
   expect(homeBody).toContain("Reflective server slice");
 
   const notebook = dispatchService(`
@@ -682,6 +683,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   expect(notebookBody).toContain("Live eval is idle.");
   expect(notebookBody).toContain("Try the current surface");
   expect(notebookBody).toContain("Recent Snippets");
+  expect(notebookBody).toContain("<details");
   expect(notebookBody).toContain("Method names first");
   expect(notebookBody).toContain("Data.model(");
   expect(notebookBody).toContain("require(&quot;cosm/ai.cosm&quot;)");
@@ -716,6 +718,15 @@ test("web-layer request specs render Cosm backtraces for notebook errors", () =>
   expect(body).toContain("access Prompt.complete");
   expect(body).not.toContain("src/runtime/");
   expect(body).not.toContain("src/cosm.ts");
+});
+
+test("notebook results use Cosm inspect output instead of raw host formatting", () => {
+  const notebook = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/notebook/eval", "code=Kernel");
+  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
+  expect(body).toContain("#&lt;Kernel&gt;");
 });
 
 test("type errors stay explicit", () => {

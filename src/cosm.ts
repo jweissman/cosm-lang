@@ -10,6 +10,7 @@ import { CosmModuleValue } from './values/CosmModuleValue';
 import { CosmErrorValue } from './values/CosmErrorValue';
 import { CosmRaisedError } from './runtime/CosmRaisedError';
 import { CosmSessionValue } from './values/CosmSessionValue';
+import { ValueAdapter } from './ValueAdapter';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -145,6 +146,7 @@ namespace Cosm {
         loadModule: (name, env) => this.loadModule(name, env),
         evalSource: (source) => this.evalSharedKernelSource(source),
         evalInEnv: (source, env) => this.evalInEnv(source, env),
+        inspectValue: (value, env) => this.inspect(value, env),
         createSessionEnv: () => this.createEnv(undefined, { allowTopLevelRebinds: true }),
         defaultSession: () => this.defaultSession(),
         resetEvalSource: () => this.resetSharedKernelEnv(),
@@ -857,6 +859,18 @@ namespace Cosm {
       return this.evalInEnv(input, this.createEnv());
     }
 
+    static inspect(value: CosmValue, env?: Env): string {
+      try {
+        const rendered = this.invokeSend(value, this.internSymbol("inspect"), [], env);
+        if (rendered.type === "string") {
+          return rendered.value;
+        }
+      } catch {
+        // Fall back only when inspect itself cannot be resolved.
+      }
+      return ValueAdapter.format(value);
+    }
+
     private static buildClosure(ast: CoreNode, env: Env) {
       const [body] = ast.children ?? [];
       if (!body) {
@@ -1053,6 +1067,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.9";
+    export const version = "0.3.10";
 }
 export default Cosm;

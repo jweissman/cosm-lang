@@ -46,6 +46,7 @@ type BootstrapRuntime = {
   loadModule: (name: string, env: CosmEnv) => CosmObject | undefined;
   evalSource: (source: string) => CosmValue;
   evalInEnv: (source: string, env: CosmEnv) => CosmValue;
+  inspectValue: (value: CosmValue, env?: CosmEnv) => string;
   createSessionEnv: () => CosmEnv;
   defaultSession: () => CosmValue;
   resetEvalSource?: () => void;
@@ -119,6 +120,7 @@ export class Bootstrap {
         name,
         errorClassRef,
         evalInEnv: (source, env) => runtime.evalInEnv(source, env),
+        inspectValue: (value, env) => runtime.inspectValue(value, env),
         createEnv: () => runtime.createSessionEnv(),
         inline: name === "example",
       }),

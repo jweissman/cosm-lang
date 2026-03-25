@@ -3,7 +3,10 @@
 import { existsSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import Cosm from '../src/cosm';
+import { Parser } from "../src/ast/parser";
+import { Lowerer } from "../src/ast/lowerer";
 import { ValueAdapter } from "../src/ValueAdapter";
+import { RuntimeDispatch } from "../src/runtime/RuntimeDispatch";
 console.log("Cosm version:", Cosm.version);
 
 const HISTORY_PATH = join(process.cwd(), ".cosm_history");
@@ -32,6 +35,9 @@ function usage(): string {
     "  cosm <file.cosm> --test",
     "  cosm --test <file.cosm>",
     "  cosm <file.cosm> --watch",
+    "  cosm <file.cosm> --trace-surface",
+    "  cosm <file.cosm> --trace-core",
+    "  cosm <file.cosm> --trace-send",
     "  cosm --watch <file.cosm>",
     "  cosm test <file.cosm>",
     "  cosm watch <file.cosm>",
@@ -39,19 +45,23 @@ function usage(): string {
 }
 
 type CliMode =
-  | { kind: "repl" }
-  | { kind: "help" }
-  | { kind: "run"; filePath: string }
-  | { kind: "test"; filePath: string }
-  | { kind: "watch"; filePath: string };
+  | { kind: "repl"; traceSurface: boolean; traceCore: boolean; traceSend: boolean }
+  | { kind: "help"; traceSurface: boolean; traceCore: boolean; traceSend: boolean }
+  | { kind: "run"; filePath: string; traceSurface: boolean; traceCore: boolean; traceSend: boolean }
+  | { kind: "test"; filePath: string; traceSurface: boolean; traceCore: boolean; traceSend: boolean }
+  | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceSend: boolean };
 
 function parseArgs(args: string[]): CliMode {
+  let traceSurface = false;
+  let traceCore = false;
+  let traceSend = false;
+
   if (args.length === 0) {
-    return { kind: "repl" };
+    return { kind: "repl", traceSurface, traceCore, traceSend };
   }
 
   if (args.length === 1 && (args[0] === "help" || args[0] === "--help")) {
-    return { kind: "help" };
+    return { kind: "help", traceSurface, traceCore, traceSend };
   }
 
   const modes = new Set<"test" | "watch">();
@@ -71,7 +81,22 @@ function parseArgs(args: string[]): CliMode {
       if (args.length !== 1) {
         throw new Error("help cannot be combined with other arguments");
       }
-      return { kind: "help" };
+      return { kind: "help", traceSurface, traceCore, traceSend };
+    }
+
+    if (arg === "--trace-surface") {
+      traceSurface = true;
+      continue;
+    }
+
+    if (arg === "--trace-core") {
+      traceCore = true;
+      continue;
+    }
+
+    if (arg === "--trace-send") {
+      traceSend = true;
+      continue;
     }
 
     if (arg === "--test" || arg === "test") {
@@ -109,24 +134,24 @@ function parseArgs(args: string[]): CliMode {
     if (!filePath) {
       throw new Error("--test expects a file path");
     }
-    return { kind: "test", filePath };
+    return { kind: "test", filePath, traceSurface, traceCore, traceSend };
   }
 
   if (modes.has("watch")) {
     if (!filePath) {
       throw new Error("--watch expects a file path");
     }
-    return { kind: "watch", filePath };
+    return { kind: "watch", filePath, traceSurface, traceCore, traceSend };
   }
 
   if (!filePath) {
-    return { kind: "repl" };
+    return { kind: "repl", traceSurface, traceCore, traceSend };
   }
 
-  return { kind: "run", filePath };
+  return { kind: "run", filePath, traceSurface, traceCore, traceSend };
 }
 
-function watchFileRunner(filePath: string) {
+function watchFileRunner(filePath: string, traces: { traceSurface: boolean; traceCore: boolean; traceSend: boolean }) {
   if (!existsSync(filePath)) {
     console.error(`Error: watch target does not exist: ${filePath}`);
     process.exit(1);
@@ -154,7 +179,11 @@ function watchFileRunner(filePath: string) {
   };
 
   const startChild = () => {
-    child = Bun.spawn(["bun", "bin/cosm", filePath], {
+    const childArgs = ["bun", "bin/cosm", filePath];
+    if (traces.traceSurface) childArgs.push("--trace-surface");
+    if (traces.traceCore) childArgs.push("--trace-core");
+    if (traces.traceSend) childArgs.push("--trace-send");
+    child = Bun.spawn(childArgs, {
       cwd: process.cwd(),
       stdin: "inherit",
       stdout: "inherit",
@@ -244,7 +273,7 @@ function repl() {
     }
     try {
       const result = Cosm.Interpreter.evalInEnv(line, sessionEnv);
-      console.log(ValueAdapter.format(result));
+      console.log(Cosm.Interpreter.inspect(result, sessionEnv));
     } catch (e) {
       console.error("Error:", e.message);
     }
@@ -253,6 +282,17 @@ function repl() {
     console.log('Goodbye!');
     process.exit(0);
   });
+}
+
+function emitTraceFlags(source: string, traces: { traceSurface: boolean; traceCore: boolean }): void {
+  if (traces.traceSurface) {
+    console.log("[trace-surface]");
+    console.log(JSON.stringify(Parser.parseSurface(source), null, 2));
+  }
+  if (traces.traceCore) {
+    console.log("[trace-core]");
+    console.log(JSON.stringify(Lowerer.lower(Parser.parseSurface(source)), null, 2));
+  }
 }
 
 if (require.main === module) {
@@ -270,12 +310,23 @@ if (require.main === module) {
     console.log(usage());
     process.exit(0);
   } else if (mode.kind === "repl") {
+    if (mode.traceSend) {
+      RuntimeDispatch.installTraceHooks({
+        logSend: (line) => console.log(line),
+      });
+    }
     repl();
   } else if (mode.kind === "watch") {
-    watchFileRunner(mode.filePath);
+    watchFileRunner(mode.filePath, mode);
   } else {
     try {
       const source = readFileSync(mode.filePath, "utf8");
+      emitTraceFlags(source, mode);
+      if (mode.traceSend) {
+        RuntimeDispatch.installTraceHooks({
+          logSend: (line) => console.log(line),
+        });
+      }
       if (mode.kind === "test") {
         Cosm.Interpreter.eval("Kernel.resetTests()");
       }
@@ -285,7 +336,7 @@ if (require.main === module) {
         console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
         process.exit(summary.failed > 0 ? 1 : 0);
       }
-      console.log(ValueAdapter.format(result));
+      console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {
       console.error("Error:", e.message);
       process.exit(1);

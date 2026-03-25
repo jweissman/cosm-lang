@@ -87,7 +87,7 @@ function handleRequest(message: unknown): void {
 function evaluate(id: number, source: string): SessionWireResponse {
   try {
     const value = Cosm.Interpreter.evalInEnv(source, env);
-    const inspect = ValueAdapter.format(value);
+    const inspect = Cosm.Interpreter.inspect(value, env);
     historyEntries.push({ source, ok: true, inspect });
     return {
       id,

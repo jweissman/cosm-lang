@@ -14,6 +14,7 @@ import { CosmErrorValue } from "./CosmErrorValue";
 import { Construct } from "../Construct";
 import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmDataModelValue } from "./CosmDataModelValue";
+import { readSync } from "node:fs";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -114,6 +115,51 @@ export class CosmKernelValue extends CosmObjectValue {
         const rendered = CosmKernelValue.renderForOutput(value, env);
         process.stderr.write(`${rendered}\n`);
         return value;
+      }),
+      trace: () => new CosmFunctionValue('trace', (args, _selfValue, env) => {
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: trace expects 1 or 2 arguments, got ${args.length}`);
+        }
+        if (args.length === 1) {
+          const inspect = CosmKernelValue.inspectValue(args[0], env);
+          process.stdout.write(`${inspect.value}\n`);
+          return args[0];
+        }
+        const [label, value] = args;
+        if (!(label instanceof CosmStringValue)) {
+          throw new Error("Type error: trace(label, value) expects a string label");
+        }
+        const inspect = CosmKernelValue.inspectValue(value, env);
+        process.stdout.write(`${label.value}: ${inspect.value}\n`);
+        return value;
+      }),
+      readline: () => new CosmFunctionValue('readline', (args) => {
+        if (args.length > 1) {
+          throw new Error(`Arity error: readline expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const [prompt] = args;
+        if (prompt !== undefined) {
+          if (!(prompt instanceof CosmStringValue)) {
+            throw new Error("Type error: readline expects an optional string prompt");
+          }
+          process.stdout.write(prompt.value);
+        }
+        const buffer = Buffer.alloc(1);
+        let output = "";
+        while (true) {
+          const bytesRead = readSync(0, buffer, 0, 1, null);
+          if (bytesRead === 0) {
+            break;
+          }
+          const chunk = buffer.toString("utf8", 0, bytesRead);
+          if (chunk === "\n") {
+            break;
+          }
+          if (chunk !== "\r") {
+            output += chunk;
+          }
+        }
+        return new CosmStringValue(output);
       }),
       inspect: () => new CosmFunctionValue('inspect', (args, selfValue, env) => {
         if (args.length === 0) {
@@ -360,7 +406,7 @@ export class CosmKernelValue extends CosmObjectValue {
       return new CosmNamespaceValue({
         ok: new CosmBoolValue(true),
         value: value as CosmValue,
-        inspect: new CosmStringValue(ValueAdapter.format(value as CosmValue)),
+        inspect: this.inspectValue(value as CosmValue),
         error: new CosmBoolValue(false),
       });
     }

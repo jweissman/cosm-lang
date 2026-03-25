@@ -90,6 +90,63 @@ test("cli can write warnings through Kernel.warn", () => {
   expect(result.stderr).toContain("careful now");
 });
 
+test("cli can trace inspected values through Kernel.trace", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "trace.cosm");
+  writeFileSync(sourcePath, 'Kernel.trace("pair", { answer: 42 }); 9\n');
+
+  const result = runCli([sourcePath]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("pair: { answer: 42 }");
+  expect(result.stdout).toContain("9");
+});
+
+test("cli can read a line through Kernel.readline", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "readline.cosm");
+  writeFileSync(sourcePath, 'Kernel.readline("name? ")\n');
+
+  const proc = Bun.spawnSync(["bun", "bin/cosm", sourcePath], {
+    cwd: process.cwd(),
+    stdin: new TextEncoder().encode("cosm\n"),
+    stdout: "pipe",
+    stderr: "pipe",
+    env: {
+      ...process.env,
+      COSM_AI_AUTO_DISCOVER_MODEL: process.env.COSM_AI_AUTO_DISCOVER_MODEL ?? "0",
+    },
+  });
+
+  const stdout = decode(proc.stdout);
+  const stderr = decode(proc.stderr);
+  expect(proc.exitCode).toBe(0);
+  expect(stderr).toBe("");
+  expect(stdout).toContain("name? ");
+  expect(stdout).toContain('"cosm"');
+});
+
+test("cli trace flags print parser and runtime traces", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "trace-flags.cosm");
+  writeFileSync(sourcePath, "1 + 2\n");
+
+  const surface = runCli([sourcePath, "--trace-surface"]);
+  expect(surface.exitCode).toBe(0);
+  expect(surface.stdout).toContain("[trace-surface]");
+  expect(surface.stdout).toContain('"kind": "program"');
+
+  const core = runCli([sourcePath, "--trace-core"]);
+  expect(core.exitCode).toBe(0);
+  expect(core.stdout).toContain("[trace-core]");
+  expect(core.stdout).toContain('"kind": "add"');
+
+  const send = runCli([sourcePath, "--trace-send"]);
+  expect(send.exitCode).toBe(0);
+  expect(send.stdout).toContain("[trace-send]");
+  expect(send.stdout).toContain(".plus(2)");
+});
+
 test("cli supports bare puts with single-quoted strings", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "bare-puts.cosm");

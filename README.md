@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.9` is aimed at making the current runtime surface more coherent, teachable, and Cosm-owned while keeping the next proving app visible:
+`0.3.10` is aimed at making the notebook workbench and kernel/debug baseline more useful while keeping the next proving app visible:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -24,15 +24,15 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 - a first Cosm-authored stdlib wrapper through `require("cosm/ai.cosm")`
 - universal receiver-side `methods()` reflection as a symbol-list surface, with `method(:name)` for concrete lookup
 - `Kernel.dispatch(receiver, message, ...)` as the explicit helper-form dispatch API alongside `receiver.send(...)`
-- small tie-your-shoes helpers like `Kernel.uuid()`, `Kernel.tryCast(...)`, and `Random.choice(...)`
+- small tie-your-shoes helpers like `Kernel.uuid()`, `Kernel.tryCast(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
 - preferred `<%= ... %>` interpolation for `.ecosm`, while keeping `#{...}` working for compatibility
-- a more exploratory notebook workbench with debounced live eval, visible runtime status, one-click examples, and browser-local recent snippets
+- a cleaner notebook workbench with Cosm-inspected output, debounced live eval, a secondary examples section, and browser-local recent snippets
 - a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
 - a clearer `0.4.0` wedge spec for a tiny DM-first Slack-facing persistent support agent, without implementing it yet
 
-This is intentionally still below a full notebook product or framework layer. `0.3.9` is about turning the current runtime into a more coherent reflective platform surface: explicit sessions, explicit AI, ergonomic data models, simplified reflection, explicit helper dispatch, and a notebook that now teaches those layers from inside Cosm more directly.
+This is intentionally still below a full notebook product or framework layer. `0.3.10` is about turning the current runtime into a more useful workbench surface: explicit sessions, explicit AI, ergonomic data models, simplified reflection, explicit helper dispatch, kernel debugging helpers, and a notebook that teaches those layers without crowding the main editor/output flow.
 
-Explicitly not in `0.3.9`:
+Explicitly not in `0.3.10`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - Slack, MCP, or persistent agent runtime surfaces
@@ -44,11 +44,11 @@ Explicitly not in `0.3.9`:
 - JS interop mirrors/holograms
 - VM execution
 
-In `0.3.9`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
+In `0.3.10`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3.9` should now be organized as:
+Small services in `0.3.10` should now be organized as:
 
 - a boot entry like `app/server.cosm`
 - an app/service module like `app/app.cosm`
@@ -127,7 +127,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.9`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.10`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
@@ -147,7 +147,7 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.9`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryCast(...)`, `Data.model(...)`, `Schema`, `Prompt`, `cosm.ai`, `require("cosm/ai.cosm")`, and the structured example catalog in `require("app/examples.cosm")`. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.10`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryCast(...)`, `Kernel.trace(...)`, `Data.model(...)`, `Schema`, `Prompt`, `cosm.ai`, and `require("app/examples.cosm")` with Cosm-inspected result output. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
 
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
@@ -181,7 +181,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.9
+## After 0.3.10
 
 The immediate next track is:
 
@@ -191,7 +191,7 @@ The immediate next track is:
 
 The intended sequencing is:
 
-- finish and prove `0.3.9`
+- finish and prove `0.3.10`
 - then deepen `Data` and Cosm-authored stdlib surfaces
 - then decide browser/runtime exposure from a stronger notebook shell
 - only after that reach for Slack/MCP-backed persistent agent work

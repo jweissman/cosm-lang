@@ -2,6 +2,7 @@ import { Construct } from "../Construct";
 import { CosmClass, CosmFunction, CosmValue, CosmEnv } from "../types";
 import { CosmFunctionValue } from "../values/CosmFunctionValue";
 import { CosmValueBase } from "../values/CosmValueBase";
+import { RuntimeInspect } from "./RuntimeInspect";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -9,6 +10,12 @@ export type RuntimeRepository = {
 };
 
 export class RuntimeDispatch {
+  private static sendTraceLogger?: (line: string) => void;
+
+  static installTraceHooks(hooks: { logSend?: (line: string) => void }): void {
+    this.sendTraceLogger = hooks.logSend;
+  }
+
   static lookupProperty(receiver: CosmValue, property: string, repository: RuntimeRepository): CosmValue {
     const nativeProperty = receiver.nativeProperty(property);
     if (nativeProperty !== undefined) {
@@ -132,6 +139,9 @@ export class RuntimeDispatch {
     repository: RuntimeRepository,
     invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
   ): CosmValue {
+    this.sendTraceLogger?.(
+      `[trace-send] ${RuntimeInspect.format(receiver)}.${message}(${args.map((arg) => RuntimeInspect.format(arg)).join(", ")})`,
+    );
     try {
       const method = this.resolveSendTarget(receiver, message, repository);
       return invokeFunction(method, args, receiver);
