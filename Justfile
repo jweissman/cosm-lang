@@ -1,25 +1,32 @@
+set shell := ["zsh", "-lc"]
+
+dev-bun := "./script/bunx"
+
 test: ts-test
 
 ts-test:
-  bun test --watch
+  {{dev-bun}} test --watch
 
 http-test:
-  COSM_HTTP_INTEGRATION=1 bun test test/http.integration.test.ts
+  COSM_HTTP_INTEGRATION=1 {{dev-bun}} test test/http.integration.test.ts
 
 lint:
-  bun run lint
+  {{dev-bun}} run lint
 
 lint-fix:
-  bun run lint:fix
+  {{dev-bun}} run lint:fix
 
 self-test:
-  cosm spec/core.cosm
+  {{dev-bun}} bin/cosm spec/core.cosm
 
 repl:
-  cosm
+  {{dev-bun}} bin/cosm
 
 server:
-  bun bin/cosm --watch app/server.cosm
+  {{dev-bun}} bin/cosm --watch app/server.cosm
 
 watch-server:
-  bun bin/cosm --watch app/server.cosm
+  {{dev-bun}} bin/cosm --watch app/server.cosm
+
+bench-vm:
+  {{dev-bun}} run script/bench_vm.ts

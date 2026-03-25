@@ -1,0 +1,103 @@
+require("support/agent.cosm")
+require("support/models.cosm")
+
+def appendMessage(conversation, role, text)
+  models.Conversation.validate(conversation)
+  let entry = { role: role, text: text }
+  let messages = conversation.messages.append(entry)
+  let value = {
+    key: conversation.key,
+    channel: conversation.channel,
+    thread: conversation.thread,
+    messages: messages,
+    sessionName: conversation.sessionName,
+    sessionLength: messages.length
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def appendUserMessage(conversation, inbound)
+  models.Conversation.validate(conversation)
+  models.InboundMessage.validate(inbound)
+  let entry = { role: "user", user: inbound.user, text: inbound.text, ts: inbound.ts }
+  let messages = conversation.messages.append(entry)
+  let value = {
+    key: conversation.key,
+    channel: conversation.channel,
+    thread: conversation.thread,
+    messages: messages,
+    sessionName: conversation.sessionName,
+    sessionLength: messages.length
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def cliConversation(messages)
+  let value = {
+    key: "cli:iapetus",
+    channel: "cli",
+    thread: "cli",
+    messages: messages,
+    sessionName: "iapetus-cli",
+    sessionLength: messages.length
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def cliInbound(text)
+  let value = {
+    channel: "cli",
+    thread: "cli",
+    user: "you",
+    text: text,
+    ts: "cli"
+  }
+  models.InboundMessage.validate(value)
+  value
+end
+
+def reply(conversation, inbound)
+  models.Conversation.validate(conversation)
+  models.InboundMessage.validate(inbound)
+  agent.replyForTranscript(agent.transcriptFromConversation(conversation), inbound.text)
+end
+
+def streamReply(conversation, inbound)
+  models.Conversation.validate(conversation)
+  models.InboundMessage.validate(inbound)
+  agent.streamReplyForTranscript(agent.transcriptFromConversation(conversation), inbound.text) do |event|
+    yield(event)
+  end
+end
+
+def nextConversation(conversation, inbound, reply)
+  let withUser = appendUserMessage(conversation, inbound)
+  appendMessage(withUser, "assistant", reply.text)
+end
+
+def turn(conversation, inbound)
+  let nextReply = reply(conversation, inbound)
+  let value = { conversation: nextConversation(conversation, inbound, nextReply), inbound: inbound, reply: nextReply }
+  models.ControllerTurn.validate(value)
+  value
+end
+
+def streamTurn(conversation, inbound)
+  let nextReply = streamReply(conversation, inbound) do |event|
+    yield(event)
+  end
+  let value = { conversation: nextConversation(conversation, inbound, nextReply), inbound: inbound, reply: nextReply }
+  models.ControllerTurn.validate(value)
+  value
+end
+
+def handle(conversation, inbound)
+  turn(conversation, inbound).reply
+end
+
+def fallback(conversation, inbound, errorMessage)
+  agent.fallback(conversation, inbound, errorMessage)
+end

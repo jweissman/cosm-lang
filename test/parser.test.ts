@@ -26,6 +26,7 @@ test("parser treats significant newlines like semicolons", () => {
   expect(() => Parser.parse("class A\nend\nA.name")).not.toThrow();
   expect(() => Parser.parse("def f() 1 end\ndef g() 2 end\ng()")).not.toThrow();
   expect(() => Parser.parse("1 +\n2")).not.toThrow();
+  expect(() => Parser.parse('HttpResponse.json({\n  method: req.method,\n  path: req.path,\n  header: req.headers.get("x-test")\n}, 201)')).not.toThrow();
 });
 
 test("parser keeps keyword prefixes distinct from identifiers", () => {

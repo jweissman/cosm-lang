@@ -122,3 +122,11 @@ test("core scalar values expose explicit conversion helpers", () => {
   expect(cosmEval("4.to_f()")).toBe(4);
   expect(cosmEval(":status.to_s()")).toBe("status");
 });
+
+test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
+  expect(cosmEval("[1, 2, 3].count()")).toBe(3);
+  expect(cosmEval("[].empty()")).toBe(true);
+  expect(cosmEval('{ answer: 42 }.present()')).toBe(true);
+  expect(cosmEval("let increment = ->(value) { value + 1 }; [1, 2, 3].map(increment)")).toEqual([2, 3, 4]);
+  expect(cosmEval("let gtOne = ->(key, value) { value > 1 }; { a: 1, b: 2 }.select(gtOne)")).toEqual({ b: 2 });
+});

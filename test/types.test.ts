@@ -268,6 +268,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "print",
     "puts",
     "raise",
+    "readText",
     "readline",
     "resetSession",
     "resetTests",

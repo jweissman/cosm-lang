@@ -35,6 +35,12 @@ test("vm mode can execute array/hash-shaped support smoke", () => {
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
+test("vm mode can execute controller-shaped hash and sequencing smoke", () => {
+  const source = readFileSync("test/vm_controller.cosm", "utf8");
+  expect(cosmEvalVm(source)).toBe("Use the Reset Session button.");
+  expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
+});
+
 test("vm mode fails clearly on unsupported constructs", () => {
   expect(() => Cosm.Interpreter.evalVm('->() { 1 }')).toThrow("IR compile error: VM mode does not yet support 'lambda'");
 });

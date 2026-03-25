@@ -1,0 +1,37 @@
+let conversation = {
+  key: "cli:iapetus",
+  channel: "cli",
+  thread: "cli",
+  messages: [{ role: "user", text: "How do I reset the session?" }],
+  sessionName: "iapetus-cli",
+  sessionLength: 1
+}
+
+let inbound = {
+  channel: "cli",
+  thread: "cli",
+  user: "you",
+  text: "Use the Reset Session button.",
+  ts: "cli"
+}
+
+let assistant = {
+  role: "assistant",
+  text: inbound.text
+}
+
+let nextMessages = conversation.messages.append(assistant)
+let nextConversation = {
+  key: conversation.key,
+  channel: conversation.channel,
+  thread: conversation.thread,
+  messages: nextMessages,
+  sessionName: conversation.sessionName,
+  sessionLength: nextMessages.length
+}
+
+if nextConversation.sessionLength == 2 then
+  assistant.text
+else
+  "bad-state"
+end

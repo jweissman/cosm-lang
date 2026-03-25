@@ -53,6 +53,34 @@ test("pure Cosm support chat transcript helpers stay stable", () => {
   expect(cosmEval('require("support/chat.cosm"); chat.appendTranscript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
 });
 
+test("support controller provides a thin conversation contract for shared chat flows", () => {
+  CosmAiValue.installRuntimeHooks({
+    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+      shouldReply: true,
+      text: "Reset the session with the Reset Session button in the notebook UI.",
+      rationale: "mocked controller reply",
+      toolCalls: false,
+      toolResults: false,
+    })),
+  });
+
+  expect(cosmEval(`
+    require("support/controller.cosm")
+    let turn = controller.turn(controller.cliConversation([]), controller.cliInbound("How do I reset the notebook session?"))
+    turn.reply.text
+  `)).toBe("Reset the session with the Reset Session button in the notebook UI.");
+
+  expect(cosmEval(`
+    require("support/controller.cosm")
+    let turn = controller.turn(controller.cliConversation([]), controller.cliInbound("How do I reset the notebook session?"))
+    turn.conversation.messages.length
+  `)).toBe(2);
+});
+
+test("support prompt data is loaded from markdown-backed prompt files", () => {
+  expect(cosmEval('require("support/prompt_data.cosm"); prompt_data.iapetusSystem().length > 10')).toBe(true);
+});
+
 test("pure Cosm support chat can stream chunks through the shared chat loop helpers", () => {
   CosmAiValue.installRuntimeHooks({
     stream: (prompt, onEvent) => {
@@ -83,7 +111,7 @@ test("pure Cosm support chat can stream chunks through the shared chat loop help
     (process.stdout as unknown as { write: typeof process.stdout.write }).write = originalWrite;
   }
 
-  expect(stdout).toContain("[waiting for local model...]");
+  expect(stdout).toContain("[thinking locally...]");
   expect(stdout).toContain("Reset ");
   expect(stdout).toContain("the session.");
 });

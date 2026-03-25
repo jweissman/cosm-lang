@@ -1,0 +1,11 @@
+def count()
+  self.length
+end
+
+def empty()
+  self.length == 0
+end
+
+def present()
+  self.length > 0
+end

@@ -162,6 +162,7 @@ The canonical app also now exposes a narrow Slack ingress at `/slack/events`. Ve
 You can also talk to the pure Cosm support loop directly:
 
 - `bun bin/cosm support/chat_cli.cosm`
+- `./script/bunx bin/cosm support/chat_cli.cosm`
 
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
@@ -173,6 +174,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 
 ## Dev Commands
 
+- `./script/bunx <bun args>` for a repo-local Bun wrapper that restores the usual shell init
 - `bun test`
 - `COSM_HTTP_INTEGRATION=1 bun test test/http.integration.test.ts`
 - `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`
@@ -181,6 +183,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `just repl`
 - `just server`
 - `just watch-server`
+- `just bench-vm`
 - `just self-test`
 - `just http-test`
 - `bun bin/cosm --test test/test.cosm`

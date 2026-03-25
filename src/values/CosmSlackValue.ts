@@ -69,7 +69,7 @@ export class CosmSlackValue extends CosmObjectValue {
         if (!(requestValue instanceof CosmHttpRequestValue)) {
           throw new Error("Type error: slack.events expects an HttpRequest");
         }
-        let modulePath = "support/agent.cosm";
+        let modulePath = "support/controller.cosm";
         if (moduleValue !== undefined) {
           if (!(moduleValue instanceof CosmStringValue)) {
             throw new Error("Type error: slack.events expects a string module path when given");
@@ -154,7 +154,7 @@ export class CosmSlackValue extends CosmObjectValue {
       `require(${JSON.stringify(modulePath)})`,
       `let conversation = ${this.cosmLiteral(this.conversationPayload(conversation))}`,
       `let inbound = ${this.cosmLiteral(inbound)}`,
-      "agent.handle(conversation, inbound)",
+      "controller.handle(conversation, inbound)",
     ].join("\n");
     const result = ValueAdapter.cosmToJS(conversation.session.tryEvalSource(source)) as Record<string, unknown>;
     if (result.ok === true && result.value && typeof result.value === "object" && !Array.isArray(result.value)) {
@@ -196,7 +196,7 @@ export class CosmSlackValue extends CosmObjectValue {
       `require(${JSON.stringify(modulePath)})`,
       `let conversation = ${this.cosmLiteral(this.conversationPayload(conversation))}`,
       `let inbound = ${this.cosmLiteral(inbound)}`,
-      `agent.fallback(conversation, inbound, ${this.cosmLiteral(errorMessage)})`,
+      `controller.fallback(conversation, inbound, ${this.cosmLiteral(errorMessage)})`,
     ].join("\n");
     const result = ValueAdapter.cosmToJS(conversation.session.tryEvalSource(source)) as Record<string, unknown>;
     if (result.ok !== true || !result.value || typeof result.value !== "object" || Array.isArray(result.value)) {

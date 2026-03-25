@@ -1,17 +1,15 @@
-import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmObject, CosmFunction, IrProgram, SurfaceNode } from './types';
+import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmObject, IrProgram, SurfaceNode } from './types';
 import { Construct } from "./Construct";
 import { Parser } from './ast/parser';
 import { RuntimeDispatch } from './runtime/RuntimeDispatch';
 import { Bootstrap } from './runtime/Bootstrap';
-import { CosmHttpRouterValue } from './values/CosmHttpRouterValue';
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { CosmModuleValue } from './values/CosmModuleValue';
 import { CosmErrorValue } from './values/CosmErrorValue';
 import { CosmRaisedError } from './runtime/CosmRaisedError';
 import { CosmSessionValue } from './values/CosmSessionValue';
 import { ValueAdapter } from './ValueAdapter';
 import { RuntimeIr } from './runtime/RuntimeIr';
+import { InterpreterClassRuntime } from './runtime/InterpreterClassRuntime';
+import { InterpreterRoots } from './runtime/InterpreterRoots';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -199,280 +197,30 @@ namespace Cosm {
     }
 
     private static loadModule(name: string, _env: Env): CosmObject | undefined {
-      return this.loadModuleIntoRepository(name, this.repo());
+      return InterpreterRoots.loadModuleIntoRepository(name, this.repo(), {
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        evalInEnv: (source, scope) => this.evalInEnv(source, scope),
+      });
     }
 
     private static preloadStdlibModules(repository: Repository): void {
-      for (const name of ["cosm/ai.cosm"]) {
-        const loaded = this.loadModuleIntoRepository(name, repository);
-        if (loaded) {
-          repository.modules[name] = loaded;
-          repository.modules[name.replace(/\.cosm$/u, "")] = loaded;
-        }
+      InterpreterRoots.preloadStdlibModules(repository, {
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        evalInEnv: (source, env) => this.evalInEnv(source, env),
+      });
+      const enumerableModule = repository.modules["cosm/enumerable.cosm"];
+      if (enumerableModule?.type === "object" && enumerableModule.className === "Module") {
+        repository.classes.Array.includeModule(enumerableModule);
+        repository.classes.Hash.includeModule(enumerableModule);
       }
-    }
-
-    private static loadModuleIntoRepository(name: string, repository: Repository): CosmObject | undefined {
-      if (!name.endsWith(".cosm")) {
-        if (!name.endsWith(".ecosm")) {
-          return undefined;
-        }
-        const cachedTemplate = repository.modules[name];
-        if (cachedTemplate instanceof CosmModuleValue) {
-          return cachedTemplate;
-        }
-        const source = readFileSync(resolve(process.cwd(), name), "utf8");
-        const templateModule = Construct.module(name, {
-          source: Construct.string(source),
-          render: Construct.nativeFunc("render", (args) => {
-            if (args.length > 2) {
-              throw new Error(`Arity error: render expects 0, 1, or 2 arguments, got ${args.length}`);
-            }
-            const [context, body] = args;
-            return this.renderTemplateSource(source, context, body);
-          }),
-        }, repository.classes.Module);
-        repository.modules[name] = templateModule;
-        return templateModule;
-      }
-      const cachedModule = repository.modules[name];
-      if (cachedModule instanceof CosmModuleValue) {
-        return cachedModule;
-      }
-      const source = readFileSync(resolve(process.cwd(), name), "utf8");
-      const moduleEnv = this.createEnv();
-      this.evalInEnv(source, moduleEnv);
-      const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);
-      repository.modules[name] = loadedModule;
-      return loadedModule;
-    }
-
-    private static renderTemplateSource(source: string, context?: CosmValue, body?: CosmValue): CosmValue {
-      const env = this.createTemplateEnv(context, body);
-      let output = '';
-      let cursor = 0;
-
-      while (cursor < source.length) {
-        const nextHashInterpolation = source.indexOf('#{', cursor);
-        const nextErbInterpolation = source.indexOf('<%=', cursor);
-        const interpolationStart = this.nextTemplateInterpolation(nextHashInterpolation, nextErbInterpolation);
-        if (interpolationStart === -1) {
-          output += source.slice(cursor);
-          break;
-        }
-        output += source.slice(cursor, interpolationStart);
-        if (source.startsWith('#{', interpolationStart)) {
-          const interpolationEnd = this.findTemplateExpressionEnd(source, interpolationStart + 2);
-          const expression = source.slice(interpolationStart + 2, interpolationEnd).trim();
-          const value = expression.length === 0
-            ? Construct.string("")
-            : this.evalInEnv(expression, env);
-          output += value.toCosmString('interpolate');
-          cursor = interpolationEnd + 1;
-          continue;
-        }
-        const interpolationEnd = this.findTemplateTagEnd(source, interpolationStart + 3);
-        const expression = source.slice(interpolationStart + 3, interpolationEnd).trim();
-        const value = expression.length === 0
-          ? Construct.string("")
-          : this.evalInEnv(expression, env);
-        output += value.toCosmString('interpolate');
-        cursor = interpolationEnd + 2;
-      }
-
-      return Construct.string(output);
-    }
-
-    private static nextTemplateInterpolation(hashIndex: number, erbIndex: number): number {
-      if (hashIndex === -1) {
-        return erbIndex;
-      }
-      if (erbIndex === -1) {
-        return hashIndex;
-      }
-      return Math.min(hashIndex, erbIndex);
-    }
-
-    private static createTemplateEnv(context?: CosmValue, body?: CosmValue): Env {
-      const env = this.createEnv();
-      if (body !== undefined) {
-        env.currentBlock = Construct.nativeFunc('<template yield>', (args) => {
-          if (args.length !== 0) {
-            throw new Error(`Arity error: template yield expects 0 arguments, got ${args.length}`);
-          }
-          return body;
-        });
-      }
-      if (!context) {
-        return env;
-      }
-      env.bindings.context = context;
-      switch (context.type) {
-        case 'hash': {
-          Object.assign(env.bindings, context.entries);
-          break;
-        }
-        case 'object': {
-          Object.assign(env.bindings, context.fields);
-          break;
-        }
-      }
-      return env;
-    }
-
-    private static findTemplateExpressionEnd(source: string, startIndex: number): number {
-      let index = startIndex;
-      let depth = 1;
-      let inSingle = false;
-      let inDouble = false;
-      let inTripleDouble = false;
-      let escaped = false;
-
-      while (index < source.length) {
-        const nextThree = source.slice(index, index + 3);
-        const char = source[index];
-
-        if (inTripleDouble) {
-          if (nextThree === '"""') {
-            inTripleDouble = false;
-            index += 3;
-            continue;
-          }
-          index += 1;
-          continue;
-        }
-
-        if (inSingle || inDouble) {
-          if (escaped) {
-            escaped = false;
-            index += 1;
-            continue;
-          }
-          if (char === '\\') {
-            escaped = true;
-            index += 1;
-            continue;
-          }
-          if (inSingle && char === '\'') {
-            inSingle = false;
-          } else if (inDouble && char === '"') {
-            inDouble = false;
-          }
-          index += 1;
-          continue;
-        }
-
-        if (nextThree === '"""') {
-          inTripleDouble = true;
-          index += 3;
-          continue;
-        }
-        if (char === '\'') {
-          inSingle = true;
-          index += 1;
-          continue;
-        }
-        if (char === '"') {
-          inDouble = true;
-          index += 1;
-          continue;
-        }
-        if (source.slice(index, index + 2) === '#{') {
-          depth += 1;
-          index += 2;
-          continue;
-        }
-        if (char === '}') {
-          depth -= 1;
-          if (depth === 0) {
-            return index;
-          }
-        }
-        index += 1;
-      }
-
-      throw new Error("Template parse error: missing closing } for interpolation");
-    }
-
-    private static findTemplateTagEnd(source: string, startIndex: number): number {
-      let index = startIndex;
-      let inSingle = false;
-      let inDouble = false;
-      let inTripleDouble = false;
-      let escaped = false;
-
-      while (index < source.length) {
-        const nextThree = source.slice(index, index + 3);
-        const nextTwo = source.slice(index, index + 2);
-        const char = source[index];
-
-        if (inTripleDouble) {
-          if (nextThree === '"""') {
-            inTripleDouble = false;
-            index += 3;
-            continue;
-          }
-          index += 1;
-          continue;
-        }
-
-        if (inSingle || inDouble) {
-          if (escaped) {
-            escaped = false;
-            index += 1;
-            continue;
-          }
-          if (char === '\\') {
-            escaped = true;
-            index += 1;
-            continue;
-          }
-          if (inSingle && char === '\'') {
-            inSingle = false;
-          } else if (inDouble && char === '"') {
-            inDouble = false;
-          }
-          index += 1;
-          continue;
-        }
-
-        if (nextThree === '"""') {
-          inTripleDouble = true;
-          index += 3;
-          continue;
-        }
-        if (char === '\'') {
-          inSingle = true;
-          index += 1;
-          continue;
-        }
-        if (char === '"') {
-          inDouble = true;
-          index += 1;
-          continue;
-        }
-        if (nextTwo === '%>') {
-          return index;
-        }
-        index += 1;
-      }
-
-      throw new Error("Template parse error: missing closing %> for interpolation");
     }
 
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
-      if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
-        throw new Error(`Name error: duplicate local '${ast.value}'`);
-      }
-      const superclassName = ast.left?.value || 'Object';
-      const superclass = this.lookupClass(superclassName, env);
-      const methods = this.collectClassMethods(ast.value, ast.children ?? [], env);
-      const classMethods = this.collectClassMethods(ast.value, ast.children ?? [], env, 'class_def');
-      const slots = this.collectClassSlots(ast.value, methods, superclass);
-      const metaclass = Bootstrap.createMetaclass(ast.value, superclass.classRef ?? this.repo().classes.Class, classMethods, this.repo().classes.Class);
-      const classValue = Construct.class(ast.value, superclass.name, slots, methods, classMethods, superclass, metaclass);
-      env.bindings[ast.value] = classValue;
-      return classValue;
+      return InterpreterClassRuntime.evalClass(ast, env, {
+        lookupClass: (name, scope) => this.lookupClass(name, scope),
+        invokeFunction: (callee, args, selfValue, scope, currentBlock) => this.invokeFunction(callee, args, selfValue, scope, currentBlock),
+        repository: { classes: this.repo().classes },
+      });
     }
 
     private static evalLet(ast: CoreNode, env: Env): CosmValue {
@@ -491,7 +239,7 @@ namespace Cosm {
       if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
       }
-      const value = this.buildClosure(ast, env);
+      const value = InterpreterClassRuntime.buildClosure(ast, env);
       env.bindings[ast.value] = value;
       return value;
     }
@@ -510,7 +258,7 @@ namespace Cosm {
     }
 
     private static evalLambda(ast: CoreNode, env: Env): CosmValue {
-      return this.buildClosure(ast, env);
+      return InterpreterClassRuntime.buildClosure(ast, env);
     }
 
     private static expectChildren(ast: CoreNode, op: string): [CoreNode, CoreNode] {
@@ -682,49 +430,11 @@ namespace Cosm {
     }
 
     private static classesObject(env: Env): CosmValue {
-      const classes = { ...this.repo().classes };
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        for (const [name, value] of Object.entries(scope.bindings)) {
-          if (value.type === 'class') {
-            classes[name] = value;
-          }
-        }
-      }
-      return Construct.namespace(classes, this.repo().classes.Namespace);
+      return InterpreterRoots.classesObject(env, this.repo());
     }
 
     private static cosmObject(env: Env): CosmValue {
-      const moduleEntries = Object.fromEntries(
-        Object.entries(this.repo().modules)
-          .filter(([name]) => name.startsWith("cosm/") && !name.endsWith(".ecosm"))
-          .map(([name, value]) => {
-            const key = name
-              .replace(/^cosm\//u, "")
-              .replace(/\.(cosm)$/u, "")
-              .split("/")
-              .at(-1) as string;
-            return [key, value];
-          }),
-      );
-      return Construct.namespace({
-        Kernel: this.repo().globals.Kernel,
-        Process: this.repo().globals.Process,
-        Time: this.repo().globals.Time,
-        Random: this.repo().globals.Random,
-        Mirror: this.repo().globals.Mirror,
-        Error: this.repo().globals.Error,
-        Schema: this.repo().globals.Schema,
-        Prompt: this.repo().globals.Prompt,
-        Session: this.repo().globals.Session,
-        Data: this.repo().globals.Data,
-        HttpRouter: this.repo().globals.HttpRouter,
-        ai: this.repo().globals.ai,
-        http: this.repo().globals.http,
-        modules: Construct.namespace(moduleEntries, this.repo().classes.Namespace),
-        classes: this.classesObject(env),
-        test: this.repo().modules["cosm/test"],
-        version: Construct.string(version),
-      }, this.repo().classes.Namespace);
+      return InterpreterRoots.cosmObject(env, this.repo(), version);
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
@@ -895,79 +605,12 @@ namespace Cosm {
       return ValueAdapter.format(value);
     }
 
-    private static buildClosure(ast: CoreNode, env: Env) {
-      const [body] = ast.children ?? [];
-      if (!body) {
-        throw new Error(`Invalid AST: ${ast.kind} node must have a body`);
-      }
-      return Construct.closure(ast.value, ast.params ?? [], body, env);
-    }
-
-    private static collectClassMethods(className: string, children: CoreNode[], env: Env, kind: 'def' | 'class_def' = 'def'): Record<string, CosmFunction> {
-      const methods: Record<string, CosmFunction> = {};
-      for (const child of children) {
-        if (child.kind !== kind) {
-          if (child.kind === 'def' || child.kind === 'class_def') {
-            continue;
-          }
-          throw new Error('Invalid AST: class body currently only supports def members');
-        }
-        if (Object.hasOwn(methods, child.value)) {
-          throw new Error(`Name error: duplicate method '${child.value}' in class '${className}'`);
-        }
-        methods[child.value] = this.buildClosure(child, env);
-      }
-      return methods;
-    }
-
-    private static collectClassSlots(className: string, methods: Record<string, CosmFunction>, superclass: CosmClass): string[] {
-      const slots = [...superclass.slots];
-      const initMethod = methods.init;
-      for (const slot of initMethod?.params ?? []) {
-        if (slots.includes(slot)) {
-          throw new Error(`Name error: duplicate slot '${slot}' in class '${className}'`);
-        }
-        slots.push(slot);
-      }
-      return slots;
-    }
-
-    private static buildInstance(classValue: CosmClass, args: CosmValue[]): CosmObject {
-      if (classValue.name === 'HttpRouter') {
-        return new CosmHttpRouterValue({}, classValue, this.repo().classes.HttpResponse, this.repo().classes.Namespace);
-      }
-      if (classValue.name === 'Session') {
-        return new CosmSessionValue(undefined, classValue, this.repo().classes.Error);
-      }
-      const fields = Object.fromEntries(
-        classValue.slots.map((slot, index) => [slot, args[index]]),
-      );
-      return Construct.object(classValue.name, fields, classValue);
-    }
-
-    private static invokeInitializerChain(classValue: CosmClass, instance: CosmObject, args: CosmValue[]): void {
-      const inheritedSlotCount = classValue.superclass?.slots.length ?? 0;
-      const inheritedArgs = args.slice(0, inheritedSlotCount);
-      if (classValue.superclass) {
-        this.invokeInitializerChain(classValue.superclass, instance, inheritedArgs);
-      }
-
-      const initMethod = classValue.methods.init;
-      if (!initMethod) {
-        return;
-      }
-
-      const ownArgs = args.slice(inheritedSlotCount);
-      this.invokeFunction(initMethod, ownArgs, instance);
-    }
-
     private static instantiateClass(classValue: CosmClass, args: CosmValue[]): CosmObject {
-      if (args.length !== classValue.slots.length) {
-        throw new Error(`Arity error: ${classValue.name}.new expects ${classValue.slots.length} arguments, got ${args.length}`);
-      }
-      const instance = this.buildInstance(classValue, args);
-      this.invokeInitializerChain(classValue, instance, args);
-      return instance;
+      return InterpreterClassRuntime.instantiateClass(classValue, args, {
+        lookupClass: (name, env) => this.lookupClass(name, env),
+        invokeFunction: (callee, invokeArgs, selfValue, env, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock),
+        repository: { classes: this.repo().classes },
+      });
     }
 
     private static send(receiver: CosmValue, message: string, args: CosmValue[], env?: Env): CosmValue {

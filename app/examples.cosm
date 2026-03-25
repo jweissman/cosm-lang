@@ -14,6 +14,10 @@ def methodLookup()
   example("Reflection", "Method lookup", "Use method(:name) for the actual method object.", "Object.new().method(:send).name")
 end
 
+def mixinInclude()
+  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require(\"support/label_mixin.cosm\"); class Mixed do end; Mixed.include(label_mixin); Mixed.new().label()")
+end
+
 def dispatchHelper()
   example("Dispatch", "Kernel.dispatch", "Use the explicit helper-form dispatch API when you already have a receiver.", "Kernel.dispatch(1, :plus, 2)")
 end
@@ -46,6 +50,10 @@ def supportAgentPreview()
   example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack adapter.", "require(\"support/agent.cosm\"); agent.preview()")
 end
 
+def promptData()
+  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require(\"support/prompt_data.cosm\"); prompt_data.iapetusSystem()")
+end
+
 def supportChatStep()
   example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
@@ -59,7 +67,7 @@ def routerSketch()
 end
 
 def reflection()
-  [mathReflection(), receiverReflection(), methodLookup()]
+  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude()]
 end
 
 def dispatch()
@@ -71,7 +79,7 @@ def data()
 end
 
 def ai()
-  [promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview()]
+  [promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), promptData()]
 end
 
 def services()
@@ -83,5 +91,5 @@ def support()
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), supportChatStep(), supportStepModel(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), routerSketch()]
 end

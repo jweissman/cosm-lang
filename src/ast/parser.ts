@@ -128,6 +128,9 @@ export class Parser {
       if (!trimmed) {
         return false;
       }
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(trimmed)) {
+        return false;
+      }
       if (trimmed.endsWith(';')) {
         return false;
       }

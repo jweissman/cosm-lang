@@ -7,6 +7,8 @@ import { CosmKernelValue } from "../values/CosmKernelValue";
 import { CosmMethodValue } from "../values/CosmMethodValue";
 import { CosmModuleValue } from "../values/CosmModuleValue";
 import { CosmNamespaceValue } from "../values/CosmNamespaceValue";
+import { CosmArrayValue } from "../values/CosmArrayValue";
+import { CosmHashValue } from "../values/CosmHashValue";
 import { CosmProcessValue } from "../values/CosmProcessValue";
 import { CosmRandomValue } from "../values/CosmRandomValue";
 import { CosmSymbolValue } from "../values/CosmSymbolValue";
@@ -78,6 +80,12 @@ export class Bootstrap {
     });
     CosmProcessValue.installRuntimeHooks({});
     CosmFunctionValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+    });
+    CosmArrayValue.installRuntimeHooks({
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
+    });
+    CosmHashValue.installRuntimeHooks({
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
     });
     CosmHttpValue.installRuntimeHooks({

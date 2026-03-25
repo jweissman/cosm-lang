@@ -14,7 +14,8 @@ import { CosmErrorValue } from "./CosmErrorValue";
 import { Construct } from "../Construct";
 import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmDataModelValue } from "./CosmDataModelValue";
-import { readSync } from "node:fs";
+import { readFileSync, readSync } from "node:fs";
+import { resolve } from "node:path";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -160,6 +161,16 @@ export class CosmKernelValue extends CosmObjectValue {
           }
         }
         return new CosmStringValue(output);
+      }),
+      readText: () => new CosmFunctionValue('readText', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: readText expects 1 arguments, got ${args.length}`);
+        }
+        const [pathValue] = args;
+        if (!(pathValue instanceof CosmStringValue)) {
+          throw new Error("Type error: readText expects a string path");
+        }
+        return new CosmStringValue(readFileSync(resolve(process.cwd(), pathValue.value), "utf8"));
       }),
       inspect: () => new CosmFunctionValue('inspect', (args, selfValue, env) => {
         if (args.length === 0) {
