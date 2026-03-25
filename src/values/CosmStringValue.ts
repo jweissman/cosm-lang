@@ -44,6 +44,36 @@ export class CosmStringValue extends CosmValueBase {
         return new CosmBoolValue(args[0] instanceof CosmStringValue && selfValue.value === args[0].value);
       });
     }
+    if (name === 'to_i') {
+      return new CosmFunctionValue('to_i', (args, selfValue) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: to_i expects a string receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_i expects 0 arguments, got ${args.length}`);
+        }
+        const trimmed = selfValue.value.trim();
+        if (!/^[+-]?\d+$/u.test(trimmed)) {
+          throw new Error(`Conversion error: cannot convert ${JSON.stringify(selfValue.value)} to Integer`);
+        }
+        return new CosmNumberValue(Number.parseInt(trimmed, 10));
+      });
+    }
+    if (name === 'to_f') {
+      return new CosmFunctionValue('to_f', (args, selfValue) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: to_f expects a string receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_f expects 0 arguments, got ${args.length}`);
+        }
+        const trimmed = selfValue.value.trim();
+        if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/u.test(trimmed)) {
+          throw new Error(`Conversion error: cannot convert ${JSON.stringify(selfValue.value)} to Float`);
+        }
+        return new CosmNumberValue(Number.parseFloat(trimmed));
+      });
+    }
     if (name === 'semanticEq') {
       return new CosmFunctionValue('semanticEq', (args, selfValue, env) => {
         if (!(selfValue instanceof CosmStringValue)) {
@@ -73,7 +103,7 @@ export class CosmStringValue extends CosmValueBase {
   }
 
   override visibleNativeMethodNames(): string[] {
-    return ['plus', 'semanticEq'];
+    return ['plus', 'semanticEq', 'to_i', 'to_f'];
   }
 
   override toCosmString(): string {

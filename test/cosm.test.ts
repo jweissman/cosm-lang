@@ -169,7 +169,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("app/examples.cosm"); examples.class.name')).toBe("Module");
   expect(cosmEval('require("app/examples.cosm"); examples.receiverReflection().code')).toBe("Object.new().methods()");
   expect(cosmEval('require("app/examples.cosm"); examples.dispatchHelper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(10);
+  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(11);
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
@@ -180,13 +180,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.10");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.11");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.10");
+  expect(cosmEval("cosm.version")).toBe("0.3.11");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -249,14 +249,14 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Error.new("boom").inspect()')).toBe('#<Error "boom">');
   expect(cosmEval('Schema.string().describe()')).toBe("Schema.string()");
   expect(cosmEval('Schema.string().inspect()')).toBe("Schema.string()");
-  expect(cosmEval('Schema.number().cast("42")')).toBe(42);
-  expect(cosmEval('Schema.boolean().cast("true")')).toBe(true);
+  expect(cosmEval('Schema.number().validate(42)')).toBe(true);
+  expect(cosmEval('Schema.boolean().validate(true)')).toBe(true);
   expect(cosmEval('Schema.enum("a", "b").validate("a")')).toBe(true);
-  expect(cosmEval('Schema.object({ answer: Schema.number() }).cast({ answer: "42" }).answer')).toBe(42);
-  expect(cosmEval('Kernel.tryCast("42", Schema.number()).ok')).toBe(true);
-  expect(cosmEval('Kernel.tryCast("42", Schema.number()).value')).toBe(42);
-  expect(cosmEval('Kernel.tryCast({ answer: "hi" }, Data.model("Reason", { answer: Data.string() })).ok')).toBe(true);
-  expect(cosmEval('Kernel.tryCast(1, Schema.string()).ok')).toBe(false);
+  expect(cosmEval('Schema.object({ answer: Schema.number() }).validate({ answer: 42 })')).toBe(true);
+  expect(cosmEval('Kernel.tryValidate(42, Schema.number()).ok')).toBe(true);
+  expect(cosmEval('Kernel.tryValidate(42, Schema.number()).value')).toBe(42);
+  expect(cosmEval('Kernel.tryValidate({ answer: "hi" }, Data.model("Reason", { answer: Data.string() })).ok')).toBe(true);
+  expect(cosmEval('Kernel.tryValidate(1, Schema.string()).ok')).toBe(false);
   expect(cosmEval('Kernel.try(->() { 1 + 2 }).ok')).toBe(true);
   expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).ok')).toBe(false);
   expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).error.message')).toBe("boom");
@@ -267,7 +267,7 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).inspect()')).toBe('#<Data::Model "Reason">');
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).schema().inspect()')).toBe('Schema.object({ answer: Schema.string() })');
-  expect(cosmEval('Kernel.try(->() { Data.model("Reason", { answer: Data.string() }).cast({ answer: 1 }) }).error.details.path')).toBe("$.answer");
+  expect(cosmEval('Kernel.try(->() { Data.model("Reason", { answer: Data.string() }).validate({ answer: 1 }) }).error.details.path')).toBe("$.answer");
   expect(cosmEval("Mirror.reflect({ answer: 42 }).targetClass.name")).toBe("Hash");
   expect(cosmEval('Mirror.reflect({ answer: 42 }).inspect()')).toBe('#<Mirror { answer: 42 }>');
   expect(cosmEval("Mirror.reflect(Kernel).has(:assert)")).toBe(true);
@@ -671,7 +671,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
   const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
-  expect(homeBody).toContain("Cosm 0.3.10");
+  expect(homeBody).toContain("Cosm 0.3.11");
   expect(homeBody).toContain("Reflective server slice");
 
   const notebook = dispatchService(`
@@ -698,9 +698,9 @@ test("module-organized app can be exercised as a request spec without listen", (
   const modelNotebook = dispatchService(`
     require("app/app.cosm")
     app.App.build()
-  `, "POST", "/notebook/eval", "code=let%20Reason%20%3D%20Data.model(%22Reason%22%2C%20%7B%20answer%3A%20Data.string()%2C%20choice%3A%20Data.enum(%22yes%22%2C%20%22no%22)%20%7D)%3B%20Reason.cast(%7B%20answer%3A%20%22hi%22%2C%20choice%3A%20%22yes%22%20%7D)");
+  `, "POST", "/notebook/eval", "code=let%20Reason%20%3D%20Data.model(%22Reason%22%2C%20%7B%20answer%3A%20Data.string()%2C%20choice%3A%20Data.enum(%22yes%22%2C%20%22no%22)%20%7D)%3B%20Reason.validate(%7B%20answer%3A%20%22hi%22%2C%20choice%3A%20%22yes%22%20%7D)");
   expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("body"))).toContain("answer: &quot;hi&quot;");
+  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("body"))).toContain("true");
 });
 
 test(".ecosm templates can be required and rendered directly", () => {

@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.10` is aimed at making the notebook workbench and kernel/debug baseline more useful while keeping the next proving app visible:
+`0.3.11` is aimed at re-centering Cosm around semantic coherence and a first real VM down payment while keeping the next proving app visible:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -24,15 +24,17 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 - a first Cosm-authored stdlib wrapper through `require("cosm/ai.cosm")`
 - universal receiver-side `methods()` reflection as a symbol-list surface, with `method(:name)` for concrete lookup
 - `Kernel.dispatch(receiver, message, ...)` as the explicit helper-form dispatch API alongside `receiver.send(...)`
-- small tie-your-shoes helpers like `Kernel.uuid()`, `Kernel.tryCast(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
+- small tie-your-shoes helpers like `Kernel.uuid()`, `Kernel.tryValidate(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
+- local schema/model work taught as validation-only, while `cast(...)` stays the AI-shaped term through `cosm.ai.cast(...)`
 - preferred `<%= ... %>` interpolation for `.ecosm`, while keeping `#{...}` working for compatibility
 - a cleaner notebook workbench with Cosm-inspected output, debounced live eval, a secondary examples section, and browser-local recent snippets
 - a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
+- a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
 - a clearer `0.4.0` wedge spec for a tiny DM-first Slack-facing persistent support agent, without implementing it yet
 
-This is intentionally still below a full notebook product or framework layer. `0.3.10` is about turning the current runtime into a more useful workbench surface: explicit sessions, explicit AI, ergonomic data models, simplified reflection, explicit helper dispatch, kernel debugging helpers, and a notebook that teaches those layers without crowding the main editor/output flow.
+This is intentionally still below a full notebook product or framework layer. `0.3.11` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, and a notebook that teaches those layers without pretending to be the next product yet.
 
-Explicitly not in `0.3.10`:
+Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - Slack, MCP, or persistent agent runtime surfaces
@@ -42,13 +44,13 @@ Explicitly not in `0.3.10`:
 - broader route DSL syntax or router macros
 - HTML tag-builder DSLs
 - JS interop mirrors/holograms
-- VM execution
+- full VM execution
 
-In `0.3.10`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
+In `0.3.11`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
 
 The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
 
-Small services in `0.3.10` should now be organized as:
+Small services in `0.3.11` should now be organized as:
 
 - a boot entry like `app/server.cosm`
 - an app/service module like `app/app.cosm`
@@ -71,7 +73,8 @@ pair.sum()
 ```cosm
 Kernel.inspect(classes.Pair)
 Kernel.dispatch(1, :plus, 2)
-Kernel.tryCast("42", Schema.number())
+"42".to_i()
+Kernel.tryValidate(42, Schema.number())
 ```
 
 ```cosm
@@ -127,7 +130,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.10`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.11`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
@@ -147,7 +150,7 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.10`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryCast(...)`, `Kernel.trace(...)`, `Data.model(...)`, `Schema`, `Prompt`, `cosm.ai`, and `require("app/examples.cosm")` with Cosm-inspected result output. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.11`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, and `require("app/examples.cosm")` with Cosm-inspected result output. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
 
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
@@ -181,17 +184,23 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.10
+## After 0.3.11
+
+The immediate next milestones are:
+
+1. `0.3.11`: semantic coherence + VM prep
+2. `0.4.0`: DM-first Slack support bot
+3. post-`0.4.0`: broader persistent agent/runtime work, richer tool adapters, and later notebook/doc experiments
 
 The immediate next track is:
 
-1. deepen `Data` and more Cosm-authored orchestration layers from the repaired reflective surface
-2. then decide how much more notebook/browser surface should be exposed
-3. then build `0.4.0` as a tiny single-tenant DM-first Slack-facing support agent on sessions, AI, data models, and service modules
+1. finish and prove `0.3.11`
+2. then build `0.4.0` as a tiny single-tenant DM-first Slack-facing support agent on sessions, AI, data models, and service modules
+3. only after that broaden toward a more explicit persistent agent/runtime surface and richer notebook/doc models
 
 The intended sequencing is:
 
-- finish and prove `0.3.10`
-- then deepen `Data` and Cosm-authored stdlib surfaces
-- then decide browser/runtime exposure from a stronger notebook shell
-- only after that reach for Slack/MCP-backed persistent agent work
+- finish and prove `0.3.11`
+- then pressure the platform through a tiny Slack-facing app wedge
+- then deepen Cosm-authored orchestration, tool contracts, and session policy from that proving app
+- only after that reach for broader persistent agent work, richer notebook docs, or a fuller VM

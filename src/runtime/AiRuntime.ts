@@ -66,7 +66,7 @@ export class AiRuntime {
       responseFormat: this.jsonSchemaResponseFormat("cosm_cast", schemaObject as Record<string, unknown>),
     });
     const parsed = JSON.parse(content);
-    return schema.nativeMethod("cast")!.nativeCall!([ValueAdapter.jsToCosm(parsed)], schema);
+    return schema.validateAndReturn(ValueAdapter.jsToCosm(parsed));
   }
 
   static compare(left: string, right: string): boolean {
@@ -180,7 +180,7 @@ export class AiRuntime {
     const baseUrl = process.env.COSM_AI_BASE_URL ?? "http://127.0.0.1:1234/v1";
     const model = process.env.COSM_AI_MODEL ?? (this.shouldDiscoverModel() ? this.discoverModel(baseUrl) : undefined);
     if (backend !== "lmstudio") {
-      throw new Error(`AI backend '${backend}' is not supported in 0.3.10`);
+      throw new Error(`AI backend '${backend}' is not supported in 0.3.11`);
     }
     if (requireModel && !model) {
       throw new Error("AI backend is not configured: set COSM_AI_MODEL or expose a model via LM Studio /v1/models");

@@ -100,3 +100,11 @@ test("print and puts use receiver-side to_s for non-strings", () => {
   expect(stdout).toContain("custom-output");
   expect(stdout).toContain("custom-output\n");
 });
+
+test("core scalar values expose explicit conversion helpers", () => {
+  expect(cosmEval('"42".to_i()')).toBe(42);
+  expect(cosmEval('"3.5".to_f()')).toBe(3.5);
+  expect(cosmEval("4.9.to_i()")).toBe(4);
+  expect(cosmEval("4.to_f()")).toBe(4);
+  expect(cosmEval(":status.to_s()")).toBe("status");
+});

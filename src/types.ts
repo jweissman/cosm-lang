@@ -75,6 +75,29 @@ export type CosmEnv = {
   currentBlock?: CosmValue,
 };
 
+export type IrInstruction =
+  | { op: "push_number"; value: number }
+  | { op: "push_bool"; value: boolean }
+  | { op: "push_string"; value: string }
+  | { op: "push_symbol"; value: string }
+  | { op: "load_name"; name: string }
+  | { op: "store_name"; name: string }
+  | { op: "load_property"; name: string }
+  | { op: "call"; argc: number }
+  | { op: "call_access"; name: string; argc: number }
+  | { op: "send"; name: string; argc: number }
+  | { op: "begin_scope" }
+  | { op: "end_scope" }
+  | { op: "jump"; target: number }
+  | { op: "jump_if_false"; target: number }
+  | { op: "pop" }
+  | { op: "return" };
+
+export type IrProgram = {
+  kind: "ir_program";
+  instructions: IrInstruction[];
+};
+
 export type CosmNumber = CosmNumberValue;
 export type CosmBool = CosmBoolValue;
 export type CosmString = CosmStringValue;

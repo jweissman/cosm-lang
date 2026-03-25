@@ -141,10 +141,33 @@ test("cli trace flags print parser and runtime traces", () => {
   expect(core.stdout).toContain("[trace-core]");
   expect(core.stdout).toContain('"kind": "add"');
 
+  const ir = runCli([sourcePath, "--trace-ir"]);
+  expect(ir.exitCode).toBe(0);
+  expect(ir.stdout).toContain("[trace-ir]");
+  expect(ir.stdout).toContain('"op": "send"');
+
   const send = runCli([sourcePath, "--trace-send"]);
   expect(send.exitCode).toBe(0);
   expect(send.stdout).toContain("[trace-send]");
   expect(send.stdout).toContain(".plus(2)");
+});
+
+test("cli can execute a narrow program through vm mode", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
+  const sourcePath = join(tempDir, "vm.cosm");
+  writeFileSync(sourcePath, "let base = 1; Kernel.dispatch(base, :plus, 2)\n");
+
+  const result = runCli([sourcePath, "--vm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("3");
+});
+
+test("cli can execute the dedicated vm smoke file", () => {
+  const result = runCli(["test/vm.cosm", "--vm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("3");
 });
 
 test("cli supports bare puts with single-quoted strings", () => {

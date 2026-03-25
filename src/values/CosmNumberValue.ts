@@ -90,15 +90,37 @@ export class CosmNumberValue extends CosmValueBase {
           case 'gt':
             return new CosmBoolValue(selfValue.value > right.value);
           case 'gte':
-            return new CosmBoolValue(selfValue.value >= right.value);
+        return new CosmBoolValue(selfValue.value >= right.value);
         }
+      });
+    }
+    if (name === 'to_i') {
+      return new CosmFunctionValue('to_i', (args, selfValue) => {
+        if (!(selfValue instanceof CosmNumberValue)) {
+          throw new Error('Type error: to_i expects a numeric receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_i expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmNumberValue(Math.trunc(selfValue.value));
+      });
+    }
+    if (name === 'to_f') {
+      return new CosmFunctionValue('to_f', (args, selfValue) => {
+        if (!(selfValue instanceof CosmNumberValue)) {
+          throw new Error('Type error: to_f expects a numeric receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_f expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmNumberValue(selfValue.value);
       });
     }
     return undefined;
   }
 
   override visibleNativeMethodNames(): string[] {
-    return ['plus', 'pos', 'neg', 'subtract', 'multiply', 'divide', 'pow', 'lt', 'lte', 'gt', 'gte'];
+    return ['plus', 'pos', 'neg', 'subtract', 'multiply', 'divide', 'pow', 'lt', 'lte', 'gt', 'gte', 'to_i', 'to_f'];
   }
 
   override toCosmString(): string {

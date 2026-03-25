@@ -31,15 +31,6 @@ export class CosmSchemaValue extends CosmObjectValue {
         selfValue.validateValue(args[0], "$");
         return new CosmBoolValue(true);
       }),
-      cast: () => new CosmFunctionValue("cast", (args, selfValue) => {
-        if (!(selfValue instanceof CosmSchemaValue)) {
-          throw new Error("Type error: cast expects a Schema receiver");
-        }
-        if (args.length !== 1) {
-          throw new Error(`Arity error: Schema.cast expects 1 arguments, got ${args.length}`);
-        }
-        return selfValue.castValue(args[0], "$");
-      }),
       describe: () => new CosmFunctionValue("describe", (args, selfValue) => {
         if (!(selfValue instanceof CosmSchemaValue)) {
           throw new Error("Type error: describe expects a Schema receiver");
@@ -193,6 +184,11 @@ export class CosmSchemaValue extends CosmObjectValue {
     });
   }
 
+  validateAndReturn(value: CosmValue, path = "$"): CosmValue {
+    this.validateValue(value, path);
+    return value;
+  }
+
   private validateValue(value: CosmValue, path: string): void {
     switch (this.schemaKind) {
       case "string":
@@ -239,56 +235,6 @@ export class CosmSchemaValue extends CosmObjectValue {
           (schema as CosmSchemaValue).validateValue(entries[key] ?? Construct.bool(false), `${path}.${key}`);
         }
         return;
-      }
-    }
-  }
-
-  private castValue(value: CosmValue, path: string): CosmValue {
-    switch (this.schemaKind) {
-      case "string":
-        if (value instanceof CosmStringValue) {
-          return value;
-        }
-        return this.fail(`Schema cast failed at ${path}: expected string, got ${value.type}`, this.pathDetails(path, "string", value.type));
-      case "number":
-        if (value instanceof CosmNumberValue) {
-          return value;
-        }
-        if (value instanceof CosmStringValue) {
-          const parsed = Number(value.value);
-          if (Number.isFinite(parsed)) {
-            return new CosmNumberValue(parsed);
-          }
-        }
-        return this.fail(`Schema cast failed at ${path}: expected number-like value, got ${value.type}`, this.pathDetails(path, "number-like", value.type));
-      case "boolean":
-        if (value instanceof CosmBoolValue) {
-          return value;
-        }
-        if (value instanceof CosmStringValue && (value.value === "true" || value.value === "false")) {
-          return new CosmBoolValue(value.value === "true");
-        }
-        return this.fail(`Schema cast failed at ${path}: expected boolean-like value, got ${value.type}`, this.pathDetails(path, "boolean-like", value.type));
-      case "optional":
-        if (value instanceof CosmBoolValue && value.value === false) {
-          return value;
-        }
-        return this.expectInnerSchema("optional").castValue(value, path);
-      case "array":
-        if (!(value instanceof CosmArrayValue)) {
-          this.fail(`Schema cast failed at ${path}: expected array, got ${value.type}`, this.pathDetails(path, "array", value.type));
-        }
-        return new CosmArrayValue(value.items.map((item, index) => this.expectItemSchema().castValue(item, `${path}[${index}]`)));
-      case "enum":
-        this.validateValue(value, path);
-        return value;
-      case "object": {
-        const entries = this.extractEntries(value, path);
-        const casted: Record<string, CosmValue> = {};
-        for (const [key, schema] of Object.entries(this.expectFieldSchemas().fields)) {
-          casted[key] = (schema as CosmSchemaValue).castValue(entries[key] ?? Construct.bool(false), `${path}.${key}`);
-        }
-        return new CosmHashValue(casted);
       }
     }
   }

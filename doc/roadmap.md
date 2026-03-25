@@ -36,6 +36,29 @@ The next concrete extension of that target is likely:
 
 Those should begin as standard/runtime libraries rather than syntax features, so the reflective object model stays in control of the semantics.
 
+## Current Milestones
+
+### Milestone A: Semantic Coherence (`0.3.11`)
+
+- make `cast(...)` AI-owned in the taught surface
+- remove local schema/model conversion as a taught feature
+- add explicit scalar casts like `to_s()`, `to_i()`, and `to_f()` on core values
+- reduce interpreter-owned semantic special cases
+- keep reflection, dispatch, and docs telling the same story
+
+### Milestone B: VM Prep Becomes Real (`0.3.11`)
+
+- add a VM-oriented IR for a narrow executable subset
+- make CLI tracing show surface AST, core AST, and IR
+- add a tiny opt-in VM executor for that subset
+
+### Milestone C: First Real Agentic App Wedge (`0.4.0`)
+
+- build a tiny DM-first Slack support bot
+- map one `Session` per Slack conversation/thread
+- keep prompts, orchestration, and reply shaping in Cosm
+- keep ingress, signatures, and raw adapters in TS
+
 ## Where We Are Now
 
 - The language already has a stable-enough expression, function, and class surface to keep growing top-down through [test/core.cosm](/Users/joe/Work/cosm-lang/test/core.cosm).
@@ -77,7 +100,7 @@ What still feels missing or provisional:
 - Browser-side Cosm execution and broader host/browser runtime decisions.
 - Final CLI/dev-loop polish is much better now, but broader project/module watch semantics are still intentionally deferred.
 
-What is deliberately not part of `0.3.10` even if it is attractive:
+What is deliberately not part of `0.3.11` even if it is attractive:
 
 - ampersand block capture/passing
 - notebook UI beyond the tiny shared-session demo page
@@ -89,7 +112,7 @@ What is deliberately not part of `0.3.10` even if it is attractive:
 - lexical `module ... end`
 - HTML tag-builder DSLs
 - JS interop mirrors/holograms
-- VM execution
+- full VM execution
 
 That suggests the next "tie your shoes" work should stay close to standard-surface basics, not just deep runtime theory.
 
@@ -104,9 +127,9 @@ That suggests the next "tie your shoes" work should stay close to standard-surfa
 
 This is the current center of gravity.
 
-### v0.3.10 Target
+### v0.3.11 Target
 
-v0.3.10 should mean:
+v0.3.11 should mean:
 
 - a stable reflective runtime core
 - clearer TS-backed ownership for the main runtime classes
@@ -121,9 +144,11 @@ v0.3.10 should mean:
 - a usable explicit AI boundary through `Prompt`, `Schema`, `cosm.ai`, `~=`, and LM Studio defaults, including model auto-discovery through `/v1/models`
 - a library-first `Data` module and `DataModel` runtime values on top of `Schema`
 - a first Cosm-authored stdlib helper layer through `require("cosm/ai.cosm")`
+- local schema/model work kept validation-only through `validate(...)`, while `cast(...)` stays the AI-shaped term through `cosm.ai.cast(...)`
 - repaired receiver-side reflection through universal `methods()` as a symbol-list surface, with `method(:name)` for concrete lookup
 - explicit helper-form dispatch through `Kernel.dispatch(receiver, message, ...)`
-- a final tie-your-shoes polish pass through helpers like `Kernel.uuid()`, `Kernel.tryCast(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
+- a final tie-your-shoes polish pass through helpers like `Kernel.uuid()`, `Kernel.tryValidate(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
+- a first real VM-prep artifact through a narrow IR, `--trace-ir`, and `--vm` for a supported subset
 - `.ecosm` templates under `app/views/...` replacing giant inline HTML blobs in the canonical app, with layout composition aligned around narrow `yield()`
 - preferred `<%= ... %>` interpolation for `.ecosm`, while keeping `#{...}` available for compatibility
 - a notebook page that now acts as a real teaching surface, with debounced live eval, Cosm-inspected output, secondary examples, and one-click examples for `Data`, `Schema`, `Prompt`, `cosm.ai`, and `require("cosm/ai.cosm")`
@@ -131,7 +156,7 @@ v0.3.10 should mean:
 - one simple reflective primitive through `Mirror`
 - no notebook app or framework layer yet
 
-v0.3.10 intentionally does not include:
+v0.3.11 intentionally does not include:
 
 - ampersand block capture/passing
 - a notebook app beyond the tiny shared-session demo page
@@ -139,7 +164,7 @@ v0.3.10 intentionally does not include:
 - Slack/webhook integration
 - Slack/MCP or persistent agent-runtime surfaces
 - automatic prompt literals or ambient AI semantics
-- VM execution
+- full VM execution
 - holograms or JS-host mirror bridges
 - `template` / `data` syntax
 - route params, wildcards, middleware groups, or route macros
@@ -170,7 +195,7 @@ Current focus:
 - Keeping syntax simplification disciplined: `class`/`def` already allow `do` elision, while semicolon elision and richer callable syntax should land as explicit lowering/protocol work rather than ad hoc grammar hacks.
 - Reflective module objects and a first minimal `does_not_understand(message, args)` fallback now exist as the bridge toward future DSL work. The first concrete payoff is a tiny `router.draw(...)` builder path for route registration, while lexical `module ... end`, splats, and block capture remain deliberately deferred.
 - The next useful consolidation step is to make the app/module split feel canonical, so `app/server.cosm` reads like a boot entry and `app/app.cosm` reads like the service module.
-- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.10`; we should not broaden the release into full Ruby-shaped block syntax.
+- `router.draw do ... end` plus `get "/" do |req| ... end` are enough to count as the current routing ergonomics boundary in `0.3.11`; we should not broaden the release into full Ruby-shaped block syntax.
 - A narrow `cosm --watch <file>` loop now exists as a child-process restart convenience; the remaining CLI work is mainly polish around argument parsing, help, and error handling.
 
 Questions this track should answer:
@@ -183,7 +208,7 @@ Questions this track should answer:
 - How should future wrapper concepts like mirrors and holograms relate to ordinary objects, metaclasses, and host interop boundaries?
 - If Cosm eventually gains `template`-style structure definitions, what metaobject protocol should those forms lower onto?
 
-### v0.3.10 Definition Of Done
+### v0.3.11 Definition Of Done
 
 - Core reflective/runtime classes keep one explicit exposure protocol.
 - `cosm.ts` is not the main declaration site for runtime surfaces.
@@ -194,8 +219,9 @@ Questions this track should answer:
 - `Process`, `Kernel`, and `Time` cover the additional tiny comfort surface needed for service/notebook work: `platform`, `arch`, `sleep`, and `fromIso`.
 - `inspect()`, `to_s()`, and `Kernel.blockGiven()` behave consistently through runtime dispatch.
 - `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable, while `Schema.jsonSchema()` gives the casting path a stable structural contract.
-- `Data` and `DataModel` provide an ergonomic schema-backed model layer for app/notebook/AI code.
+- `Data` and `DataModel` provide an ergonomic schema-backed model layer for app/notebook/AI code, with local schema/model checks staying validation-only.
 - `cosm/ai.cosm` proves that higher-level helper code can now live in Cosm instead of only TS.
+- A VM-oriented IR exists, `--trace-ir` can show it, and `--vm` can execute a narrow supported subset without silently diverging.
 - `methods()` works across ordinary receivers as a symbol-list view of inherited visible methods plus runtime-backed primitive methods.
 - `Mirror.methods()` aligns with the repaired receiver-side reflection model instead of exposing a parallel method-table story.
 - `.ecosm` supports preferred `<%= ... %>` interpolation without breaking `#{...}` compatibility.
@@ -219,7 +245,7 @@ Concrete next construction ideas:
 - Keep the near-term web-service path intentionally object-oriented: `http.serve(port, App.new())` should feel like the canonical minimal service shape before any route DSLs appear.
 - Keep the routing DSL runtime-backed and narrow for now: `router.draw(...)` can smooth over bare verb calls, but route params, wildcards, middleware, and route macros should stay deferred.
 - Make `Mirror` the first readonly reflective wrapper before reaching for richer hologram/delegation concepts.
-- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.10`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
+- Keep stabby lambdas as the only standalone parameterized lambda form in `0.3.11`; route-handler ergonomics should come from statement-list bodies plus narrow trailing-block sugar rather than new callable syntax families.
 - Make the bootstrap metaclass story explicit enough that later “diamond” questions have a written target instead of lingering as folklore.
 - Keep moving dispatch-heavy operations behind explicit message-send paths so a later VM would have a cleaner semantic core to target.
 - Decide how namespaces/modules should relate to the existing reflective repository, so object reflection and code organization grow together instead of separately.
@@ -229,7 +255,7 @@ Concrete next construction ideas:
 
 ## Next Proving App: Tiny DM-First Slack Support Agent (`0.4.0`)
 
-This is the next concrete wedge after `0.3.10`, but it should remain a spec here rather than an implementation in this release.
+This is the next concrete wedge after `0.3.11`, but it should remain a spec here rather than an implementation in this release.
 
 Desired shape:
 
@@ -269,7 +295,7 @@ The point of this wedge is not “agents” in the abstract. It is to pressure:
 
 Recommended next slice:
 
-- Treat `0.3.10` as the point where the runtime starts behaving like a cleaner notebook-and-kernel workbench surface instead of only a semantically promising demo slice.
+- Treat `0.3.11` as the point where the runtime starts behaving more like a semantically coherent workbench with a real VM-prep artifact instead of only a recursive-eval interpreter.
 - Use the immediate next track to deepen `Data` and other Cosm-authored stdlib layers from the new module/app/views + middleware + data-model structure.
 - Then decide browser/runtime exposure from that stronger server-side notebook footing.
 - Only after those foundations, reach for a tiny DM-first persistent agent runtime with Slack/MCP-style adapters as standard/runtime libraries rather than syntax features.

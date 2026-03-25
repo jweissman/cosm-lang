@@ -35,16 +35,6 @@ export class CosmDataModelValue extends CosmObjectValue {
         const schema = selfValue.toSchema();
         return schema.nativeMethod("validate")!.nativeCall!([args[0]], schema);
       }),
-      cast: () => new CosmFunctionValue("cast", (args, selfValue) => {
-        if (!(selfValue instanceof CosmDataModelValue)) {
-          throw new Error("Type error: cast expects a DataModel receiver");
-        }
-        if (args.length !== 1) {
-          throw new Error(`Arity error: DataModel.cast expects 1 arguments, got ${args.length}`);
-        }
-        const schema = selfValue.toSchema();
-        return schema.nativeMethod("cast")!.nativeCall!([args[0]], schema);
-      }),
       jsonSchema: () => new CosmFunctionValue("jsonSchema", (args, selfValue) => {
         if (!(selfValue instanceof CosmDataModelValue)) {
           throw new Error("Type error: jsonSchema expects a DataModel receiver");
@@ -94,6 +84,10 @@ export class CosmDataModelValue extends CosmObjectValue {
       this.schemaClassRef,
       this.errorClassRef,
     );
+  }
+
+  validateAndReturn(value: CosmValue): CosmValue {
+    return this.toSchema().validateAndReturn(value);
   }
 
   override nativeProperty(name: string): CosmValue | undefined {

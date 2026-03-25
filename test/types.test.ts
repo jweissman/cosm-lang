@@ -280,7 +280,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "new"]);
   expect(Object.keys(functionMethods)).toEqual(["call"]);
   expect(Object.keys(methodMethods)).toEqual(["call"]);
-  expect(Object.keys(symbolMethods)).toEqual(["eq"]);
+  expect(Object.keys(symbolMethods).sort()).toEqual(["eq", "to_s"]);
   expect(Object.keys(symbolClassMethods)).toEqual(["intern"]);
   expect(Object.keys(namespaceMethods).sort()).toEqual(["get", "has", "keys", "values"]);
   expect(Object.keys(moduleMethods).sort()).toEqual(["get", "has", "keys", "values"]);
@@ -306,8 +306,8 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "testSummary",
     "trace",
     "try",
-    "tryCast",
     "tryEval",
+    "tryValidate",
     "uuid",
     "warn",
   ]);
@@ -324,7 +324,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(mirrorClassMethods)).toEqual(["reflect"]);
   expect(Object.keys(errorMethods).sort()).toEqual(["inspect"]);
   expect(Object.keys(errorClassMethods)).toEqual(["new"]);
-  expect(Object.keys(schemaMethods).sort()).toEqual(["cast", "describe", "inspect", "jsonSchema", "validate"]);
+  expect(Object.keys(schemaMethods).sort()).toEqual(["describe", "inspect", "jsonSchema", "validate"]);
   expect(Object.keys(schemaClassMethods).sort()).toEqual(["array", "boolean", "enum", "number", "object", "optional", "string"]);
   expect(Object.keys(promptMethods)).toEqual([]);
   expect(Object.keys(promptClassMethods)).toEqual(["text"]);

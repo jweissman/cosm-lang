@@ -1,0 +1,10 @@
+let base = 1
+let answer = if true then
+  do
+    let inc = Kernel.dispatch(base, :plus, 1)
+    inc
+  end
+else
+  0
+end
+Kernel.dispatch(answer, :plus, 1)

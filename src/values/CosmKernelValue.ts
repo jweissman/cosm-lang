@@ -298,18 +298,14 @@ export class CosmKernelValue extends CosmObjectValue {
         const [receiver, messageValue, ...messageArgs] = args;
         return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);
       }),
-      tryCast: () => new CosmFunctionValue('tryCast', (args) => {
+      tryValidate: () => new CosmFunctionValue('tryValidate', (args) => {
         if (args.length !== 2) {
-          throw new Error(`Arity error: tryCast expects 2 arguments, got ${args.length}`);
+          throw new Error(`Arity error: tryValidate expects 2 arguments, got ${args.length}`);
         }
         const [value, target] = args;
         try {
           const schema = CosmKernelValue.expectSchemaOrModel(target);
-          const cast = schema.nativeMethod("cast");
-          if (!cast || !cast.nativeCall) {
-            throw new Error("Kernel runtime error: Schema.cast is not available");
-          }
-          return CosmKernelValue.resultNamespace(cast.nativeCall([value], schema));
+          return CosmKernelValue.resultNamespace(schema.validateAndReturn(value));
         } catch (error) {
           return CosmKernelValue.resultNamespace(false, error);
         }
@@ -486,6 +482,6 @@ export class CosmKernelValue extends CosmObjectValue {
     if (target instanceof CosmDataModelValue) {
       return target.toSchema();
     }
-    throw new Error("Type error: tryCast expects a Schema or DataModel target");
+    throw new Error("Type error: tryValidate expects a Schema or DataModel target");
   }
 }

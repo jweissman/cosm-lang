@@ -20,7 +20,7 @@ test("Data exposes a module-backed ergonomic model layer over Schema", () => {
 });
 
 test("Data models support nested casts and reflective schema export", () => {
-  expect(cosmEval('let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no"), nested: Data.optional(Data.array(Data.number())) }); Reason.cast({ answer: "hi", choice: "yes", nested: [1, "2"] }).nested.length')).toBe(2);
+  expect(cosmEval('let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no"), nested: Data.optional(Data.array(Data.number())) }); Reason.validate({ answer: "hi", choice: "yes", nested: [1, 2] })')).toBe(true);
 
   expect(cosmEval('let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no") }); Reason.schema().jsonSchema()')).toMatchObject({
     type: "object",
@@ -41,11 +41,11 @@ test("cosm/ai.cosm can cast into a Data model through the runtime AI boundary", 
       configured: Construct.bool(true),
     }),
     complete: (prompt) => Construct.string(`complete:${prompt}`),
-    cast: (_prompt, schema) => schema.nativeMethod("cast")!.nativeCall!([ValueAdapter.jsToCosm({
+    cast: (_prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(ValueAdapter.jsToCosm({
       answer: "hi",
       choice: "yes",
       nested: [1, 2],
-    })], schema),
+    })),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
   });
 

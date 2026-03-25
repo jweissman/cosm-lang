@@ -73,7 +73,7 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
       configured: Construct.bool(true),
     }),
     complete: (prompt) => Construct.string(`complete:${prompt}`),
-    cast: (prompt, schema) => schema.nativeMethod("cast")!.nativeCall!([Construct.string(`cast:${prompt}`)], schema),
+    cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
   });
 

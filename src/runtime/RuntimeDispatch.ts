@@ -169,6 +169,40 @@ export class RuntimeDispatch {
     return this.send(receiver, this.messageName(messageValue), args, repository, invokeFunction);
   }
 
+  static invokeAccessCall(
+    receiver: CosmValue,
+    property: string,
+    args: CosmValue[],
+    repository: RuntimeRepository,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
+    env?: CosmEnv,
+  ): CosmValue {
+    try {
+      const callee = this.lookupProperty(receiver, property, repository);
+      if (callee.type !== "function" && callee.type !== "method") {
+        if (receiver.type === "class") {
+          const nativeMethod = receiver.nativeMethod(property);
+          if (nativeMethod) {
+            return invokeFunction(this.bindMethod(receiver, nativeMethod), args, undefined, env);
+          }
+        }
+        return this.send(receiver, property, args, repository, invokeFunction);
+      }
+      return invokeFunction(callee, args, undefined, env);
+    } catch (error) {
+      if (
+        error instanceof Error
+        && (
+          (receiver.type !== "class" && error.message.includes(`has no property '${property}'`))
+          || error.message === "Type error: attempted to call a non-function value of type object"
+        )
+      ) {
+        return this.send(receiver, property, args, repository, invokeFunction);
+      }
+      throw error;
+    }
+  }
+
   static resolveSendTarget(
     receiver: CosmValue,
     message: string,

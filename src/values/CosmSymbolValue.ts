@@ -29,6 +29,15 @@ export class CosmSymbolValue extends CosmValueBase {
         }
         return new CosmBoolValue(args[0] instanceof CosmSymbolValue && selfValue.name === args[0].name);
       }),
+      to_s: () => new CosmFunctionValue('to_s', (args, selfValue) => {
+        if (!(selfValue instanceof CosmSymbolValue)) {
+          throw new Error('Type error: to_s expects a symbol receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_s expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(selfValue.name);
+      }),
     },
     classMethods: {
       intern: () => new CosmFunctionValue('intern', (args) => {

@@ -24,11 +24,11 @@ class NotebookExamples
     end
 
     def dataMarkup()
-      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top.", card(examples.dataModel()) + card(examples.schemaExport()))
+      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(examples.dataModel()) + card(examples.schemaExport()) + card(examples.scalarCasts()))
     end
 
     def aiMarkup()
-      category("AI", "Prompt objects, runtime AI status, and the Cosm-authored helper layer stay explicit.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()))
+      category("AI", "Prompt objects, runtime AI status, and AI-assisted cast stay explicit through cosm.ai and the Cosm-authored helper layer.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()))
     end
 
     def servicesMarkup()

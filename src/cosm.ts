@@ -1,4 +1,4 @@
-import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmObject, CosmFunction } from './types';
+import { CosmValue, CosmClass, CosmEnv, CoreNode, CosmObject, CosmFunction, IrProgram, SurfaceNode } from './types';
 import { Construct } from "./Construct";
 import { Parser } from './ast/parser';
 import { RuntimeDispatch } from './runtime/RuntimeDispatch';
@@ -11,6 +11,7 @@ import { CosmErrorValue } from './values/CosmErrorValue';
 import { CosmRaisedError } from './runtime/CosmRaisedError';
 import { CosmSessionValue } from './values/CosmSessionValue';
 import { ValueAdapter } from './ValueAdapter';
+import { RuntimeIr } from './runtime/RuntimeIr';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -741,34 +742,14 @@ namespace Cosm {
         const args = (ast.children ?? []).map((child) => child === blockArg && currentBlock ? currentBlock : this.evalNode(child, env));
         if (calleeAst.kind === 'access') {
           const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
-          try {
-            const callee = this.lookupProperty(receiver, calleeAst.value);
-            if (callee.type !== 'function' && callee.type !== 'method') {
-              if (receiver.type === 'class') {
-                const nativeMethod = receiver.nativeMethod(calleeAst.value);
-                if (nativeMethod) {
-                  return this.invokeFunction(RuntimeDispatch.bindMethod(receiver, nativeMethod), args, undefined, env, currentBlock);
-                }
-              }
-              return this.send(receiver, calleeAst.value, args, env);
-            }
-            return this.invokeFunction(callee, args, undefined, env, currentBlock);
-          } catch (error) {
-            if (
-              receiver.type !== 'class'
-              && error instanceof Error
-              && error.message.includes(`has no property '${calleeAst.value}'`)
-            ) {
-              return this.send(receiver, calleeAst.value, args, env);
-            }
-            if (
-              error instanceof Error
-              && error.message === `Type error: attempted to call a non-function value of type object`
-            ) {
-              return this.send(receiver, calleeAst.value, args, env);
-            }
-            throw error;
-          }
+          return RuntimeDispatch.invokeAccessCall(
+            receiver,
+            calleeAst.value,
+            args,
+            this.repo(),
+            (callee, invokeArgs, selfValue, scope) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+            env,
+          );
         }
         if (calleeAst.kind === 'ident') {
           try {
@@ -852,11 +833,41 @@ namespace Cosm {
     }
 
     static evalInEnv(input: string, env: Env): CosmValue {
-      return this.withFrame('eval <input>', () => this.evalNode(Parser.parse(input), env));
+      return this.withFrame('eval <input>', () => this.evalNode(this.coreAst(input), env));
     }
 
     static eval(input: string): CosmValue {
       return this.evalInEnv(input, this.createEnv());
+    }
+
+    static evalVmInEnv(input: string, env: Env): CosmValue {
+      return this.withFrame('vm <input>', () =>
+        RuntimeIr.execute(this.ir(input), env, {
+          lookupName: (name, scope) => this.lookupName(name, scope),
+          lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+          invokeFunction: (callee, args, selfValue, scope) => this.invokeFunction(callee, args, selfValue, scope),
+          send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+          internSymbol: (name) => this.internSymbol(name),
+          createEnv: (parent) => this.createEnv(parent),
+          repository: this.repo(),
+        })
+      );
+    }
+
+    static evalVm(input: string): CosmValue {
+      return this.evalVmInEnv(input, this.createEnv());
+    }
+
+    static surfaceAst(input: string): SurfaceNode {
+      return Parser.parseSurface(input);
+    }
+
+    static coreAst(input: string): CoreNode {
+      return Parser.parse(input);
+    }
+
+    static ir(input: string): IrProgram {
+      return RuntimeIr.compile(this.coreAst(input));
     }
 
     static inspect(value: CosmValue, env?: Env): string {
@@ -1067,6 +1078,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.10";
+    export const version = "0.3.11";
 }
 export default Cosm;

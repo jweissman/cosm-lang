@@ -19,11 +19,15 @@ def dispatchHelper()
 end
 
 def dataModel()
-  example("Data", "Data model", "Define and cast a model on top of Schema.", "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.cast({ answer: \"hi\", choice: \"yes\" })")
+  example("Data", "Data model", "Define a model on top of Schema and validate a structured value through it.", "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.validate({ answer: \"hi\", choice: \"yes\" })")
 end
 
 def schemaExport()
   example("Data", "Schema export", "Inspect a raw structural schema.", "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()")
+end
+
+def scalarCasts()
+  example("Data", "Scalar casts", "Core scalar values expose explicit conversion helpers.", "\"42\".to_i(); \"3.5\".to_f(); :answer.to_s()")
 end
 
 def promptObject()
@@ -51,7 +55,7 @@ def dispatch()
 end
 
 def data()
-  [dataModel(), schemaExport()]
+  [dataModel(), schemaExport(), scalarCasts()]
 end
 
 def ai()
@@ -63,5 +67,5 @@ def services()
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), promptObject(), aiStatus(), aiCastHelper(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), routerSketch()]
 end
