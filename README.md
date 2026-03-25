@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-The current tree is best read as **`0.3.11-gamma`**: it is re-centering Cosm around semantic coherence and a first real VM down payment while also proving the first tiny app wedge:
+The current tree is best read as **`0.3.11-delta`**: it is tightening the shared support-assistant core, the runtime seams under it, and the spec/workbench surface around it:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -31,9 +31,9 @@ The current tree is best read as **`0.3.11-gamma`**: it is re-centering Cosm aro
 - a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
 - a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
 - a tiny DM-first Slack support path through `/slack/events`, `slack.events(req)`, and Cosm-authored `support/` modules
-- a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`
+- a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`, with that CLI loop now acting as the canonical proving surface and Slack reusing the same support modules as a thin adapter
 
-This is intentionally still below a full notebook product or framework layer. `0.3.11-gamma` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
+This is intentionally still below a full notebook product or framework layer. `0.3.11-delta` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding
@@ -155,6 +155,10 @@ The demo app now also exposes a small `/notebook` page plus a live-ish `/noteboo
 
 The canonical app also now exposes a narrow Slack ingress at `/slack/events`. Verification, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`.
 
+You can also talk to the pure Cosm support loop directly:
+
+- `bun bin/cosm support/chat_cli.cosm`
+
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
 - `COSM_AI_BACKEND=lmstudio` if unset
@@ -193,7 +197,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 
 The immediate next milestones are:
 
-1. `0.3.11`: semantic coherence + VM prep
+1. finish `0.3.11` around the pure Cosm support chatbot, Slack-as-adapter, runtime consolidation, and harness-first specs
 2. `0.4.0`: deepen the Slack support agent, session policy, and tool-light orchestration
 3. post-`0.4.0`: broader persistent agent/runtime work, richer tool adapters, and later notebook/doc experiments
 

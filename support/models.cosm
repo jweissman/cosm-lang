@@ -4,3 +4,4 @@ let InboundMessage = Data.model("InboundMessage", { channel: Data.string(), thre
 let ToolCall = Data.model("ToolCall", { name: Data.string(), inputSummary: Data.optional(Data.string()) })
 let ToolResult = Data.model("ToolResult", { ok: Data.boolean(), summary: Data.string() })
 let AgentReply = Data.model("AgentReply", { shouldReply: Data.boolean(), text: Data.string(), rationale: Data.optional(Data.string()), toolCalls: Data.optional(Data.array(ToolCall)), toolResults: Data.optional(Data.array(ToolResult)) })
+let ChatStep = Data.model("ChatStep", { transcript: Data.string(), reply: AgentReply })

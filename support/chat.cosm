@@ -5,17 +5,11 @@ def banner()
 end
 
 def appendTranscript(transcript, role, text)
-  if transcript == "" then
-    role + ": " + text
-  else
-    transcript + "\n" + role + ": " + text
-  end
+  agent.appendTranscript(transcript, role, text)
 end
 
 def step(transcript, input)
-  let reply = agent.handleTranscript(transcript, input)
-  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", input), "assistant", reply.text)
-  { transcript: nextTranscript, reply: reply }
+  agent.stepTranscript(transcript, input)
 end
 
 def run()

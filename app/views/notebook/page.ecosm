@@ -4,7 +4,7 @@
       <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Notebook Demo</p>
       <h1 class="mt-2 text-4xl font-black tracking-tight">Server-live Cosm session</h1>
       <p class="mt-3 max-w-3xl text-base text-slate-300">
-        This stays server-side: one explicit session object per process, one eval endpoint, and a live output panel that teaches the current reflective surface.
+        This stays server-side: one explicit session object per process, one eval endpoint, and a live output panel that teaches the current reflective surface while pointing at the pure Cosm support assistant as the main proving wedge.
       </p>
     </div>
     <a class="text-sm text-slate-300 underline decoration-cyan-400 underline-offset-4" href="/">Back home</a>
@@ -37,7 +37,7 @@
           <div><dt class="font-semibold text-slate-100">Eval</dt><dd>Backed by <code class="text-cyan-300">Session.default().tryEval(...)</code></dd></div>
           <div><dt class="font-semibold text-slate-100">Reflection</dt><dd>Use <code class="text-cyan-300">value.methods()</code> for symbol names and <code class="text-cyan-300">value.method(:name)</code> for the callable method object.</dd></div>
           <div><dt class="font-semibold text-slate-100">Data</dt><dd>Use <code class="text-cyan-300">Data.model(...)</code> to build model-shaped contracts on top of <code class="text-cyan-300">Schema</code>.</dd></div>
-          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code>, <code class="text-cyan-300">cosm.ai.cast(...)</code>, <code class="text-cyan-300">require("cosm/ai.cosm")</code>, <code class="text-cyan-300">require("support/agent.cosm")</code>, and <code class="text-cyan-300">require("support/chat.cosm")</code> keep the support loop explicit.</dd></div>
+          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">Prompt.text(...)</code>, <code class="text-cyan-300">cosm.ai.cast(...)</code>, <code class="text-cyan-300">require("cosm/ai.cosm")</code>, <code class="text-cyan-300">require("support/agent.cosm")</code>, and <code class="text-cyan-300">require("support/chat.cosm")</code> keep the support loop explicit, with the CLI chatbot as the canonical proving surface and Slack as the thin adapter.</dd></div>
           <div><dt class="font-semibold text-slate-100">Dispatch</dt><dd><code class="text-cyan-300">receiver.send(...)</code> is the ordinary message-send path; <code class="text-cyan-300">Kernel.dispatch(...)</code> is the explicit helper form.</dd></div>
         </dl>
       </div>

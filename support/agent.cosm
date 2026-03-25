@@ -3,10 +3,26 @@ require("support/models.cosm")
 require("support/prompts.cosm")
 require("support/replies.cosm")
 
-def handleTranscript(transcript, latestText)
+def appendTranscript(transcript, role, text)
+  if transcript == "" then
+    role + ": " + text
+  else
+    transcript + "\n" + role + ": " + text
+  end
+end
+
+def replyForTranscript(transcript, latestText)
   let reply = ai.reply(prompts.replyPromptFromTranscript(transcript, latestText), models.AgentReply)
   models.AgentReply.validate(reply)
   reply
+end
+
+def stepTranscript(transcript, latestText)
+  let reply = replyForTranscript(transcript, latestText)
+  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", latestText), "assistant", reply.text)
+  let step = { transcript: nextTranscript, reply: reply }
+  models.ChatStep.validate(step)
+  step
 end
 
 def transcriptFromConversation(conversation)
@@ -16,7 +32,7 @@ end
 def handle(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  handleTranscript(transcriptFromConversation(conversation), inbound.text)
+  stepTranscript(transcriptFromConversation(conversation), inbound.text).reply
 end
 
 def fallback(conversation, inbound, errorMessage)

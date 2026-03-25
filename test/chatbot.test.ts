@@ -42,6 +42,9 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
   expect(cosmEval('require("support/chat.cosm"); chat.step("", "How do I reset the notebook session?").transcript')).toContain(
     "assistant: Reset the session with the Reset Session button in the notebook UI.",
   );
+  expect(cosmEval('require("support/agent.cosm"); agent.stepTranscript("", "How do I reset the notebook session?").reply.text')).toBe(
+    "Reset the session with the Reset Session button in the notebook UI.",
+  );
 });
 
 test("pure Cosm support chat transcript helpers stay stable", () => {

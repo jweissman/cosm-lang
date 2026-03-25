@@ -2,7 +2,7 @@
 
 ## Current Release Target: 0.3.11
 
-`0.3.11` is a semantics-and-vm-prep follow-up on the current small web-service + notebook slice:
+`0.3.11` is now best read as a chatbot-and-runtime consolidation slice on top of the earlier web-service + notebook work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -26,6 +26,7 @@
 - make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
 - make the notebook feel more like a workbench through Cosm-inspected output, debounced live eval, secondary/collapsible examples, and lightweight recent-snippet affordances
 - ship a tiny DM-first Slack support path while keeping broader agent/runtime ambitions narrow
+- keep a pure Cosm CLI chatbot as the canonical proving surface, with Slack reusing the same support core
 
 For `0.3.11`, the callable boundary still stays intentionally narrow:
 

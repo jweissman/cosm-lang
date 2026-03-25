@@ -43,11 +43,15 @@ def aiCastHelper()
 end
 
 def supportAgentPreview()
-  example("AI", "Support agent prompt", "Preview the tiny Slack support-agent prompt and reply loop surface.", "require(\"support/agent.cosm\"); agent.preview()")
+  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack adapter.", "require(\"support/agent.cosm\"); agent.preview()")
 end
 
 def supportChatStep()
-  example("Support", "Chat step", "Run one pure-Cosm support-chat step without Slack in the loop.", "require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+end
+
+def supportStepModel()
+  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require(\"support/models.cosm\"); models.ChatStep.jsonSchema()")
 end
 
 def routerSketch()
@@ -75,9 +79,9 @@ def services()
 end
 
 def support()
-  [supportChatStep()]
+  [supportChatStep(), supportStepModel()]
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), supportChatStep(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), supportChatStep(), supportStepModel(), routerSketch()]
 end

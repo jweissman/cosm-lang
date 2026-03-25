@@ -38,26 +38,24 @@ Those should begin as standard/runtime libraries rather than syntax features, so
 
 ## Current Milestones
 
-### Milestone A: Semantic Coherence (`0.3.11`)
+### Milestone A: Chatbot + Runtime (`0.3.11-delta -> final`)
 
-- make `cast(...)` AI-owned in the taught surface
-- remove local schema/model conversion as a taught feature
-- add explicit scalar casts like `to_s()`, `to_i()`, and `to_f()` on core values
+- keep the pure Cosm support chatbot as the canonical proving surface
+- keep Slack DM ingress as a thin adapter around that same support core
 - reduce interpreter-owned semantic special cases
 - keep reflection, dispatch, and docs telling the same story
 
 ### Milestone B: VM Prep Becomes Real (`0.3.11`)
 
-- add a VM-oriented IR for a narrow executable subset
+- keep a VM-oriented IR for a narrow executable subset
 - make CLI tracing show surface AST, core AST, and IR
-- add a tiny opt-in VM executor for that subset
+- keep expanding the tiny opt-in VM executor where it overlaps with real support/service logic
 
-### Milestone C: First Real Agentic App Wedge (`0.3.11`)
+### Milestone C: Harness-First Spec Discipline (`0.3.11`)
 
-- build a tiny DM-first Slack support bot
-- map one `Session` per Slack conversation/thread
-- keep prompts, orchestration, and reply shaping in Cosm
-- keep ingress, signatures, and raw adapters in TS
+- keep `spec/` as the primary Cosm-authored spec surface
+- push organized specs onto the Cosm-native harness
+- keep only a tiny raw-assert smoke layer at `spec/core.cosm`
 
 ## Where We Are Now
 

@@ -31,7 +31,7 @@ test("vm mode can execute if expressions and scoped blocks in a dedicated smoke 
 
 test("vm mode can execute array/hash-shaped support smoke", () => {
   const source = readFileSync("test/vm_support.cosm", "utf8");
-  expect(cosmEvalVm(source)).toBe("Try the Reset Session button.");
+  expect(cosmEvalVm(source)).toBe("user: hello\nassistant: Try the Reset Session button.");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
