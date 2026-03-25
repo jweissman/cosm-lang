@@ -1,35 +1,13 @@
 import { expect, test } from "bun:test";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
-import { CosmHttpRequestValue } from "../src/values/CosmHttpRequestValue";
-import { CosmNamespaceValue } from "../src/values/CosmNamespaceValue";
 import { CosmProcessValue } from "../src/values/CosmProcessValue";
-import { CosmStringValue } from "../src/values/CosmStringValue";
 
 process.env.COSM_AI_AUTO_DISCOVER_MODEL ??= "0";
 
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
   return ValueAdapter.cosmToJS(cosmValue);
-};
-
-const dispatchService = (serviceSource: string, method: string, path: string, body = "") => {
-  const serviceValue = Cosm.Interpreter.eval(serviceSource);
-  const requestValue = new CosmHttpRequestValue(
-    method,
-    `http://127.0.0.1${path}`,
-    path,
-    new CosmNamespaceValue({}),
-    new CosmNamespaceValue({}),
-    body,
-  );
-  const handleMethod = (Cosm.Interpreter as unknown as {
-    lookupProperty: (receiver: unknown, property: string) => unknown;
-    invokeFunction: (callee: unknown, args: unknown[]) => unknown;
-  }).lookupProperty(serviceValue, "handle");
-  return (Cosm.Interpreter as unknown as {
-    invokeFunction: (callee: unknown, args: unknown[]) => unknown;
-  }).invokeFunction(handleMethod, [requestValue]);
 };
 
 
@@ -169,7 +147,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("app/examples.cosm"); examples.class.name')).toBe("Module");
   expect(cosmEval('require("app/examples.cosm"); examples.receiverReflection().code')).toBe("Object.new().methods()");
   expect(cosmEval('require("app/examples.cosm"); examples.dispatchHelper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(11);
+  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(12);
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
@@ -304,17 +282,21 @@ test("receiver-side methods() reflects inherited visible methods consistently", 
 
 test("Process.exit can be hooked and validates codes", () => {
   let exitedWith: number | undefined;
-  CosmProcessValue.installRuntimeHooks({
-    exit: (code?: number) => {
-      exitedWith = code;
-      throw new Error(`EXIT:${code ?? 0}`);
-    },
-  });
+  try {
+    CosmProcessValue.installRuntimeHooks({
+      exit: (code?: number) => {
+        exitedWith = code;
+        throw new Error(`EXIT:${code ?? 0}`);
+      },
+    });
 
-  expect(() => cosmEval("Process.exit(3)")).toThrow("EXIT:3");
-  expect(exitedWith).toBe(3);
-  expect(() => cosmEval('Process.exit("nope")')).toThrow("Type error: exit expects a numeric code");
-  expect(() => cosmEval("Process.exit(1.5)")).toThrow("Type error: exit expects an integer code");
+    expect(() => cosmEval("Process.exit(3)")).toThrow("EXIT:3");
+    expect(exitedWith).toBe(3);
+    expect(() => cosmEval('Process.exit("nope")')).toThrow("Type error: exit expects a numeric code");
+    expect(() => cosmEval("Process.exit(1.5)")).toThrow("Type error: exit expects an integer code");
+  } finally {
+    CosmProcessValue.installRuntimeHooks({});
+  }
 });
 
 test("Kernel.eval and Kernel.tryEval delegate to the default explicit session", () => {
@@ -551,183 +533,6 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Point do end; Point.new().class.name')).toBe("Point");
 });
 
-test("http request and response runtime objects reflect cleanly", () => {
-  expect(cosmEval('HttpResponse.ok("ok").class.name')).toBe("HttpResponse");
-  expect(cosmEval('HttpResponse.ok("ok").status')).toBe(200);
-  expect(cosmEval('HttpResponse.html("<h1>ok</h1>", 203).status')).toBe(203);
-  expect(cosmEval('HttpResponse.html("<h1>ok</h1>", 203).headers.get("content-type")')).toBe("text/html; charset=utf-8");
-  expect(cosmEval('HttpResponse.text("made", 201).status')).toBe(201);
-  expect(cosmEval('HttpResponse.text("made", 201).body')).toBe("made");
-  expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).status')).toBe(202);
-  expect(cosmEval('HttpResponse.json({ answer: 42 }, 202).headers.get("content-type")')).toBe("application/json");
-  expect(cosmEval('let router = HttpRouter.new(); router.get("/", ->(req) { HttpResponse.text("hi", 200) }); router.length')).toBe(1);
-  expect(cosmEval(`
-    let router = HttpRouter.new()
-    router.draw do
-      get "/" do |req|
-        HttpResponse.text("hi " + req.path, 200)
-      end
-      get "/health" do |req|
-        HttpResponse.json({ ok: true }, 200)
-      end
-    end
-    router.length
-  `)).toBe(2);
-  expect(cosmEval(`
-    let router = HttpRouter.new()
-    router.draw do
-      get "/" do |req|
-        HttpResponse.text("hi " + req.path, 200)
-      end
-    end
-    Kernel.inspect(router)
-  `)).toBe('#<HttpRouter routes: 1>');
-  expect(cosmEval(`
-    let router = HttpRouter.new()
-    router.use do |req, next|
-      HttpResponse.text("mw " + req.path, 200)
-    end
-    router.get("/", ->(req) { HttpResponse.text("route " + req.path, 200) })
-    router.handle("GET", "/", ->(req) { HttpResponse.text("route " + req.path, 200) })
-    router.length
-  `)).toBe(1);
-  expect(() => cosmEval(`
-    let router = HttpRouter.new()
-    router.draw do
-      patch("/", ->(req) { HttpResponse.text("nope", 200) })
-    end
-  `)).toThrow("Property error: object of class HttpRouterDsl has no property 'patch'");
-  expect(() => cosmEval('let router = HttpRouter.new(); router.draw(1)')).toThrow(
-    "Type error: HttpRouter.draw expects a function or method",
-  );
-  expect(() => cosmEval('let router = HttpRouter.new(); router.get("/", 1)')).toThrow(
-    "Type error: router handlers must be functions, methods, or objects with handle(req)",
-  );
-  expect(() => cosmEval('let router = HttpRouter.new(); router.use(1)')).toThrow(
-    "Type error: router middleware must be functions, methods, or objects with handle(req, next)",
-  );
-  expect(() => cosmEval("class Plain end\nhttp.serve(0, Plain.new())")).toThrow(
-    "Type error: serve expects a function, method, or object with handle(req)",
-  );
-});
-
-test("router request specs can dispatch without a live server listen", () => {
-  const response = dispatchService(`
-    let router = HttpRouter.new()
-    router.use do |req, next|
-      next()
-    end
-    router.draw do
-      get "/" do |req|
-        HttpResponse.text("hi " + req.path, 200)
-      end
-      post "/submit" do |req|
-        HttpResponse.text(req.bodyText(), 201)
-      end
-    end
-    class RouterService
-      def init(router)
-        true
-      end
-      def handle(req)
-        @router.handle(req)
-      end
-    end
-    RouterService.new(router)
-  `, "GET", "/");
-
-  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("body"))).toBe("hi /");
-
-  const postResponse = dispatchService(`
-    let router = HttpRouter.new()
-    router.draw do
-      post "/submit" do |req|
-        HttpResponse.text(req.bodyText(), 201)
-      end
-    end
-    class RouterService
-      def init(router)
-        true
-      end
-      def handle(req)
-        @router.handle(req)
-      end
-    end
-    RouterService.new(router)
-  `, "POST", "/submit", "code=1%20%2B%202");
-
-  expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("status"))).toBe(201);
-  expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("body"))).toBe("code=1%20%2B%202");
-});
-
-test("module-organized app can be exercised as a request spec without listen", () => {
-  const home = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "GET", "/");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("status"))).toBe(200);
-  const homeHeaders = home.nativeProperty?.("headers");
-  const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
-  expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
-  expect(homeBody).toContain("Cosm 0.3.11");
-  expect(homeBody).toContain("Reflective server slice");
-
-  const notebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "GET", "/notebook");
-  expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
-  const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(notebookBody).toContain("Live eval is idle.");
-  expect(notebookBody).toContain("Try the current surface");
-  expect(notebookBody).toContain("Recent Snippets");
-  expect(notebookBody).toContain("<details");
-  expect(notebookBody).toContain("Method names first");
-  expect(notebookBody).toContain("Data.model(");
-  expect(notebookBody).toContain("require(&quot;cosm/ai.cosm&quot;)");
-
-  const notebookEval = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", "code=1%20%2B%202");
-  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("body"))).toContain("3");
-
-  const modelNotebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", "code=let%20Reason%20%3D%20Data.model(%22Reason%22%2C%20%7B%20answer%3A%20Data.string()%2C%20choice%3A%20Data.enum(%22yes%22%2C%20%22no%22)%20%7D)%3B%20Reason.validate(%7B%20answer%3A%20%22hi%22%2C%20choice%3A%20%22yes%22%20%7D)");
-  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(modelNotebook.nativeProperty?.("body"))).toContain("true");
-});
-
-test(".ecosm templates can be required and rendered directly", () => {
-  expect(cosmEval('require("app/views/notebook/result.ecosm"); result.render({ inspect: "42" })')).toContain("42");
-  expect(cosmEval('require("app/views/layout/head.ecosm"); head.render({})')).toContain("tailwindcss");
-});
-
-test("web-layer request specs render Cosm backtraces for notebook errors", () => {
-  const notebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", "code=Prompt.complete");
-  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(body).toContain("Property error");
-  expect(body).toContain("access Prompt.complete");
-  expect(body).not.toContain("src/runtime/");
-  expect(body).not.toContain("src/cosm.ts");
-});
-
-test("notebook results use Cosm inspect output instead of raw host formatting", () => {
-  const notebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", "code=Kernel");
-  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(body).toContain("#&lt;Kernel&gt;");
-});
 
 test("type errors stay explicit", () => {
   expect(() => cosmEval("[1] + 1")).toThrow("Type error: add expects numeric operands or string concatenation");

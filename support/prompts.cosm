@@ -1,0 +1,17 @@
+require("support/models.cosm")
+
+def replyPrompt(conversation, inbound)
+  Prompt.text("""
+You are the first tiny Cosm Slack support assistant.
+Answer briefly, clearly, and honestly. Prefer actionable answers.
+If you are unsure, say so plainly instead of pretending.
+Return JSON matching this schema:
+#{Kernel.inspect(models.AgentReply.jsonSchema())}
+
+Conversation:
+#{Kernel.inspect(conversation)}
+
+Inbound message:
+#{Kernel.inspect(inbound)}
+""")
+end

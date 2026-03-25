@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-`0.3.11` is aimed at re-centering Cosm around semantic coherence and a first real VM down payment while keeping the next proving app visible:
+`0.3.11` is aimed at re-centering Cosm around semantic coherence and a first real VM down payment while also proving the first tiny app wedge:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -30,14 +30,14 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 - a cleaner notebook workbench with Cosm-inspected output, debounced live eval, a secondary examples section, and browser-local recent snippets
 - a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
 - a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
-- a clearer `0.4.0` wedge spec for a tiny DM-first Slack-facing persistent support agent, without implementing it yet
+- a tiny DM-first Slack support path through `/slack/events`, `slack.events(req)`, and Cosm-authored `support/` modules
 
 This is intentionally still below a full notebook product or framework layer. `0.3.11` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, and a notebook that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
-- Slack, MCP, or persistent agent runtime surfaces
+- MCP, broad tool ecosystems, or generalized persistent multi-agent runtime surfaces
 - `data Foo ... end` syntax or model-declaration syntax
 - notebook persistence or multi-user isolation
 - Tailwind or any frontend styling stack as a language/runtime commitment
@@ -150,7 +150,9 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.11`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, and `require("app/examples.cosm")` with Cosm-inspected result output. `Kernel.eval(...)`, `Kernel.tryEval(...)`, and `Kernel.resetSession()` still exist, but they now delegate to `Session.default()`.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.11`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, and a tiny support-agent prompt path through `require("support/agent.cosm")`.
+
+The canonical app also now exposes a narrow Slack ingress at `/slack/events`. Verification, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`.
 
 For local AI use, `cosm.ai` now assumes LM Studio by default:
 
@@ -189,18 +191,18 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 The immediate next milestones are:
 
 1. `0.3.11`: semantic coherence + VM prep
-2. `0.4.0`: DM-first Slack support bot
+2. `0.4.0`: deepen the Slack support agent, session policy, and tool-light orchestration
 3. post-`0.4.0`: broader persistent agent/runtime work, richer tool adapters, and later notebook/doc experiments
 
 The immediate next track is:
 
 1. finish and prove `0.3.11`
-2. then build `0.4.0` as a tiny single-tenant DM-first Slack-facing support agent on sessions, AI, data models, and service modules
+2. then deepen that Slack-facing support agent around sessions, data contracts, and tool-light orchestration
 3. only after that broaden toward a more explicit persistent agent/runtime surface and richer notebook/doc models
 
 The intended sequencing is:
 
 - finish and prove `0.3.11`
-- then pressure the platform through a tiny Slack-facing app wedge
+- then pressure the platform further through the shipped Slack-facing app wedge
 - then deepen Cosm-authored orchestration, tool contracts, and session policy from that proving app
 - only after that reach for broader persistent agent work, richer notebook docs, or a fuller VM

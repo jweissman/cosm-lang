@@ -22,3 +22,7 @@ end
 def cast(prompt, target)
   cosm.ai.cast(prompt, schemaFor(target))
 end
+
+def reply(prompt, target)
+  cast(prompt, target)
+end

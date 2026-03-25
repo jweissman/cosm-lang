@@ -25,7 +25,7 @@
 - add a narrow VM-oriented IR plus `--trace-ir` / `--vm` for a supported subset
 - make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
 - make the notebook feel more like a workbench through Cosm-inspected output, debounced live eval, secondary/collapsible examples, and lightweight recent-snippet affordances
-- keep the next app wedge visible as a DM-first Slack support bot spec for `0.4.0`, without implementing it yet
+- ship a tiny DM-first Slack support path while keeping broader agent/runtime ambitions narrow
 
 For `0.3.11`, the callable boundary still stays intentionally narrow:
 
@@ -118,7 +118,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `test/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
-- Full notebook/framework work is still intentionally post-`0.3.11`, and the next proving app is the DM-first Slack support bot targeted for `0.4.0`.
+- Full notebook/framework work is still intentionally post-`0.3.11`, and the next proving step is deepening the tiny DM-first Slack support path already in the tree.
 
 ## Explicitly Not In v0.3.11
 
@@ -126,11 +126,10 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - notebook UI beyond the tiny shared-session demo page
 - shipping Cosm execution into the browser
 - richer notebook/session management
-- Slack implementation or a persistent agent runtime yet
 - route DSL syntax or router macros
 - lexical `module ... end`
 - `data Foo ... end` syntax or model-declaration syntax
-- Slack/MCP or persistent agent-runtime surfaces
+- Slack/MCP tool ecosystems or generalized persistent agent-runtime surfaces
 - HTML tag-builder DSLs
 - JS interop mirrors/holograms
 - full VM execution
@@ -141,7 +140,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Deepen the data/model layer and move more policy/orchestration code into Cosm from this stronger app/view/notebook foundation.
 - Use the repaired reflective surface to clarify where later delegation/hologram work should sit, before reaching for a VM.
 - Decide browser/runtime exposure after the notebook shell and data/model story feel stronger.
-- Only after those two tracks, stage a tiny DM-first persistent agent runtime around sessions, `cosm.ai`, service modules, and future Slack/MCP adapters.
+- Only after the current Slack wedge feels steady, deepen it toward richer session policy, tool contracts, and later Slack/MCP adapters.
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
 - Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.

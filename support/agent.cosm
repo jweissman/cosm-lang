@@ -1,0 +1,30 @@
+require("cosm/ai.cosm")
+require("support/models.cosm")
+require("support/prompts.cosm")
+require("support/replies.cosm")
+
+def handle(conversation, inbound)
+  models.Conversation.validate(conversation)
+  models.InboundMessage.validate(inbound)
+  let reply = ai.reply(prompts.replyPrompt(conversation, inbound), models.AgentReply)
+  models.AgentReply.validate(reply)
+  reply
+end
+
+def fallback(conversation, inbound, errorMessage)
+  models.Conversation.validate(conversation)
+  models.InboundMessage.validate(inbound)
+  replies.unavailable(errorMessage)
+end
+
+def exampleConversation()
+  { key: "DDEMO:1710000000.000001", channel: "DDEMO", thread: "1710000000.000001", messages: [{ role: "user", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }], sessionName: "slack-demo", sessionLength: 1 }
+end
+
+def exampleInbound()
+  { channel: "DDEMO", thread: "1710000000.000001", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }
+end
+
+def preview()
+  prompts.replyPrompt(exampleConversation(), exampleInbound())
+end

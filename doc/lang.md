@@ -601,7 +601,7 @@ do let x = 1; x + 2 end
 - ampersand block capture or forwarding
 - route params, wildcards, middleware groups, and route macros
 - `Data` syntax or model-declaration syntax
-- Slack/MCP or persistent agent-runtime surfaces
+- Slack/MCP tool ecosystems or generalized persistent agent-runtime surfaces
 - HTML tag-builder DSLs
 - browser-side Cosm runtime
 - richer notebook/session management

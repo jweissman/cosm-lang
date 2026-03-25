@@ -49,6 +49,10 @@ class App
           NOTEBOOK_SESSION.reset()
           HttpResponse.html(views.NotebookView.fragment("", false), 200)
         end
+
+        post "/slack/events" do |req|
+          slack.events(req)
+        end
       end
 
       App.new(router)

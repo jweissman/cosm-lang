@@ -25,6 +25,7 @@ import { CosmPromptValue } from "../values/CosmPromptValue";
 import { CosmAiValue } from "../values/CosmAiValue";
 import { CosmSessionValue } from "../values/CosmSessionValue";
 import { CosmDataModelValue } from "../values/CosmDataModelValue";
+import { CosmSlackValue } from "../values/CosmSlackValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
 import { basename } from "node:path";
@@ -122,7 +123,7 @@ export class Bootstrap {
         evalInEnv: (source, env) => runtime.evalInEnv(source, env),
         inspectValue: (value, env) => runtime.inspectValue(value, env),
         createEnv: () => runtime.createSessionEnv(),
-        inline: name === "example",
+        inline: name === "example" || (name.startsWith("slack-") && process.env.COSM_SLACK_INLINE_SESSION === "1"),
       }),
       defaultSession: () => runtime.defaultSession() as CosmSessionValue,
     });
@@ -141,7 +142,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter', 'Slack']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -253,6 +254,10 @@ export class Bootstrap {
       new CosmHttpRouterValue({}, classes.HttpRouter, classes.HttpResponse, classes.Namespace),
       CosmHttpRouterValue.manifest,
     ));
+    Object.assign(classes.Slack.methods, manifestMethods(
+      new CosmSlackValue({}, classes.Slack, classes.HttpResponse, classes.Namespace, classes.Session, classes.Error),
+      CosmSlackValue.manifest,
+    ));
     Object.assign(
       classes.Symbol.classRef?.methods ?? {},
       manifestClassMethods(CosmSymbolValue.manifest),
@@ -312,6 +317,7 @@ export class Bootstrap {
       HttpResponse: classes.HttpResponse,
       HttpServer: classes.HttpServer,
       HttpRouter: classes.HttpRouter,
+      Slack: classes.Slack,
     };
   }
 
@@ -327,6 +333,7 @@ export class Bootstrap {
     const timeObject = new CosmTimeValue({}, classes.Time);
     const randomObject = new CosmRandomValue({}, classes.Random);
     const aiObject = new CosmAiValue({}, classes.Ai, classes.Error);
+    const slackObject = new CosmSlackValue({}, classes.Slack, classes.HttpResponse, classes.Namespace, classes.Session, classes.Error);
     const sessionClass = classes.Session;
     const httpObject = new CosmHttpValue(
       {},
@@ -342,6 +349,7 @@ export class Bootstrap {
     globals.Time = timeObject;
     globals.Random = randomObject;
     globals.ai = aiObject;
+    globals.slack = slackObject;
     globals.Data = modules["cosm/data"];
     globals.Session = sessionClass;
     globals.http = httpObject;

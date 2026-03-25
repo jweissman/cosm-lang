@@ -42,6 +42,10 @@ def aiCastHelper()
   example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
 end
 
+def supportAgentPreview()
+  example("AI", "Support agent prompt", "Preview the tiny Slack support-agent prompt and reply loop surface.", "require(\"support/agent.cosm\"); agent.preview()")
+end
+
 def routerSketch()
   example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
@@ -59,7 +63,7 @@ def data()
 end
 
 def ai()
-  [promptObject(), aiStatus(), aiCastHelper()]
+  [promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview()]
 end
 
 def services()
@@ -67,5 +71,5 @@ def services()
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), routerSketch()]
 end

@@ -28,7 +28,7 @@ class NotebookExamples
     end
 
     def aiMarkup()
-      category("AI", "Prompt objects, runtime AI status, and AI-assisted cast stay explicit through cosm.ai and the Cosm-authored helper layer.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()))
+      category("AI", "Prompt objects, runtime AI status, AI-assisted cast, and the tiny Slack-support helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()))
     end
 
     def servicesMarkup()

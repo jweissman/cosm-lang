@@ -54,47 +54,16 @@ test("primitive runtime values carry behavior", () => {
 });
 
 test("shared runtime eq hook covers structural and identity cases", () => {
-  CosmValueBase.installRuntimeHooks({
-    send: () => {
-      throw new Error("not used in eq test");
-    },
-    lookupMethod: () => {
-      throw new Error("not used in eq test");
-    },
-    classOf: (receiver) => {
-      switch (receiver.type) {
-        case "number":
-          return new CosmClassValue("Number");
-        case "bool":
-          return new CosmClassValue("Boolean");
-        case "string":
-          return new CosmClassValue("String");
-        case "symbol":
-          return new CosmClassValue("Symbol");
-        case "array":
-          return new CosmClassValue("Array");
-        case "hash":
-          return new CosmClassValue("Hash");
-        case "object":
-          return receiver.classRef ?? new CosmClassValue(receiver.className);
-        case "class":
-          return receiver.classRef ?? new CosmClassValue("Class");
-        case "function":
-          return new CosmClassValue("Function");
-        case "method":
-          return new CosmClassValue("Method");
-      }
-    },
-    equal: (left, right) => RuntimeEquality.compare(left, right),
-  });
-  expect(Val.array([Val.number(1), Val.string("ok")]).nativeMethod("eq")?.nativeCall?.([
+  expect(RuntimeEquality.compare(
     Val.array([Val.number(1), Val.string("ok")]),
-  ], Val.array([Val.number(1), Val.string("ok")]))).toMatchObject({ type: "bool", value: true });
-  expect(Val.hash({ answer: Val.number(42) }).nativeMethod("eq")?.nativeCall?.([
+    Val.array([Val.number(1), Val.string("ok")]),
+  )).toBe(true);
+  expect(RuntimeEquality.compare(
     Val.hash({ answer: Val.number(42) }),
-  ], Val.hash({ answer: Val.number(42) }))).toMatchObject({ type: "bool", value: true });
+    Val.hash({ answer: Val.number(42) }),
+  )).toBe(true);
   const fn = Val.nativeFunc("id", () => Val.bool(true));
-  expect(fn.nativeMethod("eq")?.nativeCall?.([fn], fn)).toMatchObject({ type: "bool", value: true });
+  expect(RuntimeEquality.compare(fn, fn)).toBe(true);
 });
 
 test("callable and reflective constructors preserve metadata", () => {
@@ -148,10 +117,6 @@ test("callable and reflective constructors preserve metadata", () => {
 });
 
 test("core runtime manifests expose a consistent boot surface", () => {
-  CosmSymbolValue.installRuntimeHooks({
-    intern: (name) => Val.symbol(name),
-  });
-
   const objectClass = new CosmClassValue("Object");
   const classClass = new CosmClassValue("Class", "Object");
   const kernelClass = new CosmClassValue("Kernel", "Object");

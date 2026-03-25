@@ -52,7 +52,7 @@ Those should begin as standard/runtime libraries rather than syntax features, so
 - make CLI tracing show surface AST, core AST, and IR
 - add a tiny opt-in VM executor for that subset
 
-### Milestone C: First Real Agentic App Wedge (`0.4.0`)
+### Milestone C: First Real Agentic App Wedge (`0.3.11`)
 
 - build a tiny DM-first Slack support bot
 - map one `Session` per Slack conversation/thread
@@ -105,7 +105,7 @@ What is deliberately not part of `0.3.11` even if it is attractive:
 - ampersand block capture/passing
 - notebook UI beyond the tiny shared-session demo page
 - browser-side Cosm runtime
-- Slack/MCP or persistent agent runtime surfaces
+- Slack/MCP tool ecosystems or generalized persistent agent runtime surfaces
 - `data` syntax or model-declaration syntax
 - Tailwind/frontend stack decisions as language/runtime commitments
 - route params, wildcards, middleware groups, or route macros
@@ -161,8 +161,7 @@ v0.3.11 intentionally does not include:
 - ampersand block capture/passing
 - a notebook app beyond the tiny shared-session demo page
 - a framework/router layer
-- Slack/webhook integration
-- Slack/MCP or persistent agent-runtime surfaces
+- Slack/MCP tool ecosystems or generalized persistent agent-runtime surfaces
 - automatic prompt literals or ambient AI semantics
 - full VM execution
 - holograms or JS-host mirror bridges
@@ -253,9 +252,9 @@ Concrete next construction ideas:
 - Sketch a small Cosm-level test harness once block/message infrastructure is steady enough to support it cleanly.
 - Keep making reflective surfaces like `.methods` and `.classMethods` look like real named runtime objects instead of ad hoc bags.
 
-## Next Proving App: Tiny DM-First Slack Support Agent (`0.4.0`)
+## Current Proving App: Tiny DM-First Slack Support Agent (`0.3.11`)
 
-This is the next concrete wedge after `0.3.11`, but it should remain a spec here rather than an implementation in this release.
+This is now the first concrete proving wedge in `0.3.11`, and the next step is to deepen it rather than keep it hypothetical.
 
 Desired shape:
 
@@ -298,7 +297,7 @@ Recommended next slice:
 - Treat `0.3.11` as the point where the runtime starts behaving more like a semantically coherent workbench with a real VM-prep artifact instead of only a recursive-eval interpreter.
 - Use the immediate next track to deepen `Data` and other Cosm-authored stdlib layers from the new module/app/views + middleware + data-model structure.
 - Then decide browser/runtime exposure from that stronger server-side notebook footing.
-- Only after those foundations, reach for a tiny DM-first persistent agent runtime with Slack/MCP-style adapters as standard/runtime libraries rather than syntax features.
+- Only after the current Slack wedge feels steady, reach for a broader persistent agent runtime with Slack/MCP-style adapters as standard/runtime libraries rather than syntax features.
 - Leave ampersand block capture, variadics, and richer callable/block syntax for after those steps.
 
 ## Research Themes
