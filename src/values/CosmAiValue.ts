@@ -8,23 +8,43 @@ import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmErrorValue } from "./CosmErrorValue";
 import { CosmBoolValue } from "./CosmBoolValue";
+import { CosmNamespaceValue } from "./CosmNamespaceValue";
+import { CosmNumberValue } from "./CosmNumberValue";
 
 export class CosmAiValue extends CosmObjectValue {
   private static statusHandler?: () => CosmValue;
   private static completeHandler?: (prompt: string, env?: CosmEnv) => CosmValue;
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
+  private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
 
   static installRuntimeHooks(hooks: {
     status?: () => CosmValue;
     complete?: (prompt: string, env?: CosmEnv) => CosmValue;
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
+    stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
+    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
   }): void {
-    this.statusHandler = hooks.status;
-    this.completeHandler = hooks.complete;
-    this.castHandler = hooks.cast;
-    this.compareHandler = hooks.compare;
+    if ("status" in hooks) {
+      this.statusHandler = hooks.status;
+    }
+    if ("complete" in hooks) {
+      this.completeHandler = hooks.complete;
+    }
+    if ("cast" in hooks) {
+      this.castHandler = hooks.cast;
+    }
+    if ("compare" in hooks) {
+      this.compareHandler = hooks.compare;
+    }
+    if ("stream" in hooks) {
+      this.streamHandler = hooks.stream;
+    }
+    if ("invoke" in hooks) {
+      this.invokeHandler = hooks.invoke;
+    }
   }
 
   static readonly manifest: RuntimeValueManifest<CosmAiValue> = {
@@ -81,6 +101,33 @@ export class CosmAiValue extends CosmObjectValue {
         const right = selfValue.expectPrompt(args[1], "cosm.ai.compare");
         return selfValue.compare(left, right, env);
       }),
+      stream: () => new CosmFunctionValue("stream", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: stream expects an Ai receiver");
+        }
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: cosm.ai.stream expects 1 or 2 arguments, got ${args.length}`);
+        }
+        const prompt = selfValue.expectPrompt(args[0], "cosm.ai.stream");
+        const callback = args[1] ?? CosmAiValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: cosm.ai.stream expects a callback or trailing block");
+        }
+        if (!CosmAiValue.streamHandler) {
+          CosmErrorValue.raise(new CosmStringValue("AI backend is not configured for stream"), selfValue.errorClassRef);
+        }
+        if (!CosmAiValue.invokeHandler) {
+          throw new Error("AI runtime error: invoke handler is not installed");
+        }
+        return CosmAiValue.streamHandler(prompt, (event) => {
+          CosmAiValue.invokeHandler!(
+            callback,
+            [selfValue.streamEvent(event)],
+            undefined,
+            env,
+          );
+        }, env);
+      }),
     },
   };
 
@@ -103,6 +150,15 @@ export class CosmAiValue extends CosmObjectValue {
     return CosmAiValue.compareStrings(left, right, this.errorClassRef, env);
   }
 
+  private streamEvent(event: { kind: string; text?: string; first?: boolean; index?: number }): CosmValue {
+    return new CosmNamespaceValue({
+      kind: new CosmStringValue(event.kind),
+      text: event.text === undefined ? new CosmBoolValue(false) : new CosmStringValue(event.text),
+      first: new CosmBoolValue(event.first === true),
+      index: event.index === undefined ? new CosmBoolValue(false) : new CosmNumberValue(event.index),
+    }, this.classRef);
+  }
+
   private expectPrompt(value: CosmValue, context: string): string {
     const source = CosmPromptValue.sourceFrom(value);
     if (source === undefined) {
@@ -117,5 +173,14 @@ export class CosmAiValue extends CosmObjectValue {
       return inherited;
     }
     return manifestMethod(this, name, CosmAiValue.manifest);
+  }
+
+  private static currentBlock(env?: CosmEnv): CosmValue | undefined {
+    for (let scope = env; scope; scope = scope.parent) {
+      if (scope.currentBlock) {
+        return scope.currentBlock;
+      }
+    }
+    return undefined;
   }
 }

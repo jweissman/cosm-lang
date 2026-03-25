@@ -26,3 +26,9 @@ end
 def reply(prompt, target)
   cast(prompt, target)
 end
+
+def stream(prompt)
+  cosm.ai.stream(prompt) do |event|
+    yield(event)
+  end
+end

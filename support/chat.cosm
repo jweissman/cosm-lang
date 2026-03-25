@@ -12,6 +12,28 @@ def step(transcript, input)
   agent.stepTranscript(transcript, input)
 end
 
+def streamStep(transcript, input)
+  agent.streamStepTranscript(transcript, input) do |event|
+    yield(event)
+  end
+end
+
+def renderStreamEvent(event)
+  if event.kind == "waiting" then
+    Kernel.puts("iapetus> [waiting for local model...]")
+  else
+    if event.kind == "chunk" then
+      if event.first then
+        Kernel.print("iapetus> " + event.text)
+      else
+        Kernel.print(event.text)
+      end
+    else
+      false
+    end
+  end
+end
+
 def run()
   Kernel.puts(banner())
   loop("")
@@ -22,8 +44,10 @@ def loop(transcript)
   if input == "" then
     Kernel.puts("iapetus> Goodbye for now.")
   else
-    let result = step(transcript, input)
-    Kernel.puts("iapetus> " + result.reply.text)
+    let result = streamStep(transcript, input) do |event|
+      renderStreamEvent(event)
+    end
+    Kernel.puts("")
     loop(result.transcript)
   end
 end

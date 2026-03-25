@@ -17,8 +17,25 @@ def replyForTranscript(transcript, latestText)
   reply
 end
 
+def streamReplyForTranscript(transcript, latestText)
+  let text = ai.stream(prompts.streamPromptFromTranscript(transcript, latestText)) do |event|
+    yield(event)
+  end
+  let reply = replies.text(text, "streamed")
+  models.AgentReply.validate(reply)
+  reply
+end
+
 def stepTranscript(transcript, latestText)
   let reply = replyForTranscript(transcript, latestText)
+  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", latestText), "assistant", reply.text)
+  let step = { transcript: nextTranscript, reply: reply }
+  models.ChatStep.validate(step)
+  step
+end
+
+def streamStepTranscript(transcript, latestText)
+  let reply = streamReplyForTranscript(transcript, latestText)
   let nextTranscript = appendTranscript(appendTranscript(transcript, "user", latestText), "assistant", reply.text)
   let step = { transcript: nextTranscript, reply: reply }
   models.ChatStep.validate(step)

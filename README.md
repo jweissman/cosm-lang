@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-The current tree is best read as **`0.3.11-delta`**: it is tightening the shared support-assistant core, the runtime seams under it, and the spec/workbench surface around it:
+The current tree is best read as **`0.3.12`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, first-class runtime include, explicit AI streaming, and a more Cosm-owned spec/harness surface:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -32,8 +32,12 @@ The current tree is best read as **`0.3.11-delta`**: it is tightening the shared
 - a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
 - a tiny DM-first Slack support path through `/slack/events`, `slack.events(req)`, and Cosm-authored `support/` modules
 - a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`, with that CLI loop now acting as the canonical proving surface and Slack reusing the same support modules as a thin adapter
+- a first runtime-backed `include(...)` surface on classes through reflective module objects
+- an explicit `cosm.ai.stream(...)` / `require("cosm/ai.cosm").stream(...)` API for callback-based AI output
+- a streamed chat CLI path with a small wait-state message before the first chunk arrives
+- an incremental Cosm-owned harness layer through `require("cosm/spec.cosm")`
 
-This is intentionally still below a full notebook product or framework layer. `0.3.11-delta` is about stopping semantic drift: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a concrete IR artifact for VM prep, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
+This is intentionally still below a full notebook product or framework layer. `0.3.12` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding

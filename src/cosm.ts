@@ -823,7 +823,7 @@ namespace Cosm {
           throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${effectiveArgs.length}`);
         }
         const callEnv = this.createEnv(callee.env);
-        callEnv.currentBlock = activeBlock;
+        callEnv.currentBlock = activeBlock === callee ? this.findOuterBlock(env, activeBlock) : activeBlock;
         if (selfValue) {
           callEnv.bindings.self = selfValue;
         }
@@ -1080,6 +1080,21 @@ namespace Cosm {
       return undefined;
     }
 
+    private static findOuterBlock(env: Env | undefined, currentBlock: CosmValue): CosmValue | undefined {
+      let skippedCurrent = false;
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        if (!scope.currentBlock) {
+          continue;
+        }
+        if (!skippedCurrent && scope.currentBlock === currentBlock) {
+          skippedCurrent = true;
+          continue;
+        }
+        return scope.currentBlock;
+      }
+      return undefined;
+    }
+
     private static internSymbol(name: string): CosmValue {
       const existing = this.symbolTable.get(name);
       if (existing) {
@@ -1091,6 +1106,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.11";
+    export const version = "0.3.12";
 }
 export default Cosm;

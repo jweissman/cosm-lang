@@ -1,11 +1,11 @@
-require("cosm/test")
+require("cosm/spec.cosm")
 
-describe("AI runtime", ->() {
-  test("Prompt and Schema stay explicit runtime objects", ->() {
-    assert(Prompt.text("hello").source == "hello")
+spec.suite("AI runtime", ->() {
+  spec.it("Prompt and Schema stay explicit runtime objects", ->() {
+    spec.assertEqual(Prompt.text("hello").source, "hello")
     assert(Schema.string().validate("ok") == true)
   })
-  test("Data stays validation-first locally", ->() {
+  spec.it("Data stays validation-first locally", ->() {
     let Ticket = Data.model("Ticket", { title: Data.string(), priority: Data.enum("low", "high") })
     assert(Ticket.validate({ title: "hello", priority: "low" }) == true)
   })

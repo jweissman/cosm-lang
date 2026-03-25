@@ -1,0 +1,7 @@
+def label()
+  "label-from-mixin"
+end
+
+def emphasize(text)
+  "[" + text + "]"
+end

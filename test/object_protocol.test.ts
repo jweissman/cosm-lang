@@ -57,6 +57,20 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     end
     Child.new().method(:greet).name
   `)).toBe("greet");
+  expect(cosmEval(`
+    require("support/label_mixin.cosm")
+    class Mixed
+    end
+    Mixed.include(label_mixin)
+    Mixed.new().methods()
+  `)).toEqual(expect.arrayContaining([{ kind: "symbol", name: "label" }, { kind: "symbol", name: "emphasize" }]));
+  expect(cosmEval(`
+    require("support/label_mixin.cosm")
+    class Mixed
+    end
+    Mixed.include(label_mixin)
+    Mixed.new().method(:label).name
+  `)).toBe("label");
 });
 
 test("Mirror inspect remains wrapper-visible", () => {

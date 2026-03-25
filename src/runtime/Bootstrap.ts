@@ -115,6 +115,8 @@ export class Bootstrap {
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
       compare: (left, right) => AiRuntime.compare(left, right),
+      stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
+      invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
     });
     CosmSessionValue.installRuntimeHooks({
       createHandle: (name, errorClassRef) => SessionRuntime.createHandle({

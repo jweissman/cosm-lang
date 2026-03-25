@@ -18,6 +18,23 @@ Latest user message:
 """)
 end
 
+def streamPromptFromTranscript(transcript, latestText)
+  Prompt.text("""
+You are Iapetus, the first tiny Cosm local-model support assistant.
+Stay narrow, support-oriented, and honest.
+Prefer actionable troubleshooting steps.
+If you are unsure, say so plainly instead of pretending.
+Do not describe hidden tools or hidden runtime capabilities.
+Return only the user-facing reply text, with no JSON wrapper.
+
+Transcript so far:
+#{transcript}
+
+Latest user message:
+#{latestText}
+""")
+end
+
 def replyPrompt(conversation, inbound)
   replyPromptFromTranscript(Kernel.inspect(conversation.messages), inbound.text)
 end

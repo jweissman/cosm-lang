@@ -21,6 +21,13 @@ type ChatOptions = {
   responseFormat?: Record<string, unknown>;
 };
 
+export type AiStreamEvent = {
+  kind: "waiting" | "chunk" | "done";
+  text?: string;
+  first?: boolean;
+  index?: number;
+};
+
 export function normalizeSemanticPair(left: string, right: string): [string, string] {
   const leftKey = left.trim().toLowerCase();
   const rightKey = right.trim().toLowerCase();
@@ -67,6 +74,29 @@ export class AiRuntime {
     });
     const parsed = JSON.parse(content);
     return schema.validateAndReturn(ValueAdapter.jsToCosm(parsed));
+  }
+
+  static stream(prompt: string, onEvent: (event: AiStreamEvent) => void) {
+    onEvent({ kind: "waiting", first: false, index: 0 });
+    const content = this.chat([
+      { role: "user", content: prompt },
+    ]);
+    const chunks = this.chunkText(content);
+    chunks.forEach((chunk, index) => {
+      onEvent({
+        kind: "chunk",
+        text: chunk,
+        first: index === 0,
+        index,
+      });
+    });
+    onEvent({
+      kind: "done",
+      text: content,
+      first: false,
+      index: chunks.length,
+    });
+    return new CosmStringValue(content);
   }
 
   static compare(left: string, right: string): boolean {
@@ -244,5 +274,13 @@ export class AiRuntime {
 
   private static truncate(value: string, limit = 400): string {
     return value.length > limit ? `${value.slice(0, limit)}...` : value;
+  }
+
+  private static chunkText(value: string): string[] {
+    const chunks = value.match(/[^\s]+\s*|\s+/g) ?? [];
+    if (chunks.length > 0) {
+      return chunks;
+    }
+    return value.length > 0 ? [value] : [];
   }
 }

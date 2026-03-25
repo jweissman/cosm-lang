@@ -12,6 +12,7 @@ afterEach(() => {
     complete: (prompt) => AiRuntime.complete(prompt),
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
+    stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
   });
 });
 
@@ -50,4 +51,39 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
 test("pure Cosm support chat transcript helpers stay stable", () => {
   expect(cosmEval('require("support/chat.cosm"); chat.appendTranscript("", "user", "hello")')).toBe("user: hello");
   expect(cosmEval('require("support/chat.cosm"); chat.appendTranscript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
+});
+
+test("pure Cosm support chat can stream chunks through the shared chat loop helpers", () => {
+  CosmAiValue.installRuntimeHooks({
+    stream: (prompt, onEvent) => {
+      onEvent({ kind: "waiting", index: 0 });
+      onEvent({ kind: "chunk", text: "Reset ", first: true, index: 0 });
+      onEvent({ kind: "chunk", text: "the session.", first: false, index: 1 });
+      onEvent({ kind: "done", text: "Reset the session.", index: 2 });
+      return ValueAdapter.jsToCosm(`Reset the session.`);
+    },
+  });
+
+  let stdout = "";
+  const originalWrite = process.stdout.write;
+  (process.stdout as unknown as { write: typeof process.stdout.write }).write = ((chunk: string | Uint8Array) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+
+  try {
+    expect(cosmEval(`
+      require("support/chat.cosm")
+      let result = chat.streamStep("", "How do I reset the notebook session?") do |event|
+        chat.renderStreamEvent(event)
+      end
+      result.reply.text
+    `)).toBe("Reset the session.");
+  } finally {
+    (process.stdout as unknown as { write: typeof process.stdout.write }).write = originalWrite;
+  }
+
+  expect(stdout).toContain("[waiting for local model...]");
+  expect(stdout).toContain("Reset ");
+  expect(stdout).toContain("the session.");
 });

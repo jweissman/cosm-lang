@@ -1,5 +1,6 @@
 import { Construct } from "../Construct";
 import { CosmClass, CosmFunction, CosmValue, CosmEnv } from "../types";
+import { CosmClassValue } from "../values/CosmClassValue";
 import { CosmFunctionValue } from "../values/CosmFunctionValue";
 import { CosmValueBase } from "../values/CosmValueBase";
 import { RuntimeInspect } from "./RuntimeInspect";
@@ -96,11 +97,11 @@ export class RuntimeDispatch {
   }
 
   static visibleMethods(classValue: CosmClass): Record<string, CosmFunctionValue> {
+    if (classValue instanceof CosmClassValue) {
+      return classValue.visibleInstanceMethods();
+    }
     const inherited = classValue.superclass ? this.visibleMethods(classValue.superclass) : {};
-    return {
-      ...inherited,
-      ...classValue.methods,
-    };
+    return { ...inherited, ...classValue.methods };
   }
 
   static bindMethod(receiver: CosmValue, method: CosmFunction): CosmValue {

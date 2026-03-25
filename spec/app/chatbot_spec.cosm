@@ -1,17 +1,17 @@
-require("cosm/test")
+require("cosm/spec.cosm")
 require("support/chat.cosm")
 require("support/models.cosm")
 
-describe("Support chatbot helpers", ->() {
-  test("transcript appends stay stable", ->() {
-    assert(chat.appendTranscript("", "user", "hello") == "user: hello")
-    assert(chat.appendTranscript("user: hello", "assistant", "hi") == "user: hello\nassistant: hi")
+spec.suite("Support chatbot helpers", ->() {
+  spec.it("transcript appends stay stable", ->() {
+    spec.assertEqual(chat.appendTranscript("", "user", "hello"), "user: hello")
+    spec.assertEqual(chat.appendTranscript("user: hello", "assistant", "hi"), "user: hello\nassistant: hi")
   })
-  test("step returns the structured chat-step model shape", ->() {
+  spec.it("step returns the structured chat-step model shape", ->() {
     let step = { transcript: "user: hello\nassistant: hi", reply: { shouldReply: true, text: "hi", rationale: "mocked", toolCalls: false, toolResults: false } }
     assert(models.ChatStep.validate(step) == true)
   })
-  test("banner stays descriptive", ->() {
+  spec.it("banner stays descriptive", ->() {
     assert(chat.banner().length > 20)
   })
 })

@@ -75,18 +75,51 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
     complete: (prompt) => Construct.string(`complete:${prompt}`),
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+    stream: (prompt, onEvent) => {
+      onEvent({ kind: "waiting", index: 0 });
+      onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0 });
+      onEvent({ kind: "done", text: `stream:${prompt}`, index: 1 });
+      return Construct.string(`stream:${prompt}`);
+    },
   });
 
   try {
     expect(cosmEval('cosm.ai.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('cosm.ai.cast("hello", Schema.string())')).toBe("cast:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
+    let stdout = "";
+    const originalWrite = process.stdout.write;
+    (process.stdout as unknown as { write: typeof process.stdout.write }).write = ((chunk: string | Uint8Array) => {
+      stdout += String(chunk);
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(cosmEval(`
+        let final = cosm.ai.stream("hello") do |event|
+          if event.kind == "waiting" then
+            Kernel.print("[waiting]")
+          else
+            if event.kind == "chunk" then
+              Kernel.print(event.text)
+            else
+              true
+            end
+          end
+        end
+        final
+      `)).toBe("stream:hello");
+    } finally {
+      (process.stdout as unknown as { write: typeof process.stdout.write }).write = originalWrite;
+    }
+    expect(stdout).toContain("[waiting]");
+    expect(stdout).toContain("stream:hello");
   } finally {
     CosmAiValue.installRuntimeHooks({
       status: () => AiRuntime.status(),
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
       compare: (left, right) => AiRuntime.compare(left, right),
+      stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
     });
   }
 });

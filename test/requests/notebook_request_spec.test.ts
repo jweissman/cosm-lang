@@ -15,7 +15,7 @@ test("module-organized app can be exercised as a request spec without listen", (
   const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
   expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
   const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
-  expect(homeBody).toContain("Cosm 0.3.11");
+  expect(homeBody).toContain("Cosm 0.3.12");
 
   const notebook = dispatchService(appSource, "GET", "/notebook");
   expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);

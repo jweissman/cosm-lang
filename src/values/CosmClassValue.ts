@@ -2,6 +2,7 @@ import { CosmValue } from "../types";
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
+import { CosmModuleValue } from "./CosmModuleValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
@@ -25,11 +26,12 @@ export class CosmClassValue extends CosmValueBase {
       metaclass: (self) => self.classRef,
       superclass: (self) => self.superclass,
       slots: (self) => new CosmArrayValue(self.slots.map((slot) => new CosmStringValue(slot))),
-      methods: (self) => new CosmNamespaceValue(self.methods, self.classRef),
+      methods: (self) => new CosmNamespaceValue(self.visibleInstanceMethods(), self.classRef),
       classMethods: (self) => {
         const classMethodOwner = self.classRef && self.classRef !== self ? self.classRef : undefined;
-        return new CosmNamespaceValue(classMethodOwner?.methods ?? self.classMethods, self.classRef);
+        return new CosmNamespaceValue(classMethodOwner?.visibleInstanceMethods() ?? self.classMethods, self.classRef);
       },
+      includedModules: (self) => new CosmArrayValue(self.includedModules.map((moduleValue) => moduleValue)),
     },
     methods: {
       new: () => new CosmFunctionValue('new', (args, selfValue) => {
@@ -53,6 +55,20 @@ export class CosmClassValue extends CosmValueBase {
         }
         return CosmClassValue.classMethodLookupHandler(selfValue, args[0]);
       }),
+      include: () => new CosmFunctionValue('include', (args, selfValue) => {
+        if (!(selfValue instanceof CosmClassValue)) {
+          throw new Error('Type error: include expects a class receiver');
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: include expects 1 arguments, got ${args.length}`);
+        }
+        const [moduleValue] = args;
+        if (!(moduleValue instanceof CosmModuleValue)) {
+          throw new Error('Type error: include expects a Module');
+        }
+        selfValue.includeModule(moduleValue);
+        return selfValue;
+      }),
     },
   };
 
@@ -70,10 +86,51 @@ export class CosmClassValue extends CosmValueBase {
     super();
   }
 
+  readonly includedModules: CosmModuleValue[] = [];
+
+  includeModule(moduleValue: CosmModuleValue): void {
+    const existingIndex = this.includedModules.findIndex((candidate) => candidate.moduleName === moduleValue.moduleName);
+    if (existingIndex >= 0) {
+      this.includedModules.splice(existingIndex, 1);
+    }
+    this.includedModules.push(moduleValue);
+  }
+
+  visibleInstanceMethods(): Record<string, CosmFunctionValue> {
+    const visible = this.superclass ? this.superclass.visibleInstanceMethods() : {};
+    for (const moduleValue of this.includedModules) {
+      Object.assign(visible, this.moduleFunctionEntries(moduleValue));
+    }
+    return {
+      ...visible,
+      ...this.methods,
+    };
+  }
+
+  private lookupIncludedMethod(name: string): CosmFunctionValue | undefined {
+    for (let index = this.includedModules.length - 1; index >= 0; index -= 1) {
+      const candidate = this.moduleFunctionEntries(this.includedModules[index])[name];
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+
+  private moduleFunctionEntries(moduleValue: CosmModuleValue): Record<string, CosmFunctionValue> {
+    return Object.fromEntries(
+      Object.entries(moduleValue.fields).filter(([, value]) => value instanceof CosmFunctionValue),
+    ) as Record<string, CosmFunctionValue>;
+  }
+
   lookupInstanceMethod(name: string): CosmFunctionValue | undefined {
     const method = this.methods[name];
     if (method) {
       return method;
+    }
+    const includedMethod = this.lookupIncludedMethod(name);
+    if (includedMethod) {
+      return includedMethod;
     }
     return this.superclass?.lookupInstanceMethod(name);
   }

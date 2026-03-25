@@ -1,0 +1,27 @@
+require("cosm/test")
+
+def suite(name, body)
+  describe(name, body)
+end
+
+def it(name, body)
+  test(name, body)
+end
+
+def assertEqual(actual, expected)
+  expectEqual(actual, expected)
+end
+
+def refute(value)
+  assert(value == false)
+end
+
+def expectRaises(body)
+  let result = Kernel.try(body)
+  assert(result.ok == false)
+  result.error
+end
+
+def finish()
+  testSummary()
+end

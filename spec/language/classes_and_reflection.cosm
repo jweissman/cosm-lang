@@ -37,6 +37,13 @@ class InheritedPair < Pair
 end;
 assert(InheritedPair.new(1, 2).method(:label).name == "label", "receiver-side reflection can still look up inherited methods directly");
 
+require("support/label_mixin.cosm");
+class MixinGreeter do end;
+MixinGreeter.include(label_mixin);
+assert(MixinGreeter.new().label() == "label-from-mixin", "classes can include module-backed instance behavior");
+assert(MixinGreeter.new().method(:label).name == "label", "receiver reflection includes mixed-in methods");
+assert(MixinGreeter.methods.get(:label).name == "label", "class-table reflection includes mixed-in methods");
+
 class Checked do
   def init(value) do
     assert(@value == value, "init bodies can observe assigned fields");
