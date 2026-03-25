@@ -70,6 +70,7 @@ export class Bootstrap {
   }
 
   private static installRuntimeHooks(runtime: BootstrapRuntime): void {
+    const namedSessions = new Map<string, CosmSessionValue>();
     CosmKernelValue.installRuntimeHooks({
       send: (receiver, messageValue, args, env) => runtime.invokeSend(receiver, messageValue, args, env),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
@@ -137,6 +138,14 @@ export class Bootstrap {
         inline: name === "example" || (name.startsWith("slack-") && process.env.COSM_SLACK_INLINE_SESSION === "1"),
       }),
       defaultSession: () => runtime.defaultSession() as CosmSessionValue,
+      namedSession: (name) => {
+        let existing = namedSessions.get(name);
+        if (!existing) {
+          existing = new CosmSessionValue(name, this.currentRepository?.classes.Session, this.currentRepository?.classes.Error);
+          namedSessions.set(name, existing);
+        }
+        return existing;
+      },
     });
   }
 

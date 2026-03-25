@@ -1,0 +1,16 @@
+def step(name, action)
+  { name: name, action: action }
+end
+
+def run(steps)
+  steps.map(->(item) {
+    let outcome = Kernel.try(->() { item.action() })
+    {
+      name: item.name,
+      ok: outcome.ok,
+      value: if outcome.ok then outcome.value else false end,
+      inspect: outcome.inspect,
+      error: outcome.error
+    }
+  })
+end

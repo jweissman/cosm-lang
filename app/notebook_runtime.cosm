@@ -1,0 +1,125 @@
+require("app/notebook_store.cosm")
+require("support/controller.cosm")
+require("cosm/workflow.cosm")
+
+def sessionName(page)
+  "notebook-page:" + page.id
+end
+
+def sessionFor(page)
+  Session.named(sessionName(page))
+end
+
+def runBlock(session, block)
+  if block.kind == "markdown" then
+    {
+      kind: "markdown",
+      content: block.content,
+      ok: false,
+      rendered: false,
+      error: false,
+      skipped: true
+    }
+  else
+    let result = session.tryEval(block.content)
+    {
+      kind: "cosm",
+      content: block.content,
+      ok: result.ok,
+      rendered: result.inspect,
+      error: result.error,
+      skipped: false
+    }
+  end
+end
+
+def finalResult(results)
+  results.reduce(false, ->(acc, result) {
+    if result.kind == "cosm" then
+      result
+    else
+      acc
+    end
+  })
+end
+
+def executionSummary(results)
+  let lines = results.reject(->(result) { result.kind != "cosm" }).map(->(result) {
+    if result.ok then
+      "ok: " + result.rendered
+    else
+      "error: " + result.error.message
+    end
+  })
+  if lines.empty() then
+    "No Cosm blocks were executed yet."
+  else
+    lines.join("\n")
+  end
+end
+
+def runPage(page)
+  let session = sessionFor(page)
+  let steps = page.blocks.map(->(block) {
+    workflow.step(block.kind, ->() { runBlock(session, block) })
+  })
+  let stepResults = workflow.run(steps)
+  let results = stepResults.map(->(entry) {
+    if entry.ok then
+      entry.value
+    else
+      {
+        kind: "cosm",
+        content: "workflow step",
+        ok: false,
+        rendered: entry.inspect,
+        error: entry.error,
+        skipped: false
+      }
+    end
+  })
+  let summary = executionSummary(results)
+  let savedPage = notebook_store.saveExecution(page, summary)
+  {
+    page: savedPage,
+    session: session,
+    results: results,
+    finalResult: finalResult(results),
+    summary: summary
+  }
+end
+
+def resetPageSession(page)
+  sessionFor(page).reset()
+  notebook_store.saveExecution(page, false)
+end
+
+def agentContext(page)
+  let blockSummary = page.blocks.map(->(block) {
+    "[" + block.kind + "]\n" + block.content
+  }).join("\n\n")
+  let execution = if page.lastExecutionSummary == false then "No execution has run yet." else page.lastExecutionSummary end
+  "Notebook title: " + page.title + "\n\nBlocks:\n" + blockSummary + "\n\nRecent execution:\n" + execution
+end
+
+def attachedConversation(page)
+  controller.pageConversation(page.agentKey, if page.agentTranscript == false then "" else page.agentTranscript end, agentContext(page))
+end
+
+def agentTurn(page, message)
+  let inbound = controller.pageInbound(page.agentKey, message)
+  let outcome = Kernel.try(->() { controller.turn(attachedConversation(page), inbound) })
+  if outcome.ok then
+    let savedPage = notebook_store.saveTranscript(page, outcome.value.conversation.transcript)
+    { page: savedPage, reply: outcome.value.reply }
+  else
+    let fallback = controller.fallback(attachedConversation(page), inbound, outcome.error.message)
+    let recovered = controller.nextConversation(attachedConversation(page), inbound, fallback)
+    let savedPage = notebook_store.saveTranscript(page, recovered.transcript)
+    { page: savedPage, reply: fallback }
+  end
+end
+
+def resetAgent(page)
+  notebook_store.saveTranscript(page, "")
+end

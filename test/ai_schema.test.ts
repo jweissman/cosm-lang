@@ -3,7 +3,7 @@ import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { Construct } from "../src/Construct";
 import { CosmAiValue } from "../src/values/CosmAiValue";
-import { AiRuntime, normalizeSemanticPair } from "../src/runtime/AiRuntime";
+import { AiRuntime, normalizeSemanticPair, parseOpenAiStreamBlock } from "../src/runtime/AiRuntime";
 import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
@@ -97,9 +97,9 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
     stream: (prompt, onEvent) => {
-      onEvent({ kind: "waiting", index: 0, buffered: true });
-      onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0, buffered: true });
-      onEvent({ kind: "done", text: `stream:${prompt}`, index: 1, buffered: true });
+      onEvent({ kind: "waiting", index: 0, text: "iapetus> [thinking |]" });
+      onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0 });
+      onEvent({ kind: "done", text: `stream:${prompt}`, index: 1 });
       return Construct.string(`stream:${prompt}`);
     },
   });
@@ -152,4 +152,12 @@ test("semantic comparison input normalization is symmetric", () => {
   expect(normalizeSemanticPair("dog", "canine")).toEqual(["canine", "dog"]);
   expect(normalizeSemanticPair("canine", "dog")).toEqual(["canine", "dog"]);
   expect(normalizeSemanticPair("Cat", "cat")).toEqual(["Cat", "cat"]);
+});
+
+test("AiRuntime stream adapter parses OpenAI-compatible SSE blocks incrementally", () => {
+  expect(parseOpenAiStreamBlock('data: {"choices":[{"delta":{"content":"Reset "}}]}\n\ndata: {"choices":[{"delta":{"content":"the session."}}]}\n\ndata: [DONE]\n\n')).toEqual([
+    "Reset ",
+    "the session.",
+  ]);
+  expect(() => parseOpenAiStreamBlock('data: {"error":{"message":"boom"}}\n\n')).toThrow("AI backend error: boom");
 });

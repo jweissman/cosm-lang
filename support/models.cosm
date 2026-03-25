@@ -1,8 +1,20 @@
 let Message = Data.object({ role: Data.string(), user: Data.optional(Data.string()), text: Data.string(), ts: Data.optional(Data.string()) })
-let Conversation = Data.model("Conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(Message), sessionName: Data.optional(Data.string()), sessionLength: Data.optional(Data.number()), transcript: Data.optional(Data.string()) })
+let Conversation = Data.model("Conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(Message), sessionName: Data.optional(Data.string()), sessionLength: Data.optional(Data.number()), transcript: Data.optional(Data.string()), context: Data.optional(Data.string()) })
 let InboundMessage = Data.model("InboundMessage", { channel: Data.string(), thread: Data.string(), user: Data.string(), text: Data.string(), ts: Data.string() })
 let ToolCall = Data.model("ToolCall", { name: Data.string(), inputSummary: Data.optional(Data.string()) })
 let ToolResult = Data.model("ToolResult", { ok: Data.boolean(), summary: Data.string() })
 let AgentReply = Data.model("AgentReply", { shouldReply: Data.boolean(), text: Data.string(), rationale: Data.optional(Data.string()), toolCalls: Data.optional(Data.array(ToolCall)), toolResults: Data.optional(Data.array(ToolResult)) })
 let ChatStep = Data.model("ChatStep", { transcript: Data.string(), reply: AgentReply })
 let ControllerTurn = Data.model("ControllerTurn", { conversation: Conversation, inbound: InboundMessage, reply: AgentReply })
+
+let NotebookBlock = Data.model("NotebookBlock", { kind: Data.enum("markdown", "cosm"), content: Data.string() })
+let NotebookPage = Data.model("NotebookPage", {
+  id: Data.string(),
+  title: Data.string(),
+  blocks: Data.array(NotebookBlock),
+  agentKey: Data.string(),
+  agentTranscript: Data.optional(Data.string()),
+  lastExecutionSummary: Data.optional(Data.string()),
+  createdAt: Data.string(),
+  updatedAt: Data.string()
+})

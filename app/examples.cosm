@@ -78,6 +78,18 @@ def supportPage()
   example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack adapter.", "require(\"support/controller.cosm\"); controller.pageConversation(\"demo\", \"user: hello\")")
 end
 
+def notebookPage()
+  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require(\"app/notebook_store.cosm\"); notebook_store.createPage(\"Demo page\").title")
+end
+
+def workflowRun()
+  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "require(\"cosm/workflow.cosm\"); workflow.run([workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), workflow.step(\"status\", ->() { cosm.ai.config() })])")
+end
+
+def namedSession()
+  example("Notebook", "Named session", "Page execution now reuses a stable named Session for the current page.", "let page = Session.named(\"notebook:demo\"); page.eval(\"let answer = 41\"); page.eval(\"answer + 1\")")
+end
+
 def routerSketch()
   example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
@@ -111,5 +123,5 @@ def support()
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), enumerableReduce(), enumerableFilter(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), enumerableReduce(), enumerableFilter(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), notebookPage(), workflowRun(), namedSession(), routerSketch()]
 end

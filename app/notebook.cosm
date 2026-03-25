@@ -1,5 +1,7 @@
 require("app/rendering.cosm")
 require("app/examples.cosm")
+require("app/notebook_store.cosm")
+require("app/notebook_runtime.cosm")
 
 class NotebookExamples
   class << self
@@ -36,7 +38,11 @@ class NotebookExamples
     end
 
     def supportMarkup()
-      category("Support", "The proving wedge now includes a tiny page-backed conversation flow, while the pure Cosm chat core stays primary and Slack remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
+      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and Slack remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
+    end
+
+    def notebookMarkup()
+      category("Notebook", "Persistent block pages, page-scoped sessions, and small ordered workflow helpers make the notebook the main wedge in this slice.", card(examples.notebookPage()) + card(examples.workflowRun()) + card(examples.namedSession()))
     end
 
     def servicesMarkup()
@@ -44,7 +50,7 @@ class NotebookExamples
     end
 
     def markup()
-      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + collectionsMarkup() + aiMarkup() + supportMarkup() + servicesMarkup() })
+      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + collectionsMarkup() + aiMarkup() + supportMarkup() + notebookMarkup() + servicesMarkup() })
     end
 
     def category(title, description, cards)
@@ -79,9 +85,25 @@ class NotebookView
       require("app/views/notebook/error.ecosm")
     end
 
-    def page(code, evaluation, session)
-      let output = fragment(code, evaluation)
-      rendering.HtmlView.renderLayout("Cosm Notebook", pageTemplate(), { code: rendering.HtmlView.escape(code), output: output, pid: Process.pid(), platform: rendering.HtmlView.escape(Process.platform()), arch: rendering.HtmlView.escape(Process.arch()), now: rendering.HtmlView.escape(Time.isoNow()), sessionName: rendering.HtmlView.escape(session.name), historyLength: session.length, examplesMarkup: NotebookExamples.markup() }, rendering.HtmlView.head(), rendering.HtmlView.render(scriptTemplate(), { }))
+    def page(currentPage, pages, execution = false, reply = false)
+      let session = notebook_runtime.sessionFor(currentPage)
+      rendering.HtmlView.renderLayout("Cosm Notebook", pageTemplate(), {
+        pageId: rendering.HtmlView.escape(currentPage.id),
+        pageTitle: rendering.HtmlView.escape(currentPage.title),
+        blocksMarkup: blocksMarkup(currentPage),
+        blocksJson: rendering.HtmlView.escape(Kernel.json(currentPage.blocks)),
+        pageListMarkup: pageListMarkup(pages, currentPage),
+        output: resultsMarkup(execution),
+        assistantMarkup: assistantMarkup(currentPage, reply),
+        pid: Process.pid(),
+        platform: rendering.HtmlView.escape(Process.platform()),
+        arch: rendering.HtmlView.escape(Process.arch()),
+        now: rendering.HtmlView.escape(Time.isoNow()),
+        sessionName: rendering.HtmlView.escape(session.name),
+        historyLength: session.length,
+        lastSummary: if currentPage.lastExecutionSummary == false then "No execution has run yet." else rendering.HtmlView.escape(currentPage.lastExecutionSummary) end,
+        examplesMarkup: NotebookExamples.markup()
+      }, rendering.HtmlView.head(), rendering.HtmlView.render(scriptTemplate(), { }))
     end
 
     def fragment(code, evaluation)
@@ -96,6 +118,55 @@ class NotebookView
           rendering.HtmlView.render(errorTemplate(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: backtrace })
         end
       end
+    end
+
+    def pageListMarkup(pages, currentPage)
+      if pages.empty() then
+        "<div class=\"rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400\">No saved pages yet.</div>"
+      else
+        pages.map(->(page) {
+          let active = if page.id == currentPage.id then " border-cyan-400 bg-slate-950/90" else " border-slate-800 bg-slate-950/60" end
+          "<a class=\"block rounded-2xl border p-4 text-sm transition hover:border-cyan-400" + active + "\" href=\"/notebook?id=" + rendering.HtmlView.escape(page.id) + "\"><p class=\"font-semibold text-slate-100\">" + rendering.HtmlView.escape(page.title) + "</p><p class=\"mt-2 text-xs text-slate-400\">" + rendering.HtmlView.escape(page.updatedAt) + "</p></a>"
+        }).join("")
+      end
+    end
+
+    def blocksMarkup(currentPage)
+      currentPage.blocks.map(->(block) {
+        blockMarkup(block)
+      }).join("")
+    end
+
+    def blockMarkup(block)
+      let tone = if block.kind == "markdown" then "text-amber-300" else "text-cyan-300" end
+      let label = if block.kind == "markdown" then "Markdown" else "Cosm" end
+      "<article class=\"notebook-block rounded-3xl border border-slate-800 bg-slate-950/70 p-4\" data-kind=\"" + rendering.HtmlView.escape(block.kind) + "\"><div class=\"mb-3 flex items-center justify-between gap-3\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] " + tone + "\">" + label + " Block</p><div class=\"flex gap-2\"><button class=\"notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300\" type=\"button\" data-kind=\"markdown\">Markdown</button><button class=\"notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300\" type=\"button\" data-kind=\"cosm\">Cosm</button><button class=\"notebook-remove rounded-full border border-rose-700 px-3 py-1 text-xs text-rose-200\" type=\"button\">Remove</button></div></div><textarea class=\"notebook-block-content min-h-[10rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 outline-none\" spellcheck=\"false\">" + rendering.HtmlView.escape(block.content) + "</textarea></article>"
+    end
+
+    def resultsMarkup(execution)
+      if execution == false then
+        "<div class=\"rounded-[2rem] border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300\">Run the whole page to execute each Cosm block in one named session.</div>"
+      else
+        execution.results.map(->(result) {
+          if result.kind == "markdown" then
+            "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/70 p-5\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-amber-300\">Markdown</p><pre class=\"mt-3 whitespace-pre-wrap break-words text-sm text-slate-300\">" + rendering.HtmlView.escape(result.content) + "</pre></div>"
+          else
+            if result.ok then
+              "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/70 p-5\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300\">Cosm Result</p><pre class=\"mt-3 overflow-x-auto whitespace-pre-wrap break-words text-sm text-cyan-100\">" + rendering.HtmlView.escape(result.rendered) + "</pre></div>"
+            else
+              let details = if result.error == false || result.error.details == false then "(none)" else rendering.HtmlView.escape(Kernel.inspect(result.error.details)) end
+              "<div class=\"rounded-[2rem] border border-rose-900 bg-rose-950/40 p-5\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-rose-300\">Cosm Error</p><p class=\"mt-3 text-sm font-semibold text-rose-100\">" + rendering.HtmlView.escape(result.error.message) + "</p><pre class=\"mt-3 whitespace-pre-wrap break-words text-xs text-rose-200\">" + details + "</pre></div>"
+            end
+          end
+        }).join("")
+      end
+    end
+
+    def assistantMarkup(currentPage, reply)
+      let transcript = if currentPage.agentTranscript == false || currentPage.agentTranscript == "" then "No assistant turns yet." else currentPage.agentTranscript end
+      let replyText = if reply == false then false else reply.text end
+      let replyMarkup = if replyText == false then "" else "<div class=\"mt-4 rounded-2xl border border-cyan-900 bg-cyan-950/30 p-4 text-sm text-cyan-100\">" + rendering.HtmlView.escape(replyText) + "</div>" end
+      "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300\">Attached Assistant</p><p class=\"mt-3 text-sm text-slate-400\">This assistant is attached to the current page key and sees the saved page content plus recent execution summary.</p><pre class=\"mt-4 min-h-[12rem] whitespace-pre-wrap break-words rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200\">" + rendering.HtmlView.escape(transcript) + "</pre>" + replyMarkup + "<form id=\"notebook-agent-form\" class=\"mt-4 space-y-3\" method=\"post\" action=\"/notebook/agent\"><input type=\"hidden\" name=\"id\" value=\"" + rendering.HtmlView.escape(currentPage.id) + "\" /><input type=\"hidden\" name=\"title\" class=\"notebook-sync-title\" value=\"" + rendering.HtmlView.escape(currentPage.title) + "\" /><input type=\"hidden\" name=\"blocks\" class=\"notebook-sync-blocks\" value=\"" + rendering.HtmlView.escape(Kernel.json(currentPage.blocks)) + "\" /><textarea name=\"message\" class=\"min-h-[7rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 text-sm text-slate-100 outline-none\" placeholder=\"Ask about this page or its most recent execution...\"></textarea><div class=\"flex flex-wrap gap-3\"><button class=\"rounded-full bg-fuchsia-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-fuchsia-300\" type=\"submit\">Ask Attached Assistant</button><button class=\"rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-amber-400 hover:text-amber-200\" type=\"submit\" formaction=\"/notebook/agent/reset\">Reset Assistant</button></div></form></div>"
     end
   end
 end

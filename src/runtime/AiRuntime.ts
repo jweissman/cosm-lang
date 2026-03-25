@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 import { Construct } from "../Construct";
 import { CosmClassValue } from "../values/CosmClassValue";
 import { CosmSchemaValue } from "../values/CosmSchemaValue";
@@ -26,8 +27,12 @@ export type AiStreamEvent = {
   text?: string;
   first?: boolean;
   index?: number;
-  buffered?: boolean;
 };
+
+type StreamWorkerMessage =
+  | { kind: "chunk"; text: string }
+  | { kind: "done"; text: string }
+  | { kind: "error"; error: string };
 
 export function normalizeSemanticPair(left: string, right: string): [string, string] {
   const leftKey = left.trim().toLowerCase();
@@ -39,6 +44,78 @@ export function normalizeSemanticPair(left: string, right: string): [string, str
     return [right, left];
   }
   return left <= right ? [left, right] : [right, left];
+}
+
+export function extractOpenAiStreamText(payload: unknown): string {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+  const record = payload as Record<string, unknown>;
+  if (record.error && typeof record.error === "object") {
+    const error = record.error as Record<string, unknown>;
+    if (typeof error.message === "string") {
+      throw new Error(`AI backend error: ${error.message}`);
+    }
+  }
+  const choices = Array.isArray(record.choices) ? record.choices : [];
+  const choice = choices[0];
+  if (!choice || typeof choice !== "object") {
+    return "";
+  }
+  const choiceRecord = choice as Record<string, unknown>;
+  return contentFromStreamPayload(choiceRecord.delta) || contentFromStreamPayload(choiceRecord.message);
+}
+
+export function parseOpenAiStreamBlock(block: string): string[] {
+  const texts: string[] = [];
+  const lines = block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"));
+  for (const line of lines) {
+    const dataLine = line.slice("data:".length).trim();
+    if (dataLine === "[DONE]") {
+      continue;
+    }
+    const parsed = JSON.parse(dataLine) as unknown;
+    const text = extractOpenAiStreamText(parsed);
+    if (text.length > 0) {
+      texts.push(text);
+    }
+  }
+  return texts;
+}
+
+function contentFromStreamPayload(delta: unknown): string {
+  if (typeof delta === "string") {
+    return delta;
+  }
+  if (Array.isArray(delta)) {
+    return delta
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return entry;
+        }
+        if (entry && typeof entry === "object") {
+          const record = entry as Record<string, unknown>;
+          if (typeof record.text === "string") {
+            return record.text;
+          }
+        }
+        return "";
+      })
+      .join("");
+  }
+  if (delta && typeof delta === "object") {
+    const record = delta as Record<string, unknown>;
+    if (typeof record.content === "string") {
+      return record.content;
+    }
+    if (typeof record.text === "string") {
+      return record.text;
+    }
+  }
+  return "";
 }
 
 export class AiRuntime {
@@ -95,28 +172,13 @@ export class AiRuntime {
   }
 
   static stream(prompt: string, onEvent: (event: AiStreamEvent) => void) {
-    onEvent({ kind: "waiting", first: false, index: 0, buffered: true });
-    const content = this.chat([
-      { role: "user", content: prompt },
-    ]);
-    const chunks = this.chunkText(content);
-    chunks.forEach((chunk, index) => {
-      onEvent({
-        kind: "chunk",
-        text: chunk,
-        first: index === 0,
-        index,
-        buffered: true,
-      });
-    });
-    onEvent({
-      kind: "done",
-      text: content,
-      first: false,
-      index: chunks.length,
-      buffered: true,
-    });
-    return new CosmStringValue(content);
+    const config = this.config(true);
+    const payload: Record<string, unknown> = {
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0,
+    };
+    return this.runStreamingWorker(config.baseUrl, payload, onEvent);
   }
 
   static compare(left: string, right: string): boolean {
@@ -230,7 +292,7 @@ export class AiRuntime {
     const baseUrl = process.env.COSM_AI_BASE_URL ?? "http://127.0.0.1:1234/v1";
     const model = process.env.COSM_AI_MODEL ?? (this.shouldDiscoverModel() ? this.discoverModel(baseUrl) : undefined);
     if (backend !== "lmstudio") {
-      throw new Error(`AI backend '${backend}' is not supported in 0.3.11`);
+      throw new Error(`AI backend '${backend}' is not supported in 0.3.12.5`);
     }
     if (requireModel && !model) {
       throw new Error("AI backend is not configured: set COSM_AI_MODEL or expose a model via LM Studio /v1/models");
@@ -322,11 +384,98 @@ export class AiRuntime {
     return value.length > limit ? `${value.slice(0, limit)}...` : value;
   }
 
-  private static chunkText(value: string): string[] {
-    const chunks = value.match(/[^\s]+\s*|\s+/g) ?? [];
-    if (chunks.length > 0) {
-      return chunks;
+  private static runStreamingWorker(
+    baseUrl: string,
+    payload: Record<string, unknown>,
+    onEvent: (event: AiStreamEvent) => void,
+  ): CosmStringValue {
+    const channel = new MessageChannel();
+    const worker = new Worker(new URL("./AiStreamWorker.ts", import.meta.url), {
+      workerData: {
+        baseUrl,
+        payload,
+        port: channel.port2,
+      },
+      transferList: [channel.port2],
+    });
+
+    let waitingIndex = 0;
+    let chunkIndex = 0;
+    let sawChunk = false;
+    let finalText = "";
+    let done = false;
+    let workerError: string | undefined;
+
+    onEvent({
+      kind: "waiting",
+      first: false,
+      index: waitingIndex,
+      text: this.spinnerFrame(waitingIndex),
+    });
+
+    while (!done && !workerError) {
+      const packet = receiveMessageOnPort(channel.port1) as { message: StreamWorkerMessage } | undefined;
+      if (!packet) {
+        if (!sawChunk) {
+          waitingIndex += 1;
+          onEvent({
+            kind: "waiting",
+            first: false,
+            index: waitingIndex,
+            text: this.spinnerFrame(waitingIndex),
+          });
+        }
+        this.sleep(80);
+        continue;
+      }
+
+      const message = packet.message;
+      if (message.kind === "chunk") {
+        sawChunk = true;
+        finalText += message.text;
+        onEvent({
+          kind: "chunk",
+          text: message.text,
+          first: chunkIndex === 0,
+          index: chunkIndex,
+        });
+        chunkIndex += 1;
+        continue;
+      }
+
+      if (message.kind === "done") {
+        done = true;
+        finalText = message.text;
+        onEvent({
+          kind: "done",
+          text: finalText,
+          first: false,
+          index: chunkIndex,
+        });
+        break;
+      }
+
+      workerError = message.error;
     }
-    return value.length > 0 ? [value] : [];
+
+    channel.port1.close();
+    worker.terminate();
+
+    if (workerError) {
+      throw new Error(workerError);
+    }
+
+    return new CosmStringValue(finalText);
+  }
+
+  private static spinnerFrame(index: number): string {
+    const frames = ["|", "/", "-", "\\"];
+    return `iapetus> [thinking ${frames[index % frames.length]}]`;
+  }
+
+  private static sleep(ms: number): void {
+    const shared = new SharedArrayBuffer(4);
+    const array = new Int32Array(shared);
+    Atomics.wait(array, 0, 0, ms);
   }
 }

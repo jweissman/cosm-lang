@@ -23,23 +23,28 @@ type SessionHistoryEntry = {
 export class CosmSessionValue extends CosmObjectValue {
   private static createHandleHandler?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
   private static defaultSessionHandler?: () => CosmSessionValue;
+  private static namedSessionHandler?: (name: string) => CosmSessionValue;
   private static nextId = 1;
 
   static installRuntimeHooks(hooks: {
     createHandle?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
     defaultSession?: () => CosmSessionValue;
+    namedSession?: (name: string) => CosmSessionValue;
   }): void {
     this.createHandleHandler = hooks.createHandle;
     this.defaultSessionHandler = hooks.defaultSession;
+    this.namedSessionHandler = hooks.namedSession;
   }
 
   static currentRuntimeHooks(): {
     createHandle?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
     defaultSession?: () => CosmSessionValue;
+    namedSession?: (name: string) => CosmSessionValue;
   } {
     return {
       createHandle: this.createHandleHandler,
       defaultSession: this.defaultSessionHandler,
+      namedSession: this.namedSessionHandler,
     };
   }
 
@@ -115,6 +120,22 @@ export class CosmSessionValue extends CosmObjectValue {
           throw new Error("Session runtime error: default session handler is not installed");
         }
         return CosmSessionValue.defaultSessionHandler();
+      }),
+      named: () => new CosmFunctionValue("named", (args, selfValue) => {
+        if (!(selfValue instanceof CosmClassValue)) {
+          throw new Error("Type error: Session.named expects a class receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: Session.named expects 1 arguments, got ${args.length}`);
+        }
+        const [nameValue] = args;
+        if (!(nameValue instanceof CosmStringValue)) {
+          throw new Error("Type error: Session.named expects a string name");
+        }
+        if (!CosmSessionValue.namedSessionHandler) {
+          throw new Error("Session runtime error: named session handler is not installed");
+        }
+        return CosmSessionValue.namedSessionHandler(nameValue.value);
       }),
     },
   };

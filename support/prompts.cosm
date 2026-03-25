@@ -15,11 +15,45 @@ Latest user message:
 """)
 end
 
+def replyPromptFromContext(transcript, latestText, context)
+  Prompt.text("""
+#{prompt_data.iapetusSystem()}
+Return JSON matching this schema:
+#{Kernel.inspect(models.AgentReply.jsonSchema())}
+
+Attached page context:
+#{context}
+
+Transcript so far:
+#{transcript}
+
+Latest user message:
+#{latestText}
+""")
+end
+
 def streamPromptFromTranscript(transcript, latestText)
   Prompt.text("""
 #{prompt_data.iapetusSystem()}
 Do not describe hidden tools or hidden runtime capabilities.
 Return only the user-facing reply text, with no JSON wrapper.
+
+Transcript so far:
+#{transcript}
+
+Latest user message:
+#{latestText}
+""")
+end
+
+def streamPromptFromContext(transcript, latestText, context)
+  Prompt.text("""
+#{prompt_data.iapetusSystem()}
+Do not describe hidden tools or hidden runtime capabilities.
+Return only the user-facing reply text, with no JSON wrapper.
+
+Attached page context:
+#{context}
 
 Transcript so far:
 #{transcript}

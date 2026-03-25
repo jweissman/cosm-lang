@@ -16,13 +16,13 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.12.4`**. The main job of this patch line is still language/runtime hardening:
+The current tree is best read as **`0.3.13.6`**. The main job of this patch line is still language/runtime hardening, but the main proving wedge is now a persistent notebook:
 
 - keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
 - keep a small send-first VM subset alive through `--trace-ir` and `--vm`
 - keep the support assistant explicit and small through a shared Cosm-authored core reused by the CLI chat, `/assistant`, and Slack
 - keep the AI boundary explicit through `Prompt`, `Schema`, `Data`, `cosm.ai`, config-vs-health semantics, and callback-based streaming events
-- keep the notebook as a server-side workbench that teaches the current runtime surface rather than trying to become a product layer
+- keep the notebook as a persistent server-side workbench with whole-page execution and an attached assistant
 
 What already feels real:
 
@@ -41,7 +41,7 @@ What is still deliberately narrow or deferred:
 - browser-side Cosm runtime
 - MCP, broad tool ecosystems, or generalized persistent multi-agent runtime surfaces
 - `data Foo ... end` syntax or model-declaration syntax
-- notebook persistence or multi-user isolation
+- multi-user isolation
 - Tailwind or any frontend styling stack as a language/runtime commitment
 - broader route DSL syntax or router macros
 - HTML tag-builder DSLs
@@ -129,7 +129,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.12.x`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.13.x`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
@@ -149,7 +149,7 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.12.x`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, and the shared support/controller core.
+The demo app now exposes a persistent `/notebook` workbench with saved block pages, whole-page Cosm execution, one named session per page, and an attached assistant that reuses the shared support/controller core. The notebook actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, linear workflow helpers, and the same narrow assistant stack used by the CLI, `/assistant`, and Slack.
 
 The canonical app also exposes a narrow Slack ingress at `/slack/events`. Verification, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`.
 
@@ -165,7 +165,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `COSM_AI_MODEL` is optional when LM Studio exposes a model through `/v1/models`; set it explicitly to force a particular model
 - inspect discovered config with `cosm.ai.config()` or `cosm.ai.status()`
 - probe backend reachability with `cosm.ai.health()`
-- `cosm.ai.stream(...)` is explicit, but the local transport may still buffer before the first chunk arrives
+- `cosm.ai.stream(...)` is explicit and now aims to reflect real transport streaming when the local backend supports OpenAI-compatible streamed chunks
 - optional session timeout override: `COSM_SESSION_TIMEOUT_MS=1500` by default
 
 ## Dev Commands

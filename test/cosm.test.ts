@@ -147,7 +147,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("app/examples.cosm"); examples.class.name')).toBe("Module");
   expect(cosmEval('require("app/examples.cosm"); examples.receiverReflection().code')).toBe("Object.new().methods()");
   expect(cosmEval('require("app/examples.cosm"); examples.dispatchHelper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(20);
+  expect(cosmEval('require("app/examples.cosm"); examples.catalog().length')).toBe(23);
   expect(cosmEval('require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('require("app/views/index.cosm"); views.class.name')).toBe("Module");
   expect(cosmEval('require("app/app.cosm"); app.App.class.name')).toBe("App class");
@@ -158,13 +158,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.12.4");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.6");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.12.4");
+  expect(cosmEval("cosm.version")).toBe("0.3.13.6");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -469,6 +469,7 @@ test("user-defined functions work", () => {
   expect(cosmEval('def greet(name) "hi " + name end; greet("cosm")')).toBe("hi cosm");
   expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet()')).toBe("hi cosm");
   expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet("runtime")')).toBe("hi runtime");
+  expect(cosmEval('def pair(left, right = left + "!") right end; pair("cosm")')).toBe("cosm!");
   expect(cosmEval('let greet = ->(name) { "hello " + name }; greet("cosm")')).toBe("hello cosm");
   expect(cosmEval('let greet = ->(name = "cosm") { "hello " + name }; greet()')).toBe("hello cosm");
   expect(cosmEval('let greet = ->(name = "runtime") { "hello " + name }; greet("cosm")')).toBe("hello cosm");

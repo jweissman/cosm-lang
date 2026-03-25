@@ -17,8 +17,23 @@ def replyForTranscript(transcript, latestText)
   reply
 end
 
+def replyForContext(transcript, latestText, context)
+  let reply = ai.reply(prompts.replyPromptFromContext(transcript, latestText, context), models.AgentReply)
+  models.AgentReply.validate(reply)
+  reply
+end
+
 def streamReplyForTranscript(transcript, latestText)
   let text = ai.stream(prompts.streamPromptFromTranscript(transcript, latestText)) do |event|
+    yield(event)
+  end
+  let reply = replies.text(text, "streamed")
+  models.AgentReply.validate(reply)
+  reply
+end
+
+def streamReplyForContext(transcript, latestText, context)
+  let text = ai.stream(prompts.streamPromptFromContext(transcript, latestText, context)) do |event|
     yield(event)
   end
   let reply = replies.text(text, "streamed")

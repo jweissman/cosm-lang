@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.12.4
+## Current Release Target: 0.3.13.6
 
-`0.3.12.4` is now best read as a PL-core hardening slice on top of the earlier chatbot-and-runtime consolidation work:
+`0.3.13.6` is now best read as a PL-core hardening slice with a persistent notebook wedge on top of the earlier chatbot-and-runtime consolidation work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -10,7 +10,7 @@
 - add real narrow `yield(...)` for invoking the current implicit trailing block
 - add one simple reflective primitive through `Mirror`
 - make class-side authoring less provisional through `class << self`
-- improve testability and inspection while proving one tiny live-ish notebook page
+- improve testability and inspection while proving a persistent notebook workbench
 - make the canonical app shape module-organized with dedicated view modules
 - align `.ecosm` layout composition with narrow `yield()`
 - make `inspect()` and `to_s()` real object protocols rather than mostly host formatting
@@ -27,16 +27,16 @@
 - add default arguments for `def` and lambdas through the shared invoke path
 - keep an explicit AI streaming surface through `cosm.ai.stream(...)` and `require("cosm/ai.cosm").stream(...)`
 - split AI config discovery from health probing through `cosm.ai.status()` / `cosm.ai.config()` vs `cosm.ai.health()`
-- keep the chat CLI honest about transport buffering with a small wait-state message before the first chunk arrives
+- make the chat CLI actually stream from the backend with a real spinner while waiting for the first chunk
 - make `Enumerable`-style authoring less provisional through helpers like `any`, `none`, `one`, `first`, `find`, `reject`, and `join`
 - add a tiny page-backed support conversation wedge through the existing server app shape
 - start lifting more harness behavior into Cosm through `require("cosm/spec.cosm")`
 - make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
-- make the notebook feel more like a workbench through Cosm-inspected output, debounced live eval, secondary/collapsible examples, and lightweight recent-snippet affordances
+- make the notebook feel more like a persistent workbench through saved pages, whole-page execution, attached assistant state, and Cosm-inspected output
 - ship a tiny DM-first Slack support path while keeping broader agent/runtime ambitions narrow
 - keep a pure Cosm CLI chatbot as the canonical proving surface, with Slack reusing the same support core
 
-For `0.3.11`, the callable boundary still stays intentionally narrow:
+For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 
 - `router.draw do ... end` is in
 - `get "/" do |req| ... end` is in
@@ -56,7 +56,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Reflective class access through `classes`.
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - A first reflective `Module` runtime object, with `cosm.test` and `cosm.modules.test` now modeled as real module objects rather than loose namespaces.
-- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`. In `0.3.11`, `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
+- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`. In `0.3.12.x`, `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
 - `.ecosm` templates now support both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation, plus a narrow single-slot layout composition path through `yield()`, aligned with the same narrow block-invocation concept now available in ordinary Cosm code.
 - A minimal `cosm --watch <file>` / `cosm watch <file>` CLI loop for restarting long-running entry files like `app/server.cosm` when the target file changes, plus clearer CLI usage/help and loud failures on unknown switches.
 - Class-table reflective method surfaces still appear as `Namespace`-style objects rather than anonymous bags, which keeps class reflection consistent with the rest of the runtime while receiver-side `methods()` stays simpler.
@@ -65,7 +65,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - `Process` now also exposes `pid()` and `exit(code?)`, which makes service boot/lifecycle work feel more real while keeping process concerns off `Kernel`.
 - `Process` now also exposes `platform()` and `arch()`.
 - `Kernel.describe(name, fn)` now exists as a lightweight grouping primitive for the Cosm-native test harness, and `require("cosm/test")` now returns a real `Module` object while still injecting `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope.
-- `Kernel.sleep(ms)`, `Kernel.eval(source)`, `Kernel.tryEval(source)`, `Kernel.try(block)`, `Kernel.tryValidate(value, schemaOrModel)`, `Kernel.trace(...)`, `Kernel.readline(prompt?)`, `Kernel.raise(...)`, and `Kernel.resetSession()` now provide a tiny synchronous comfort layer for service/notebook work. In `0.3.11`, those eval helpers still delegate to `Session.default()` instead of a hidden shared env, and `Kernel.tryEval(...)` / `Kernel.tryValidate(...)` return structured namespaces whose `.error` is a first-class `Error` object.
+- `Kernel.sleep(ms)`, `Kernel.eval(source)`, `Kernel.tryEval(source)`, `Kernel.try(block)`, `Kernel.tryValidate(value, schemaOrModel)`, `Kernel.trace(...)`, `Kernel.readline(prompt?)`, `Kernel.raise(...)`, and `Kernel.resetSession()` now provide a tiny synchronous comfort layer for service/notebook work. In `0.3.12.x`, those eval helpers still delegate to `Session.default()` instead of a hidden shared env, and `Kernel.tryEval(...)` / `Kernel.tryValidate(...)` return structured namespaces whose `.error` is a first-class `Error` object.
 - `Session.new()`, `Session.default()`, `session.eval(...)`, `session.tryEval(...)`, `session.reset()`, and `session.history()` now make notebook/server eval explicit in the runtime model. In the main runtime, those sessions are worker-backed so notebook/service eval no longer runs directly in the web process, and `COSM_SESSION_TIMEOUT_MS` controls the per-eval timeout.
 - `inspect()` and `to_s()` now behave like true object text protocols: `Kernel.inspect(value)` dispatches through ordinary runtime sends, user-defined `def inspect()` is respected, and `print` / `puts` / `warn` use `to_s()` for non-string receivers.
 - Receiver-side reflection now exposes `methods()` as a symbol-list surface across ordinary values, with inherited visible methods and runtime-backed primitives like numeric `plus` reflected through the same dispatch-aware surface. `method(:name)` remains the path to the actual method object.
@@ -74,7 +74,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - `Data` is now a module-backed ergonomic layer on top of `Schema`, with `Data.string()`, `Data.number()`, `Data.boolean()`, `Data.enum(...)`, `Data.array(...)`, `Data.optional(...)`, `Data.object(...)`, `Data.model(name, fields)`, and `Data.Model` values that expose `schema()`, `validate(...)`, and `jsonSchema()`.
 - Local schema/model work is validation-only in the taught surface; explicit scalar conversion now lives on core values through methods like `to_s()`, `to_i()`, and `to_f()`, while `cast(...)` is reserved for AI-assisted structured completion through `cosm.ai.cast(...)`.
 - A first narrow VM-prep artifact now exists through a VM-oriented IR plus `cosm --trace-ir` / `cosm --vm` for a small supported subset.
-- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `complete(...)`, and `compare(...)`.
+- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `config()`, `health()`, `complete(...)`, `stream(...)`, and `compare(...)`.
 - `require("app/examples.cosm")` now provides a small Cosm-authored examples surface with structured example records that the notebook can draw from without hardcoding all example source in view helpers.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`. `handler` may be a function, a bound method, or a service object that implements `handle(req)`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.
@@ -108,7 +108,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.12.4 Definition Of Done
+## v0.3.13.6 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
@@ -121,15 +121,15 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - `methods()` works on ordinary receivers as a symbol-list view of the same visible callable surface that runtime dispatch can actually invoke.
 - `Mirror` remains the readonly observational wrapper, but its `methods()` view now aligns with ordinary receiver reflection instead of exposing a parallel story.
 - `.ecosm` supports preferred `<%= ... %>` interpolation without breaking `#{...}` compatibility.
-- The notebook page visibly teaches the current layering: `Schema`, `Data`, `cosm.ai`, and `require("cosm/ai.cosm")`.
+- The notebook page visibly teaches the current layering: `Schema`, `Data`, `cosm.ai`, `require("cosm/ai.cosm")`, linear workflow helpers, and named page sessions.
 - The notebook examples now also teach repaired receiver reflection through a small Cosm-authored examples module.
-- The notebook supports debounced live eval, ships with one-click examples that pressure data, AI, and reflection together, and keeps a lightweight browser-local recent snippet list.
+- The notebook supports persistent pages, whole-page execution, an attached assistant transcript, and one named session per page.
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
-- Full notebook/framework work is still intentionally post-`0.3.11`, and the next proving step is deepening the tiny DM-first Slack support path already in the tree.
+- Full notebook/framework work is still intentionally post-`0.3.12.x`, and the next proving step is deepening the tiny DM-first Slack support path already in the tree.
 
-## Explicitly Not In v0.3.11
+## Explicitly Not In v0.3.12.x
 
 - ampersand block capture or forwarding
 - notebook UI beyond the tiny shared-session demo page
@@ -153,7 +153,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
 - Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.
-- Keep growing the tiny Bun-native HTTP surface without turning it into a framework/router abstraction inside `0.3.11`.
+- Keep growing the tiny Bun-native HTTP surface without turning it into a framework/router abstraction inside `0.3.12.x`.
 
 ## Current Reference Target
 

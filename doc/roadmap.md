@@ -62,7 +62,7 @@ Current priorities:
 
 ## Current Release Line
 
-### `0.3.12.x`
+### `0.3.13.x`
 
 This patch line is about hardening, not breadth:
 
@@ -74,7 +74,7 @@ This patch line is about hardening, not breadth:
 - a tiny page-backed assistant wedge
 - more Cosm-authored support and harness code
 
-Explicitly not the goal of `0.3.12.x`:
+Explicitly not the goal of `0.3.13.x`:
 
 - generalized persistent agent runtime
 - MCP or broad tool ecosystems

@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 
@@ -150,6 +153,8 @@ httpTest("http router can serve exact routes and html responses", async () => {
 });
 
 httpTest("http runtime can serve a router-backed app object", async () => {
+  const originalNotebookDir = process.env.COSM_NOTEBOOK_DIR;
+  process.env.COSM_NOTEBOOK_DIR = mkdtempSync(join(tmpdir(), "cosm-http-notebook-"));
   const { env } = startHttpServer((port) => `
     require("app/app.cosm")
     let server = http.serve(${port}, app.App.build())
@@ -163,29 +168,43 @@ httpTest("http runtime can serve a router-backed app object", async () => {
 
     const notebook = await fetch(`${url}/notebook`);
     expect(notebook.status).toBe(200);
-    expect(await notebook.text()).toContain("Server-live Cosm session");
+    expect(await notebook.text()).toContain("Saved Cosm block pages");
 
-    const sharedName = `shared_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-    const first = await fetch(`${url}/notebook/eval`, {
+    const create = await fetch(`${url}/notebook/create`, {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ code: `let ${sharedName} = 41` }).toString(),
+      body: new URLSearchParams({ title: "HTTP integration page" }).toString(),
     });
-    expect(first.status).toBe(200);
-    expect(await first.text()).toContain("Result");
+    expect(create.status).toBe(200);
+    const createdHtml = await create.text();
+    expect(createdHtml).toContain("HTTP integration page");
+    const idMatch = createdHtml.match(/name="id" value="([^"]+)"/);
+    expect(idMatch?.[1]).toBeTruthy();
+    const pageId = idMatch![1];
 
-    const second = await fetch(`${url}/notebook/eval`, {
+    const run = await fetch(`${url}/notebook/run`, {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ code: `${sharedName} + 1` }).toString(),
+      body: new URLSearchParams({
+        id: pageId,
+        title: "HTTP integration page",
+        blocks: JSON.stringify([
+          { kind: "markdown", content: "# Notes" },
+          { kind: "cosm", content: "let answer = 41" },
+          { kind: "cosm", content: "answer + 1" },
+        ]),
+      }).toString(),
     });
-    expect(second.status).toBe(200);
-    expect(await second.text()).toContain("42");
+    expect(run.status).toBe(200);
+    const runHtml = await run.text();
+    expect(runHtml).toContain("Whole-Page Output");
+    expect(runHtml).toContain("42");
   } finally {
     Cosm.Interpreter.evalInEnv("server.stop()", env);
+    process.env.COSM_NOTEBOOK_DIR = originalNotebookDir;
   }
-});
+}, 15000);

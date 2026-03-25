@@ -331,6 +331,7 @@ export class CosmSlackValue extends CosmObjectValue {
       sessionName: conversation.session.sessionName,
       sessionLength: ValueAdapter.cosmToJS(conversation.session.nativeProperty("length") ?? Construct.number(0)),
       transcript: false,
+      context: false,
     };
   }
 

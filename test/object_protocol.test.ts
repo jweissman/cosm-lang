@@ -67,6 +67,25 @@ test("receiver-side methods() includes inherited methods and agrees with method(
   expect(cosmEval(`
     require("support/label_mixin.cosm")
     class Mixed
+      def label()
+        "local"
+      end
+    end
+    Mixed.include(label_mixin)
+    Mixed.new().label()
+  `)).toBe("local");
+  expect(cosmEval(`
+    require("support/label_mixin.cosm")
+    class BaseMixed
+    end
+    BaseMixed.include(label_mixin)
+    class ChildMixed < BaseMixed
+    end
+    ChildMixed.new().method(:label).name
+  `)).toBe("label");
+  expect(cosmEval(`
+    require("support/label_mixin.cosm")
+    class Mixed
     end
     Mixed.include(label_mixin)
     Mixed.new().method(:label).name
@@ -128,9 +147,14 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval("[].empty()")).toBe(true);
   expect(cosmEval('{ answer: 42 }.present()')).toBe(true);
   expect(cosmEval("[1, 2, 3].any()")).toBe(true);
+  expect(cosmEval("[1, 2, 3].any(->(value) { value > 2 })")).toBe(true);
+  expect(cosmEval("[1, 2, 3].all(->(value) { value > 0 })")).toBe(true);
   expect(cosmEval("[].none()")).toBe(true);
   expect(cosmEval("[1].one()")).toBe(true);
   expect(cosmEval("[1, 2, 3].filter(->(value) { value > 1 })")).toEqual([2, 3]);
+  expect(cosmEval("[1, false, 3].compact()")).toEqual([1, 3]);
+  expect(cosmEval("[1, 2].flatMap(->(value) { [value, value + 10] })")).toEqual([1, 11, 2, 12]);
+  expect(cosmEval("[1, 2, 3].sum()")).toBe(6);
   expect(cosmEval("[1, 2, 3].first()")).toBe(1);
   expect(cosmEval('[1, 2, 3].find(->(value) { value > 1 })')).toBe(2);
   expect(cosmEval('[1, 2, 3].reject(->(value) { value > 1 })')).toEqual([1]);

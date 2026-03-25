@@ -28,6 +28,7 @@ test("parser treats significant newlines like semicolons", () => {
   expect(() => Parser.parse("def f() 1 end\ndef g() 2 end\ng()")).not.toThrow();
   expect(() => Parser.parse("1 +\n2")).not.toThrow();
   expect(() => Parser.parse('HttpResponse.json({\n  method: req.method,\n  path: req.path,\n  header: req.headers.get("x-test")\n}, 201)')).not.toThrow();
+  expect(() => Parser.parse('HttpResponse.json({\n  ok: Kernel.try(->() {\n    1 + 1\n  }).ok,\n  label: "done"\n}, 200)')).not.toThrow();
 });
 
 test("parser keeps keyword prefixes distinct from identifiers", () => {
@@ -47,6 +48,7 @@ test("parser accepts interpolated triple-quoted strings", () => {
 test("parser accepts multi-statement lambdas with bare calls", () => {
   expect(() => Parser.parse('->(req) { puts "#{Time.isoNow()}"; HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) }')).not.toThrow();
   expect(() => Parser.parse('let greet = ->(name = "cosm") { "hi " + name }; greet()')).not.toThrow();
+  expect(() => Parser.parse('let values = [1, 2, 3, 4]; values.reduce(0, ->(acc, value) { acc + value })')).not.toThrow();
 });
 
 test("parser lowers trailing do-end blocks on calls", () => {

@@ -12,7 +12,8 @@ def appendMessage(conversation, role, text)
     messages: messages,
     sessionName: conversation.sessionName,
     sessionLength: messages.length,
-    transcript: conversation.transcript
+    transcript: conversation.transcript,
+    context: conversation.context
   }
   models.Conversation.validate(value)
   value
@@ -30,7 +31,8 @@ def appendUserMessage(conversation, inbound)
     messages: messages,
     sessionName: conversation.sessionName,
     sessionLength: messages.length,
-    transcript: conversation.transcript
+    transcript: conversation.transcript,
+    context: conversation.context
   }
   models.Conversation.validate(value)
   value
@@ -44,13 +46,14 @@ def cliConversation(messages)
     messages: messages,
     sessionName: "iapetus-cli",
     sessionLength: messages.length,
-    transcript: false
+    transcript: false,
+    context: false
   }
   models.Conversation.validate(value)
   value
 end
 
-def pageConversation(key, transcript)
+def pageConversation(key, transcript, context = false)
   let value = {
     key: key,
     channel: "web",
@@ -58,7 +61,8 @@ def pageConversation(key, transcript)
     messages: [],
     sessionName: "iapetus-page",
     sessionLength: 0,
-    transcript: transcript
+    transcript: transcript,
+    context: context
   }
   models.Conversation.validate(value)
   value
@@ -91,14 +95,24 @@ end
 def reply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  agent.replyForTranscript(currentTranscript(conversation), inbound.text)
+  if conversation.context == false then
+    agent.replyForTranscript(currentTranscript(conversation), inbound.text)
+  else
+    agent.replyForContext(currentTranscript(conversation), inbound.text, conversation.context)
+  end
 end
 
 def streamReply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  agent.streamReplyForTranscript(currentTranscript(conversation), inbound.text) do |event|
-    yield(event)
+  if conversation.context == false then
+    agent.streamReplyForTranscript(currentTranscript(conversation), inbound.text) do |event|
+      yield(event)
+    end
+  else
+    agent.streamReplyForContext(currentTranscript(conversation), inbound.text, conversation.context) do |event|
+      yield(event)
+    end
   end
 end
 
@@ -108,7 +122,7 @@ def nextConversation(conversation, inbound, reply)
     appendMessage(withUser, "assistant", reply.text)
   else
     let nextTranscript = agent.appendTranscript(agent.appendTranscript(currentTranscript(conversation), "user", inbound.text), "assistant", reply.text)
-    pageConversation(conversation.key, nextTranscript)
+    pageConversation(conversation.key, nextTranscript, conversation.context)
   end
 end
 

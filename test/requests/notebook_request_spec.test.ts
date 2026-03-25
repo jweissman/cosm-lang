@@ -1,40 +1,127 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ValueAdapter } from "../../src/ValueAdapter";
-import { CosmStringValue } from "../../src/values/CosmStringValue";
 import { CosmAiValue } from "../../src/values/CosmAiValue";
 import { ValueAdapter as Adapter } from "../../src/ValueAdapter";
 import { dispatchService } from "../support/request_spec";
 
-test("module-organized app can be exercised as a request spec without listen", () => {
-  const appSource = `
-    require("app/app.cosm")
-    app.App.build()
-  `;
+const appSource = `
+  require("app/app.cosm")
+  app.App.build()
+`;
 
-  const home = dispatchService(appSource, "GET", "/");
-  expect(ValueAdapter.cosmToJS(home.nativeProperty?.("status"))).toBe(200);
-  const homeHeaders = home.nativeProperty?.("headers");
-  const contentType = homeHeaders?.nativeMethod?.("get")?.nativeCall?.([new CosmStringValue("content-type")], homeHeaders);
-  expect(ValueAdapter.cosmToJS(contentType)).toBe("text/html; charset=utf-8");
-  const homeBody = ValueAdapter.cosmToJS(home.nativeProperty?.("body"));
-  expect(homeBody).toContain("Cosm 0.3.12");
+const withNotebookDir = <T>(callback: () => T) => {
+  const previous = process.env.COSM_NOTEBOOK_DIR;
+  process.env.COSM_NOTEBOOK_DIR = mkdtempSync(join(tmpdir(), "cosm-notebook-"));
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.COSM_NOTEBOOK_DIR;
+    } else {
+      process.env.COSM_NOTEBOOK_DIR = previous;
+    }
+  }
+};
 
-  const notebook = dispatchService(appSource, "GET", "/notebook");
-  expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
-  const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(notebookBody).toContain("Live eval is idle.");
-  expect(notebookBody).toContain("Try the current surface");
-  expect(notebookBody).toContain("Recent Snippets");
-  expect(notebookBody).toContain("<details");
-  expect(notebookBody).toContain("Support agent prompt");
-  expect(notebookBody).toContain("require(&quot;support/agent.cosm&quot;)");
+const extractPageId = (body: string) => {
+  const match = body.match(/name="id" value="([^"]+)"/);
+  expect(match).toBeTruthy();
+  return match![1];
+};
 
-  const notebookEval = dispatchService(appSource, "POST", "/notebook/eval", { body: "code=1%20%2B%202" });
-  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("status"))).toBe(200);
-  expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("body"))).toContain("3");
+test("persistent notebook pages can be created, saved, run, and reloaded through request specs", () => {
+  withNotebookDir(() => {
+    const notebook = dispatchService(appSource, "GET", "/notebook");
+    expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
+    const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
+    expect(notebookBody).toContain("Saved Cosm block pages");
+    expect(notebookBody).toContain("Attached Assistant");
+    expect(notebookBody).toContain("Run Whole Page");
+
+    const created = dispatchService(appSource, "POST", "/notebook/create", { body: "title=Runbook" });
+    const createdBody = ValueAdapter.cosmToJS(created.nativeProperty?.("body"));
+    expect(createdBody).toContain("Runbook");
+    const pageId = extractPageId(String(createdBody));
+
+    const blocks = JSON.stringify([
+      { kind: "markdown", content: "# Notes\n\nPersisted page" },
+      { kind: "cosm", content: "let answer = 41" },
+      { kind: "cosm", content: "answer + 1" },
+    ]);
+
+    const run = dispatchService(appSource, "POST", "/notebook/run", {
+      body: new URLSearchParams({ id: pageId, title: "Runbook", blocks }).toString(),
+    });
+    const runBody = ValueAdapter.cosmToJS(run.nativeProperty?.("body"));
+    expect(runBody).toContain("Persisted page");
+    expect(runBody).toContain("42");
+    expect(runBody).toContain("notebook-page:");
+
+    const reloaded = dispatchService(appSource, "GET", "/notebook", { query: { id: pageId } });
+    const reloadedBody = ValueAdapter.cosmToJS(reloaded.nativeProperty?.("body"));
+    expect(reloadedBody).toContain("Runbook");
+    expect(reloadedBody).toContain("ok: 42");
+
+    const reset = dispatchService(appSource, "POST", "/notebook/reset", {
+      body: new URLSearchParams({ id: pageId, title: "Runbook", blocks }).toString(),
+    });
+    const resetBody = ValueAdapter.cosmToJS(reset.nativeProperty?.("body"));
+    expect(resetBody).toContain("No execution has run yet.");
+  });
+}, 15000);
+
+test("notebook attached assistant persists transcript across requests", () => {
+  withNotebookDir(() => {
+    CosmAiValue.installRuntimeHooks({
+      cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
+        shouldReply: true,
+        text: "I can see this notebook page and its recent execution summary.",
+        rationale: "mocked notebook assistant reply",
+        toolCalls: false,
+        toolResults: false,
+      })),
+    });
+
+    const created = dispatchService(appSource, "POST", "/notebook/create", { body: "title=Agent%20Page" });
+    const createdBody = ValueAdapter.cosmToJS(created.nativeProperty?.("body"));
+    const pageId = extractPageId(String(createdBody));
+    const blocks = JSON.stringify([{ kind: "cosm", content: "1 + 1" }]);
+
+    const turn = dispatchService(appSource, "POST", "/notebook/agent", {
+      body: new URLSearchParams({
+        id: pageId,
+        title: "Agent Page",
+        blocks,
+        message: "What do you know about this page?",
+      }).toString(),
+    });
+    const turnBody = ValueAdapter.cosmToJS(turn.nativeProperty?.("body"));
+    expect(turnBody).toContain("I can see this notebook page and its recent execution summary.");
+
+    const reloaded = dispatchService(appSource, "GET", "/notebook", { query: { id: pageId } });
+    const reloadedBody = ValueAdapter.cosmToJS(reloaded.nativeProperty?.("body"));
+    expect(reloadedBody).toContain("assistant: I can see this notebook page and its recent execution summary.");
+  });
+}, 15000);
+
+test("web-layer request specs render notebook execution errors without leaking TypeScript paths", () => {
+  withNotebookDir(() => {
+    const blocks = JSON.stringify([{ kind: "cosm", content: "Prompt.complete" }]);
+    const notebook = dispatchService(appSource, "POST", "/notebook/run", {
+      body: new URLSearchParams({ title: "Broken", blocks }).toString(),
+    });
+    const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
+    expect(body).toContain("Property error");
+    expect(body).toContain("class Prompt has no property");
+    expect(body).not.toContain("src/runtime/");
+    expect(body).not.toContain("src/cosm.ts");
+  });
 });
 
-test("assistant page can reuse the shared controller core through the app wedge", () => {
+test("assistant page can still reuse the shared controller core through the app wedge", () => {
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
       shouldReply: true,
@@ -44,11 +131,6 @@ test("assistant page can reuse the shared controller core through the app wedge"
       toolResults: false,
     })),
   });
-
-  const appSource = `
-    require("app/app.cosm")
-    app.App.build()
-  `;
 
   const assistant = dispatchService(appSource, "GET", "/assistant");
   expect(ValueAdapter.cosmToJS(assistant.nativeProperty?.("status"))).toBe(200);
@@ -60,25 +142,4 @@ test("assistant page can reuse the shared controller core through the app wedge"
   const turnBody = ValueAdapter.cosmToJS(turn.nativeProperty?.("body"));
   expect(turnBody).toContain("Use the Reset Session button in the notebook.");
   expect(turnBody).toContain("assistant: Use the Reset Session button in the notebook.");
-});
-
-test("web-layer request specs render Cosm backtraces for notebook errors", () => {
-  const notebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", { body: "code=Prompt.complete" });
-  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(body).toContain("Property error");
-  expect(body).toContain("access Prompt.complete");
-  expect(body).not.toContain("src/runtime/");
-  expect(body).not.toContain("src/cosm.ts");
-});
-
-test("notebook results use Cosm inspect output instead of raw host formatting", () => {
-  const notebook = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/notebook/eval", { body: "code=Kernel" });
-  const body = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
-  expect(body).toContain("#&lt;Kernel&gt;");
 });

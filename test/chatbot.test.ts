@@ -91,10 +91,10 @@ test("support prompt data is loaded from markdown-backed prompt files", () => {
 test("pure Cosm support chat can stream chunks through the shared chat loop helpers", () => {
   CosmAiValue.installRuntimeHooks({
     stream: (prompt, onEvent) => {
-      onEvent({ kind: "waiting", index: 0, buffered: true });
-      onEvent({ kind: "chunk", text: "Reset ", first: true, index: 0, buffered: true });
-      onEvent({ kind: "chunk", text: "the session.", first: false, index: 1, buffered: true });
-      onEvent({ kind: "done", text: "Reset the session.", index: 2, buffered: true });
+      onEvent({ kind: "waiting", index: 0, text: "iapetus> [thinking |]" });
+      onEvent({ kind: "chunk", text: "Reset ", first: true, index: 0 });
+      onEvent({ kind: "chunk", text: "the session.", first: false, index: 1 });
+      onEvent({ kind: "done", text: "Reset the session.", index: 2 });
       return ValueAdapter.jsToCosm(`Reset the session.`);
     },
   });
@@ -118,7 +118,8 @@ test("pure Cosm support chat can stream chunks through the shared chat loop help
     (process.stdout as unknown as { write: typeof process.stdout.write }).write = originalWrite;
   }
 
-  expect(stdout).toContain("[waiting for buffered local response...]");
+  expect(stdout).toContain("[thinking |]");
   expect(stdout).toContain("Reset ");
   expect(stdout).toContain("the session.");
+  expect(stdout).not.toContain("\\r");
 });

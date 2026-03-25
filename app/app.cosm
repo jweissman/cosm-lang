@@ -1,7 +1,7 @@
 require("app/views/index.cosm")
+require("app/notebook_store.cosm")
+require("app/notebook_runtime.cosm")
 require("support/controller.cosm")
-
-let NOTEBOOK_SESSION = Session.default()
 
 class App
   def init(router)
@@ -39,24 +39,31 @@ class App
         end
 
         get "/notebook" do |req|
-          HttpResponse.html(views.NotebookView.page("", false, NOTEBOOK_SESSION), 200)
+          App.notebookPage(req)
         end
 
-        post "/notebook" do |req|
-          let code = App.notebookCode(req)
-          let evaluation = App.notebookEvaluation(code)
-          HttpResponse.html(views.NotebookView.page(code, evaluation, NOTEBOOK_SESSION), 200)
+        post "/notebook/create" do |req|
+          App.notebookCreate(req)
         end
 
-        post "/notebook/eval" do |req|
-          let code = App.notebookCode(req)
-          let evaluation = App.notebookEvaluation(code)
-          HttpResponse.html(views.NotebookView.fragment(code, evaluation), 200)
+        post "/notebook/save" do |req|
+          App.notebookSave(req)
+        end
+
+        post "/notebook/run" do |req|
+          App.notebookRun(req)
         end
 
         post "/notebook/reset" do |req|
-          NOTEBOOK_SESSION.reset()
-          HttpResponse.html(views.NotebookView.fragment("", false), 200)
+          App.notebookReset(req)
+        end
+
+        post "/notebook/agent" do |req|
+          App.notebookAgent(req)
+        end
+
+        post "/notebook/agent/reset" do |req|
+          App.notebookAgentReset(req)
         end
 
         post "/slack/events" do |req|
@@ -105,14 +112,75 @@ class App
       end
     end
 
-    def notebookCode(req)
-      let form = req.form()
-      let codeValue = form.get("code")
-      if codeValue == false then "" else codeValue end
+    def notebookPage(req)
+      HttpResponse.html(views.NotebookView.page(App.currentNotebookPage(req), notebook_store.listPages(), false, false), 200)
     end
 
-    def notebookEvaluation(code)
-      if code == "" then false else NOTEBOOK_SESSION.tryEval(code) end
+    def notebookCreate(req)
+      let form = req.form()
+      let titleValue = Kernel.try(->() { form.get("title") })
+      let page = notebook_store.createPage(if titleValue.ok then titleValue.value else "Untitled notebook page" end)
+      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    end
+
+    def notebookSave(req)
+      let page = App.notebookDraft(req)
+      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    end
+
+    def notebookRun(req)
+      let draft = App.notebookDraft(req)
+      let execution = notebook_runtime.runPage(draft)
+      HttpResponse.html(views.NotebookView.page(execution.page, notebook_store.listPages(), execution, false), 200)
+    end
+
+    def notebookReset(req)
+      let draft = App.notebookDraft(req)
+      let page = notebook_runtime.resetPageSession(draft)
+      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    end
+
+    def notebookAgent(req)
+      let draft = App.notebookDraft(req)
+      let form = req.form()
+      let messageValue = Kernel.try(->() { form.get("message") })
+      let outcome = notebook_runtime.agentTurn(draft, if messageValue.ok then messageValue.value else "" end)
+      HttpResponse.html(views.NotebookView.page(outcome.page, notebook_store.listPages(), false, outcome.reply), 200)
+    end
+
+    def notebookAgentReset(req)
+      let draft = App.notebookDraft(req)
+      let page = notebook_runtime.resetAgent(draft)
+      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    end
+
+    def notebookDraft(req)
+      let form = req.form()
+      notebook_store.saveDraft(App.notebookIdFromForm(form), App.notebookTitle(form), App.notebookBlocks(form))
+    end
+
+    def currentNotebookPage(req)
+      let maybeId = Kernel.try(->() { req.query.get("id") })
+      if maybeId.ok then
+        notebook_store.currentPage(maybeId.value)
+      else
+        notebook_store.currentPage()
+      end
+    end
+
+    def notebookIdFromForm(form)
+      let value = Kernel.try(->() { form.get("id") })
+      if value.ok then value.value else false end
+    end
+
+    def notebookTitle(form)
+      let value = Kernel.try(->() { form.get("title") })
+      if value.ok then value.value else "Untitled notebook page" end
+    end
+
+    def notebookBlocks(form)
+      let value = Kernel.try(->() { form.get("blocks") })
+      if value.ok then value.value else false end
     end
   end
 end

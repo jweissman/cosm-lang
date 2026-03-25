@@ -1,141 +1,117 @@
 <script>
   const form = document.getElementById("notebook-form");
-  const output = document.getElementById("notebook-output");
-  const reset = document.getElementById("notebook-reset");
-  const code = document.getElementById("notebook-code");
-  const status = document.getElementById("notebook-status");
-  const exampleButtons = Array.from(document.querySelectorAll(".notebook-example"));
-  const recents = document.getElementById("notebook-recents");
-  let pendingTimer = null;
-  let latestRequest = 0;
-  const RECENT_KEY = "cosm:notebook:recents";
+  const blocks = document.getElementById("notebook-blocks");
+  const blocksInput = document.getElementById("notebook-blocks-json");
+  const titleInput = document.getElementById("notebook-title");
+  const addMarkdown = document.getElementById("add-markdown-block");
+  const addCosm = document.getElementById("add-cosm-block");
+  const assistantForm = document.getElementById("notebook-agent-form");
 
-  const loadRecents = () => {
-    try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-    } catch (_error) {
-      return [];
-    }
+  const createBlock = (kind, content = "") => {
+    const article = document.createElement("article");
+    article.className = "notebook-block rounded-3xl border border-slate-800 bg-slate-950/70 p-4";
+    article.dataset.kind = kind;
+    const tone = kind === "markdown" ? "text-amber-300" : "text-cyan-300";
+    const label = kind === "markdown" ? "Markdown" : "Cosm";
+    article.innerHTML = `
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] ${tone}">${label} Block</p>
+        <div class="flex gap-2">
+          <button class="notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300" type="button" data-kind="markdown">Markdown</button>
+          <button class="notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300" type="button" data-kind="cosm">Cosm</button>
+          <button class="notebook-remove rounded-full border border-rose-700 px-3 py-1 text-xs text-rose-200" type="button">Remove</button>
+        </div>
+      </div>
+      <textarea class="notebook-block-content min-h-[10rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 outline-none" spellcheck="false"></textarea>
+    `;
+    article.querySelector(".notebook-block-content").value = content;
+    return article;
   };
 
-  const saveRecents = (items) => {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, 5)));
-  };
-
-  const renderRecents = () => {
-    if (!recents) {
+  const syncAgentFields = () => {
+    if (!assistantForm || !titleInput || !blocksInput) {
       return;
     }
-    const items = loadRecents();
-    if (!Array.isArray(items) || items.length === 0) {
-      recents.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400">Recent snippets will appear here after you run a few examples.</div>';
+    const syncedTitle = assistantForm.querySelector(".notebook-sync-title");
+    const syncedBlocks = assistantForm.querySelector(".notebook-sync-blocks");
+    if (syncedTitle) syncedTitle.value = titleInput.value;
+    if (syncedBlocks) syncedBlocks.value = blocksInput.value;
+  };
+
+  const serializeBlocks = () => {
+    if (!blocks || !blocksInput) {
       return;
     }
-    recents.innerHTML = items.map((snippet) => {
-      const escaped = String(snippet)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-      return `<button class="notebook-recent w-full rounded-2xl border border-slate-800 bg-slate-950/70 p-3 text-left text-sm text-slate-200 transition hover:border-cyan-400" type="button" data-code="${escaped}"><pre class="overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs text-cyan-100">${escaped}</pre></button>`;
-    }).join("");
-    Array.from(document.querySelectorAll(".notebook-recent")).forEach((button) => {
-      button.addEventListener("click", async () => {
-        code.value = button.dataset.code || "";
-        setStatus("Loaded recent snippet. Running live eval...");
-        await submitEval("live");
-      });
-    });
+    const payload = Array.from(blocks.querySelectorAll(".notebook-block")).map((block) => ({
+      kind: block.dataset.kind || "cosm",
+      content: block.querySelector(".notebook-block-content")?.value || "",
+    }));
+    blocksInput.value = JSON.stringify(payload);
+    syncAgentFields();
   };
 
-  const rememberSnippet = (snippet) => {
-    if (!snippet || !snippet.trim()) {
-      return;
-    }
-    const items = loadRecents().filter((item) => item !== snippet);
-    items.unshift(snippet);
-    saveRecents(items);
-    renderRecents();
-  };
-
-  const setStatus = (text) => {
-    if (status) {
-      status.textContent = text;
-    }
-  };
-
-  const setRunning = () => {
-    output.innerHTML = '<div class="rounded-3xl border border-slate-700 bg-slate-900/60 p-6 text-slate-300">Running...</div>';
-  };
-
-  const submitEval = async (mode) => {
-    if (!form || !output) {
-      return;
-    }
-    const requestId = ++latestRequest;
-    setStatus(mode === "live" ? "Live eval is running..." : "Running explicit eval...");
-    setRunning();
-    const response = await fetch("/notebook/eval", {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded"
-      },
-      body: new URLSearchParams(new FormData(form)).toString()
-    });
-    const body = await response.text();
-    if (requestId !== latestRequest) {
-      return;
-    }
-    output.innerHTML = body;
-    rememberSnippet(code.value);
-    setStatus(mode === "live" ? "Live eval updated." : "Run complete.");
-  };
-
-  if (form && output && code) {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      await submitEval("run");
-    });
-
-    code.addEventListener("input", () => {
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-      }
-      setStatus("Waiting to live-evaluate...");
-      pendingTimer = setTimeout(() => {
-        pendingTimer = null;
-        submitEval("live").catch((error) => {
-          setStatus(`Live eval failed: ${error instanceof Error ? error.message : String(error)}`);
-        });
-      }, 350);
-    });
-  }
-  if (reset && output && code) {
-    reset.addEventListener("click", async () => {
-      await fetch("/notebook/reset", { method: "POST" });
-      code.value = "";
-      output.innerHTML = '<div class="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300">Run some Cosm code to inspect the explicit server-side session.</div>';
-      latestRequest += 1;
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-        pendingTimer = null;
-      }
-      setStatus("Session reset.");
-    });
-  }
-  if (code && exampleButtons.length > 0) {
-    exampleButtons.forEach((button) => {
-      button.addEventListener("click", async () => {
-        code.value = button.dataset.code || "";
-        setStatus("Loaded example. Running live eval...");
-        if (pendingTimer) {
-          clearTimeout(pendingTimer);
-          pendingTimer = null;
+  const bindBlock = (block) => {
+    block.querySelectorAll(".notebook-kind").forEach((button) => {
+      button.addEventListener("click", () => {
+        block.dataset.kind = button.dataset.kind || "cosm";
+        const label = block.querySelector("p");
+        if (label) {
+          label.textContent = `${block.dataset.kind === "markdown" ? "Markdown" : "Cosm"} Block`;
+          label.className = `text-xs font-semibold uppercase tracking-[0.3em] ${block.dataset.kind === "markdown" ? "text-amber-300" : "text-cyan-300"}`;
         }
-        await submitEval("live");
+        serializeBlocks();
       });
     });
+    const textarea = block.querySelector(".notebook-block-content");
+    if (textarea) {
+      textarea.addEventListener("input", serializeBlocks);
+    }
+    const remove = block.querySelector(".notebook-remove");
+    if (remove) {
+      remove.addEventListener("click", () => {
+        block.remove();
+        serializeBlocks();
+      });
+    }
+  };
+
+  if (blocks) {
+    Array.from(blocks.querySelectorAll(".notebook-block")).forEach(bindBlock);
   }
-  renderRecents();
+
+  if (addMarkdown && blocks) {
+    addMarkdown.addEventListener("click", () => {
+      const block = createBlock("markdown", "## Notes\n\nWrite markdown notes here.");
+      blocks.appendChild(block);
+      bindBlock(block);
+      serializeBlocks();
+    });
+  }
+
+  if (addCosm && blocks) {
+    addCosm.addEventListener("click", () => {
+      const block = createBlock("cosm", "1 + 2");
+      blocks.appendChild(block);
+      bindBlock(block);
+      serializeBlocks();
+    });
+  }
+
+  if (titleInput) {
+    titleInput.addEventListener("input", syncAgentFields);
+  }
+
+  if (form) {
+    form.addEventListener("submit", () => {
+      serializeBlocks();
+    });
+  }
+
+  if (assistantForm) {
+    assistantForm.addEventListener("submit", () => {
+      serializeBlocks();
+    });
+  }
+
+  serializeBlocks();
 </script>

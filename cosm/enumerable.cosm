@@ -10,8 +10,22 @@ def present()
   self.length > 0
 end
 
-def any()
-  self.present()
+def any(callback = false)
+  if callback == false then
+    self.present()
+  else
+    self.find(callback) != false
+  end
+end
+
+def all(callback)
+  self.reduce(true, ->(acc, value) {
+    if acc == false then
+      false
+    else
+      callback(value)
+    end
+  })
 end
 
 def none()
@@ -24,4 +38,22 @@ end
 
 def filter(callback)
   self.select(callback)
+end
+
+def compact()
+  self.select(->(value) { value != false })
+end
+
+def flatMap(callback)
+  self.map(callback).reduce([], ->(acc, value) {
+    if value.class.name == "Array" then
+      value.reduce(acc, ->(next, item) { next.append(item) })
+    else
+      acc.append(value)
+    end
+  })
+end
+
+def sum()
+  self.reduce(0, ->(acc, value) { acc + value })
 end

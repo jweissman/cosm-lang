@@ -6,6 +6,7 @@ import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { ValueAdapter } from "../ValueAdapter";
+import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmHashValue } from "./CosmHashValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
@@ -14,8 +15,9 @@ import { CosmErrorValue } from "./CosmErrorValue";
 import { Construct } from "../Construct";
 import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmDataModelValue } from "./CosmDataModelValue";
-import { readFileSync, readSync } from "node:fs";
-import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, readSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -108,6 +110,19 @@ export class CosmKernelValue extends CosmObjectValue {
         process.stdout.write(rendered);
         return value;
       }),
+      cr: () => new CosmFunctionValue('cr', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: cr expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue("\r");
+      }),
+      clearLine: () => new CosmFunctionValue('clearLine', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: clearLine expects 0 arguments, got ${args.length}`);
+        }
+        const width = Math.max(process.stdout.columns ?? 80, 1);
+        return new CosmStringValue(`\r${" ".repeat(width)}\r`);
+      }),
       warn: () => new CosmFunctionValue('warn', (args, _selfValue, env) => {
         if (args.length !== 1) {
           throw new Error(`Arity error: warn expects 1 arguments, got ${args.length}`);
@@ -143,6 +158,11 @@ export class CosmKernelValue extends CosmObjectValue {
           if (!(prompt instanceof CosmStringValue)) {
             throw new Error("Type error: readline expects an optional string prompt");
           }
+        }
+        if (process.stdin.isTTY && process.stdout.isTTY) {
+          return new CosmStringValue(CosmKernelValue.readlineWithHistory(prompt?.value ?? ""));
+        }
+        if (prompt !== undefined) {
           process.stdout.write(prompt.value);
         }
         const buffer = Buffer.alloc(1);
@@ -171,6 +191,67 @@ export class CosmKernelValue extends CosmObjectValue {
           throw new Error("Type error: readText expects a string path");
         }
         return new CosmStringValue(readFileSync(resolve(process.cwd(), pathValue.value), "utf8"));
+      }),
+      writeText: () => new CosmFunctionValue('writeText', (args) => {
+        if (args.length !== 2) {
+          throw new Error(`Arity error: writeText expects 2 arguments, got ${args.length}`);
+        }
+        const [pathValue, contentValue] = args;
+        if (!(pathValue instanceof CosmStringValue)) {
+          throw new Error("Type error: writeText expects a string path");
+        }
+        if (!(contentValue instanceof CosmStringValue)) {
+          throw new Error("Type error: writeText expects string content");
+        }
+        const targetPath = resolve(process.cwd(), pathValue.value);
+        mkdirSync(dirname(targetPath), { recursive: true });
+        writeFileSync(targetPath, contentValue.value, "utf8");
+        return contentValue;
+      }),
+      listDir: () => new CosmFunctionValue('listDir', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: listDir expects 1 arguments, got ${args.length}`);
+        }
+        const [pathValue] = args;
+        if (!(pathValue instanceof CosmStringValue)) {
+          throw new Error("Type error: listDir expects a string path");
+        }
+        const targetPath = resolve(process.cwd(), pathValue.value);
+        if (!existsSync(targetPath)) {
+          return new CosmArrayValue([]);
+        }
+        return new CosmArrayValue(
+          readdirSync(targetPath, { withFileTypes: true })
+            .filter((entry) => entry.isFile())
+            .map((entry) => new CosmStringValue(entry.name))
+            .sort((left, right) => left.value.localeCompare(right.value)),
+        );
+      }),
+      exists: () => new CosmFunctionValue('exists', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: exists expects 1 arguments, got ${args.length}`);
+        }
+        const [pathValue] = args;
+        if (!(pathValue instanceof CosmStringValue)) {
+          throw new Error("Type error: exists expects a string path");
+        }
+        return new CosmBoolValue(existsSync(resolve(process.cwd(), pathValue.value)));
+      }),
+      json: () => new CosmFunctionValue('json', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: json expects 1 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(JSON.stringify(ValueAdapter.cosmToJS(args[0])));
+      }),
+      parseJson: () => new CosmFunctionValue('parseJson', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: parseJson expects 1 arguments, got ${args.length}`);
+        }
+        const [value] = args;
+        if (!(value instanceof CosmStringValue)) {
+          throw new Error("Type error: parseJson expects a string");
+        }
+        return ValueAdapter.jsToCosm(JSON.parse(value.value));
       }),
       inspect: () => new CosmFunctionValue('inspect', (args, selfValue, env) => {
         if (args.length === 0) {
@@ -494,5 +575,54 @@ export class CosmKernelValue extends CosmObjectValue {
       return target.toSchema();
     }
     throw new Error("Type error: tryValidate expects a Schema or DataModel target");
+  }
+
+  private static readlineWithHistory(prompt: string): string {
+    const script = `
+const fs = require("node:fs");
+const readline = require("node:readline");
+const prompt = process.argv[1] ?? "";
+const historyPath = process.argv[2];
+let persistedHistory = [];
+if (historyPath && fs.existsSync(historyPath)) {
+  persistedHistory = fs.readFileSync(historyPath, "utf8")
+    .split("\\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0);
+}
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stderr,
+  terminal: true,
+  historySize: 500,
+});
+rl.history = [...persistedHistory].reverse();
+rl.question(prompt, (answer) => {
+  const trimmed = answer.trim();
+  if (trimmed.length > 0 && historyPath) {
+    const nextHistory = [...persistedHistory.filter((entry) => entry !== trimmed), trimmed].slice(-500);
+    fs.writeFileSync(historyPath, nextHistory.join("\\n") + "\\n", "utf8");
+  }
+  process.stdout.write(answer);
+  rl.close();
+});
+`;
+    const result = execFileSync(process.execPath, ["-e", script, prompt, this.readlineHistoryPath()], {
+      encoding: "utf8",
+      stdio: ["inherit", "pipe", "inherit"],
+    });
+    return result.replace(/\r?\n$/, "");
+  }
+
+  private static readlineHistoryPath(): string {
+    const entrypoint = process.argv[2];
+    if (!entrypoint || entrypoint.startsWith("-")) {
+      return join(process.cwd(), ".cosm_history");
+    }
+    const base = entrypoint
+      .replace(/^.*[\\/]/, "")
+      .replace(/\.[^.]+$/, "")
+      .replace(/[^A-Za-z0-9_-]+/g, "_");
+    return join(process.cwd(), `.cosm_history_${base || "run"}`);
   }
 }
