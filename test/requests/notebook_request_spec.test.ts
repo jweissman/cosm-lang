@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { ValueAdapter } from "../../src/ValueAdapter";
 import { CosmStringValue } from "../../src/values/CosmStringValue";
+import { CosmAiValue } from "../../src/values/CosmAiValue";
+import { ValueAdapter as Adapter } from "../../src/ValueAdapter";
 import { dispatchService } from "../support/request_spec";
 
 test("module-organized app can be exercised as a request spec without listen", () => {
@@ -30,6 +32,34 @@ test("module-organized app can be exercised as a request spec without listen", (
   const notebookEval = dispatchService(appSource, "POST", "/notebook/eval", { body: "code=1%20%2B%202" });
   expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("status"))).toBe(200);
   expect(ValueAdapter.cosmToJS(notebookEval.nativeProperty?.("body"))).toContain("3");
+});
+
+test("assistant page can reuse the shared controller core through the app wedge", () => {
+  CosmAiValue.installRuntimeHooks({
+    cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
+      shouldReply: true,
+      text: "Use the Reset Session button in the notebook.",
+      rationale: "mocked assistant page reply",
+      toolCalls: false,
+      toolResults: false,
+    })),
+  });
+
+  const appSource = `
+    require("app/app.cosm")
+    app.App.build()
+  `;
+
+  const assistant = dispatchService(appSource, "GET", "/assistant");
+  expect(ValueAdapter.cosmToJS(assistant.nativeProperty?.("status"))).toBe(200);
+  const assistantBody = ValueAdapter.cosmToJS(assistant.nativeProperty?.("body"));
+  expect(assistantBody).toContain("Page-backed support conversation");
+  expect(assistantBody).toContain("AI Runtime");
+
+  const turn = dispatchService(appSource, "POST", "/assistant", { body: "key=page-1&transcript=user%3A%20hello&message=How%20do%20I%20reset%20the%20notebook%20session%3F" });
+  const turnBody = ValueAdapter.cosmToJS(turn.nativeProperty?.("body"));
+  expect(turnBody).toContain("Use the Reset Session button in the notebook.");
+  expect(turnBody).toContain("assistant: Use the Reset Session button in the notebook.");
 });
 
 test("web-layer request specs render Cosm backtraces for notebook errors", () => {

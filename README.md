@@ -2,9 +2,21 @@
 
 Cosm is a small reflective programming language built on top of the JS runtime.
 
+It is aimed at interactive tooling and small server-side applications where the language itself stays explicit about reflection, dispatch, data contracts, and AI boundaries instead of hiding them behind framework magic.
+
+## Language Shape
+
+Cosm currently emphasizes:
+
+- reflective classes, metaclasses, modules, and message send
+- explicit runtime roots like `Kernel`, `classes`, `cosm`, `Schema`, `Data`, and `cosm.ai`
+- object-first services through `HttpRouter`, `HttpRequest`, and `HttpResponse`
+- a narrow but real block/callback story through trailing `do ... end` and `yield(...)`
+- a small Cosm-authored platform layer for tests, support flows, notebook examples, and service wiring
+
 ## Current Focus
 
-The current tree is best read as **`0.3.12.2`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, first-class runtime include, explicit AI streaming, default-arg callable cleanup, and a more Cosm-owned spec/harness surface:
+The current tree is best read as **`0.3.12.3`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, interpreter cleanup, AI config-vs-health semantics, a tiny page-backed conversation wedge, and a more Cosm-owned spec/harness surface:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -34,10 +46,12 @@ The current tree is best read as **`0.3.12.2`**: it is using the shared support-
 - a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`, with that CLI loop now acting as the canonical proving surface and Slack reusing the same support modules as a thin adapter
 - a first runtime-backed `include(...)` surface on classes through reflective module objects
 - an explicit `cosm.ai.stream(...)` / `require("cosm/ai.cosm").stream(...)` API for callback-based AI output
+- `cosm.ai.health()` as an explicit backend probe, with `status()` kept as config discovery
 - a streamed chat CLI path with a small wait-state message before the first chunk arrives
 - an incremental Cosm-owned harness layer through `require("cosm/spec.cosm")`
+- a tiny page-backed support conversation wedge at `/assistant` reusing the same shared support/controller core as the CLI chat and Slack adapter
 
-This is intentionally still below a full notebook product or framework layer. `0.3.12.2` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, more useful `Enumerable`-style authoring helpers, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
+This is intentionally still below a full notebook product or framework layer. `0.3.12.3` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, more useful `Enumerable`-style authoring helpers, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook/app surface that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding

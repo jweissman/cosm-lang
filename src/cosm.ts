@@ -11,6 +11,8 @@ import { RuntimeIr } from './runtime/RuntimeIr';
 import { InterpreterClassRuntime } from './runtime/InterpreterClassRuntime';
 import { InterpreterRoots } from './runtime/InterpreterRoots';
 import { InterpreterInvoke } from './runtime/InterpreterInvoke';
+import { InterpreterLookup } from './runtime/InterpreterLookup';
+import { InterpreterMessage } from './runtime/InterpreterMessage';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -380,57 +382,27 @@ namespace Cosm {
     }
 
     private static lookupName(name: string, env: Env): CosmValue {
-      if (name === 'classes') {
-        return this.classesObject(env);
-      }
-      if (name === 'cosm') {
-        return this.cosmObject(env);
-      }
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        const localValue = scope.bindings[name];
-        if (localValue !== undefined) {
-          return localValue;
-        }
-      }
-      const selfValue = this.lookupImplicitSelf(name, env);
-      if (selfValue !== undefined) {
-        return selfValue;
-      }
-      const value = this.repo().globals[name];
-      if (value === undefined) {
-        throw new Error(`Name error: unknown identifier '${name}'`);
-      }
-      return value;
-    }
-
-    private static lookupImplicitSelf(name: string, env: Env): CosmValue | undefined {
-      const selfValue = this.findSelfBinding(env);
-      if (!selfValue) {
-        return undefined;
-      }
-      try {
-        return RuntimeDispatch.resolveSendTarget(selfValue, name, this.repo());
-      } catch (error) {
-        if (
-          error instanceof Error
-          && (
-            error.message.includes(`has no property '${name}'`)
-            || error.message.includes(`has no instance method '${name}'`)
-            || error.message.includes(`has no class method '${name}'`)
-          )
-        ) {
-          return undefined;
-        }
-        throw error;
-      }
+      return InterpreterLookup.lookupName(name, env, {
+        lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        classesObject: (scope) => this.classesObject(scope),
+        cosmObject: (scope) => this.cosmObject(scope),
+        evalNode: (ast, scope) => this.evalNode(ast, scope),
+        expectChild: (ast, op) => this.expectChild(ast, op),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
     }
 
     private static lookupClass(name: string, env: Env): CosmClass {
-      const value = this.lookupName(name, env);
-      if (value.type !== 'class') {
-        throw new Error(`Type error: '${name}' is not a class`);
-      }
-      return value;
+      return InterpreterLookup.lookupClass(name, env, {
+        lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        classesObject: (scope) => this.classesObject(scope),
+        cosmObject: (scope) => this.cosmObject(scope),
+        evalNode: (ast, scope) => this.evalNode(ast, scope),
+        expectChild: (ast, op) => this.expectChild(ast, op),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
     }
 
     private static classesObject(env: Env): CosmValue {
@@ -442,9 +414,14 @@ namespace Cosm {
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
-      return this.withFrame(`access ${this.describeAccessTarget(ast)}`, () => {
-        const receiver = this.evalNode(this.expectChild(ast, 'access'), env);
-        return this.lookupProperty(receiver, ast.value);
+      return InterpreterLookup.evalAccess(ast, env, {
+        lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        classesObject: (scope) => this.classesObject(scope),
+        cosmObject: (scope) => this.cosmObject(scope),
+        evalNode: (node, scope) => this.evalNode(node, scope),
+        expectChild: (node, op) => this.expectChild(node, op),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
       });
     }
 
@@ -473,12 +450,7 @@ namespace Cosm {
     }
 
     private static evalIvar(ast: CoreNode, env: Env): CosmValue {
-      const selfValue = this.lookupSelf(env, ast.value);
-      const value = selfValue.fields[ast.value];
-      if (value === undefined) {
-        throw new Error(`Property error: object of class ${selfValue.className} has no ivar '@${ast.value}'`);
-      }
-      return value;
+      return InterpreterLookup.evalIvar(ast, env);
     }
 
     private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env, currentBlock?: CosmValue): CosmValue {
@@ -560,21 +532,19 @@ namespace Cosm {
     }
 
     private static send(receiver: CosmValue, message: string, args: CosmValue[], env?: Env): CosmValue {
-      const currentBlock = env ? this.findCurrentBlock(env) : undefined;
-      return this.withFrame(`send ${this.describeValue(receiver)}.${message}`, () =>
-        RuntimeDispatch.send(receiver, message, args, this.repo(), (callee, invokeArgs, selfValue, env) =>
-          this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
-        )
-      );
+      return InterpreterMessage.send(receiver, message, args, env, {
+        invokeFunction: (callee, invokeArgs, selfValue, scope, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
     }
 
     private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: Env): CosmValue {
-      const currentBlock = env ? this.findCurrentBlock(env) : undefined;
-      return this.withFrame(`send ${this.describeValue(receiver)}.${RuntimeDispatch.messageName(messageValue)}`, () =>
-        RuntimeDispatch.invokeSend(receiver, messageValue, args, this.repo(), (callee, invokeArgs, selfValue, env) =>
-          this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock)
-        , env)
-      );
+      return InterpreterMessage.invokeSend(receiver, messageValue, args, env, {
+        invokeFunction: (callee, invokeArgs, selfValue, scope, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
     }
 
     private static withFrame<T>(frame: string, fn: () => T): T {
@@ -593,73 +563,6 @@ namespace Cosm {
       return new CosmRaisedError(cosmError);
     }
 
-    private static describeAccessTarget(ast: CoreNode): string {
-      if (ast.kind !== "access") {
-        return ast.value;
-      }
-      const receiver = ast.left;
-      if (!receiver) {
-        return ast.value;
-      }
-      if (receiver.kind === "ident") {
-        return `${receiver.value}.${ast.value}`;
-      }
-      if (receiver.kind === "access") {
-        return `${this.describeAccessTarget(receiver)}.${ast.value}`;
-      }
-      return ast.value;
-    }
-
-    private static describeValue(value: CosmValue): string {
-      switch (value.type) {
-        case 'class':
-          return value.name;
-        case 'object':
-          return value.className;
-        case 'function':
-          return value.name;
-        case 'method':
-          return `${this.describeValue(value.receiver)}.${value.name}`;
-        case 'string':
-          return JSON.stringify(value.value);
-        case 'symbol':
-          return `:${value.name}`;
-        default:
-          return value.type;
-      }
-    }
-
-    private static lookupSelf(env: Env, ivarName?: string): CosmObject {
-      const selfValue = this.findSelfBinding(env);
-      if (!selfValue) {
-        const suffix = ivarName ? ` '@${ivarName}'` : '';
-        throw new Error(`Name error: ivar access${suffix} requires self`);
-      }
-      if (selfValue.type !== 'object') {
-        const suffix = ivarName ? ` for '@${ivarName}'` : '';
-        throw new Error(`Type error: self must be an object instance${suffix}`);
-      }
-      return selfValue;
-    }
-
-    private static findSelfBinding(env: Env): CosmValue | undefined {
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        if (Object.hasOwn(scope.bindings, 'self')) {
-          return scope.bindings.self;
-        }
-      }
-      return undefined;
-    }
-
-    private static findCurrentBlock(env: Env): CosmValue | undefined {
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        if (scope.currentBlock) {
-          return scope.currentBlock;
-        }
-      }
-      return undefined;
-    }
-
     private static internSymbol(name: string): CosmValue {
       const existing = this.symbolTable.get(name);
       if (existing) {
@@ -671,6 +574,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.12.2";
+    export const version = "0.3.12.3";
 }
 export default Cosm;

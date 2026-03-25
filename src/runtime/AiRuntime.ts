@@ -44,12 +44,29 @@ export class AiRuntime {
   private static readonly discoveryCache = new Map<string, { value: string | false; expiresAt: number }>();
 
   static status(namespaceClassRef?: CosmClassValue) {
+    return this.configNamespace(namespaceClassRef);
+  }
+
+  static configNamespace(namespaceClassRef?: CosmClassValue) {
     const config = this.config();
     return Construct.namespace({
       backend: Construct.string(config.backend),
       baseUrl: Construct.string(config.baseUrl),
       model: config.model ? Construct.string(config.model) : Construct.bool(false),
       configured: Construct.bool(config.configured),
+    }, namespaceClassRef);
+  }
+
+  static health(namespaceClassRef?: CosmClassValue) {
+    const config = this.config();
+    const result = this.probe(config.baseUrl);
+    return Construct.namespace({
+      backend: Construct.string(config.backend),
+      baseUrl: Construct.string(config.baseUrl),
+      model: config.model ? Construct.string(config.model) : Construct.bool(false),
+      configured: Construct.bool(config.configured),
+      ok: Construct.bool(result.ok),
+      error: result.error ? Construct.string(result.error) : Construct.bool(false),
     }, namespaceClassRef);
   }
 
@@ -254,6 +271,32 @@ export class AiRuntime {
         expiresAt: Date.now() + 1_000,
       });
       return undefined;
+    }
+  }
+
+  private static probe(baseUrl: string): { ok: boolean; error?: string } {
+    try {
+      const raw = execFileSync("curl", [
+        "-s",
+        "--connect-timeout",
+        "0.2",
+        "--max-time",
+        "0.5",
+        `${baseUrl}/models`,
+      ], {
+        encoding: "utf8",
+        maxBuffer: 2 * 1024 * 1024,
+      });
+      const parsed = JSON.parse(raw) as { data?: unknown };
+      if (!Array.isArray(parsed.data)) {
+        return { ok: false, error: "AI backend probe returned an invalid models payload" };
+      }
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "AI backend probe failed",
+      };
     }
   }
 

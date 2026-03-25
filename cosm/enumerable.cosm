@@ -21,3 +21,7 @@ end
 def one()
   self.length == 1
 end
+
+def filter(callback)
+  self.select(callback)
+end

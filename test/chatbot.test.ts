@@ -9,6 +9,7 @@ const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(
 afterEach(() => {
   CosmAiValue.installRuntimeHooks({
     status: () => AiRuntime.status(),
+    health: () => AiRuntime.health(),
     complete: (prompt) => AiRuntime.complete(prompt),
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
@@ -75,6 +76,12 @@ test("support controller provides a thin conversation contract for shared chat f
     let turn = controller.turn(controller.cliConversation([]), controller.cliInbound("How do I reset the notebook session?"))
     turn.conversation.messages.length
   `)).toBe(2);
+
+  expect(cosmEval(`
+    require("support/controller.cosm")
+    let turn = controller.turn(controller.pageConversation("page-1", "user: hello"), controller.pageInbound("page-1", "How do I reset the notebook session?"))
+    controller.displayTranscript(turn.conversation)
+  `)).toContain("assistant: Reset the session with the Reset Session button in the notebook UI.");
 });
 
 test("support prompt data is loaded from markdown-backed prompt files", () => {

@@ -39,7 +39,11 @@ def promptObject()
 end
 
 def aiStatus()
-  example("AI", "AI status", "Check the local LM Studio boundary.", "cosm.ai.status()")
+  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "cosm.ai.status()")
+end
+
+def aiHealth()
+  example("AI", "AI health", "Probe whether the local backend is actually reachable.", "cosm.ai.health()")
 end
 
 def aiCastHelper()
@@ -62,6 +66,10 @@ def supportStepModel()
   example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require(\"support/models.cosm\"); models.ChatStep.jsonSchema()")
 end
 
+def supportPage()
+  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack adapter.", "require(\"support/controller.cosm\"); controller.pageConversation(\"demo\", \"user: hello\")")
+end
+
 def routerSketch()
   example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
@@ -79,7 +87,7 @@ def data()
 end
 
 def ai()
-  [promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), promptData()]
+  [promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData()]
 end
 
 def services()
@@ -87,9 +95,9 @@ def services()
 end
 
 def support()
-  [supportChatStep(), supportStepModel()]
+  [supportChatStep(), supportStepModel(), supportPage()]
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), routerSketch()]
 end

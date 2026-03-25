@@ -1,4 +1,5 @@
 require("app/views/index.cosm")
+require("support/controller.cosm")
 
 let NOTEBOOK_SESSION = Session.default()
 
@@ -27,6 +28,14 @@ class App
 
         get "/health" do |req|
           App.healthResponse(req)
+        end
+
+        get "/assistant" do |req|
+          App.assistantPage(req)
+        end
+
+        post "/assistant" do |req|
+          App.assistantTurn(req)
         end
 
         get "/notebook" do |req|
@@ -69,6 +78,31 @@ class App
         pid: Process.pid(),
         platform: Process.platform(),
         arch: Process.arch() }, 200)
+    end
+
+    def assistantPage(req)
+      let key = Kernel.uuid()
+      HttpResponse.html(views.AssistantView.page(controller.pageConversation(key, ""), false), 200)
+    end
+
+    def assistantTurn(req)
+      let form = req.form()
+      let keyValue = form.get("key")
+      let transcriptValue = form.get("transcript")
+      let messageValue = form.get("message")
+      let key = if keyValue == false then Kernel.uuid() else keyValue end
+      let transcript = if transcriptValue == false then "" else transcriptValue end
+      let message = if messageValue == false then "" else messageValue end
+      let conversation = controller.pageConversation(key, transcript)
+      let inbound = controller.pageInbound(key, message)
+      let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
+      if outcome.ok then
+        HttpResponse.html(views.AssistantView.page(outcome.value.conversation, outcome.value.reply), 200)
+      else
+        let fallback = controller.fallback(conversation, inbound, outcome.error.message)
+        let recovered = controller.nextConversation(conversation, inbound, fallback)
+        HttpResponse.html(views.AssistantView.page(recovered, fallback), 200)
+      end
     end
 
     def notebookCode(req)

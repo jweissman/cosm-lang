@@ -1,9 +1,11 @@
 require("app/rendering.cosm")
 require("app/notebook.cosm")
+require("app/assistant.cosm")
 
 let HtmlView = rendering.HtmlView
 let NotebookView = notebook.NotebookView
 let NotebookExamples = notebook.NotebookExamples
+let AssistantView = assistant.AssistantView
 
 class HomeView
   class << self

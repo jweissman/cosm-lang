@@ -1,0 +1,14 @@
+let page = {
+  key: "page-1",
+  transcript: "user: hello",
+  replies: ["assistant: hi", "assistant: there"]
+}
+
+let preview = page.replies.take(1)
+let rendered = if preview.length == 1 then
+  Kernel.dispatch(page.transcript, :plus, "\n" + preview.first())
+else
+  "bad-state"
+end
+
+rendered

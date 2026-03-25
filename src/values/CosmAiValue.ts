@@ -13,6 +13,7 @@ import { CosmNumberValue } from "./CosmNumberValue";
 
 export class CosmAiValue extends CosmObjectValue {
   private static statusHandler?: () => CosmValue;
+  private static healthHandler?: () => CosmValue;
   private static completeHandler?: (prompt: string, env?: CosmEnv) => CosmValue;
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
@@ -21,6 +22,7 @@ export class CosmAiValue extends CosmObjectValue {
 
   static installRuntimeHooks(hooks: {
     status?: () => CosmValue;
+    health?: () => CosmValue;
     complete?: (prompt: string, env?: CosmEnv) => CosmValue;
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
@@ -29,6 +31,9 @@ export class CosmAiValue extends CosmObjectValue {
   }): void {
     if ("status" in hooks) {
       this.statusHandler = hooks.status;
+    }
+    if ("health" in hooks) {
+      this.healthHandler = hooks.health;
     }
     if ("complete" in hooks) {
       this.completeHandler = hooks.complete;
@@ -60,6 +65,30 @@ export class CosmAiValue extends CosmObjectValue {
           throw new Error("AI runtime error: status handler is not installed");
         }
         return CosmAiValue.statusHandler();
+      }),
+      config: () => new CosmFunctionValue("config", (args, selfValue) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: config expects an Ai receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: cosm.ai.config expects 0 arguments, got ${args.length}`);
+        }
+        if (!CosmAiValue.statusHandler) {
+          throw new Error("AI runtime error: status handler is not installed");
+        }
+        return CosmAiValue.statusHandler();
+      }),
+      health: () => new CosmFunctionValue("health", (args, selfValue) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: health expects an Ai receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: cosm.ai.health expects 0 arguments, got ${args.length}`);
+        }
+        if (!CosmAiValue.healthHandler) {
+          throw new Error("AI runtime error: health handler is not installed");
+        }
+        return CosmAiValue.healthHandler();
       }),
       complete: () => new CosmFunctionValue("complete", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {

@@ -190,11 +190,48 @@ export class CosmArrayValue extends CosmValueBase {
         return new CosmStringValue(selfValue.items.map((item) => item.toCosmString()).join(separator?.value ?? ""));
       });
     }
+    if (name === "take") {
+      return new CosmFunctionValue("take", (args, selfValue) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: take expects an Array receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: take expects 1 arguments, got ${args.length}`);
+        }
+        const [count] = args;
+        if (!(count instanceof CosmNumberValue)) {
+          throw new Error("Type error: take expects a numeric count");
+        }
+        return new CosmArrayValue(selfValue.items.slice(0, Math.max(0, Math.trunc(count.value))));
+      });
+    }
+    if (name === "reduce") {
+      return new CosmFunctionValue("reduce", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: reduce expects an Array receiver");
+        }
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: reduce expects 1 or 2 arguments, got ${args.length}`);
+        }
+        const callback = args[1] ?? CosmArrayValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: reduce expects a callback or trailing block");
+        }
+        if (!CosmArrayValue.invokeHandler) {
+          throw new Error("Array runtime error: invoke handler is not installed");
+        }
+        let accumulator = args[0];
+        for (const item of selfValue.items) {
+          accumulator = CosmArrayValue.invokeHandler!(callback, [accumulator, item], undefined, env);
+        }
+        return accumulator;
+      });
+    }
     return undefined;
   }
 
   override visibleNativeMethodNames(): string[] {
-    return [...super.visibleNativeMethodNames(), "append", "each", "find", "first", "join", "map", "reject", "select"];
+    return [...super.visibleNativeMethodNames(), "append", "each", "find", "first", "join", "map", "reduce", "reject", "select", "take"];
   }
 
   private static currentBlock(env?: CosmEnv): CosmValue | undefined {

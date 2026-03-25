@@ -28,11 +28,11 @@ class NotebookExamples
     end
 
     def aiMarkup()
-      category("AI", "Prompt objects, runtime AI status, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()))
+      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiHealth()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()))
     end
 
     def supportMarkup()
-      category("Support", "The narrow proving wedge is a pure Cosm support assistant first, with Slack as a thin adapter around the same prompt/reply core.", card(examples.supportChatStep()) + card(examples.supportStepModel()))
+      category("Support", "The proving wedge now includes a tiny page-backed conversation flow, while the pure Cosm chat core stays primary and Slack remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
     end
 
     def servicesMarkup()

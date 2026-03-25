@@ -24,10 +24,23 @@ test("cosm.ai.status reports LM Studio defaults clearly", () => {
       model: boolean;
       configured: boolean;
     };
+    const config = cosmEval('require("cosm/ai.cosm"); ai.config()') as {
+      backend: string;
+      baseUrl: string;
+      model: boolean;
+      configured: boolean;
+    };
     expect(status.backend).toBe("lmstudio");
     expect(status.baseUrl).toBe("http://127.0.0.1:1/v1");
     expect(status.model).toBe(false);
     expect(status.configured).toBe(false);
+    expect(config).toEqual(status);
+    const health = cosmEval("cosm.ai.health()") as {
+      ok: boolean;
+      error: string | boolean;
+    };
+    expect(health.ok).toBe(false);
+    expect(typeof health.error).toBe("string");
   } finally {
     if (previousBackend === undefined) {
       delete process.env.COSM_AI_BACKEND;
@@ -72,6 +85,14 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
       model: Construct.string("mock-model"),
       configured: Construct.bool(true),
     }),
+    health: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+      ok: Construct.bool(true),
+      error: Construct.bool(false),
+    }),
     complete: (prompt) => Construct.string(`complete:${prompt}`),
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
@@ -84,6 +105,8 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
   });
 
   try {
+    expect(cosmEval('cosm.ai.config().model')).toBe("mock-model");
+    expect(cosmEval('cosm.ai.health().ok')).toBe(true);
     expect(cosmEval('cosm.ai.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('cosm.ai.cast("hello", Schema.string())')).toBe("cast:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
@@ -116,6 +139,7 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
   } finally {
     CosmAiValue.installRuntimeHooks({
       status: () => AiRuntime.status(),
+      health: () => AiRuntime.health(),
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
       compare: (left, right) => AiRuntime.compare(left, right),

@@ -177,11 +177,49 @@ export class CosmHashValue extends CosmValueBase {
         return new CosmBoolValue(false);
       });
     }
+    if (name === "take") {
+      return new CosmFunctionValue("take", (args, selfValue) => {
+        if (!(selfValue instanceof CosmHashValue)) {
+          throw new Error("Type error: take expects a Hash receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: take expects 1 arguments, got ${args.length}`);
+        }
+        const [count] = args;
+        if (!(count instanceof CosmNumberValue)) {
+          throw new Error("Type error: take expects a numeric count");
+        }
+        const entries = Object.entries(selfValue.entries).slice(0, Math.max(0, Math.trunc(count.value)));
+        return new CosmHashValue(Object.fromEntries(entries));
+      });
+    }
+    if (name === "reduce") {
+      return new CosmFunctionValue("reduce", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmHashValue)) {
+          throw new Error("Type error: reduce expects a Hash receiver");
+        }
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: reduce expects 1 or 2 arguments, got ${args.length}`);
+        }
+        const callback = args[1] ?? CosmHashValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: reduce expects a callback or trailing block");
+        }
+        if (!CosmHashValue.invokeHandler) {
+          throw new Error("Hash runtime error: invoke handler is not installed");
+        }
+        let accumulator = args[0];
+        for (const [key, value] of Object.entries(selfValue.entries)) {
+          accumulator = CosmHashValue.invokeHandler!(callback, [accumulator, new CosmStringValue(key), value], undefined, env);
+        }
+        return accumulator;
+      });
+    }
     return undefined;
   }
 
   override visibleNativeMethodNames(): string[] {
-    return [...super.visibleNativeMethodNames(), "each", "find", "first", "map", "reject", "select"];
+    return [...super.visibleNativeMethodNames(), "each", "find", "first", "map", "reduce", "reject", "select", "take"];
   }
 
   private static currentBlock(env?: CosmEnv): CosmValue | undefined {

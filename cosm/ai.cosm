@@ -2,6 +2,14 @@ def status()
   cosm.ai.status()
 end
 
+def config()
+  cosm.ai.config()
+end
+
+def health()
+  cosm.ai.health()
+end
+
 def complete(prompt)
   cosm.ai.complete(prompt)
 end

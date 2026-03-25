@@ -301,7 +301,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(schemaClassMethods).sort()).toEqual(["array", "boolean", "enum", "number", "object", "optional", "string"]);
   expect(Object.keys(promptMethods)).toEqual([]);
   expect(Object.keys(promptClassMethods)).toEqual(["text"]);
-  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete", "status", "stream"]);
+  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete", "config", "health", "status", "stream"]);
   expect(Object.keys(sessionMethods).sort()).toEqual(["eval", "history", "inspect", "reset", "to_s", "tryEval"]);
   expect(Object.keys(sessionClassMethods)).toEqual(["default"]);
 });

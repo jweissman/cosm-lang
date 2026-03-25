@@ -120,6 +120,7 @@ export class Bootstrap {
     });
     CosmAiValue.installRuntimeHooks({
       status: () => AiRuntime.status(this.currentRepository?.classes.Namespace),
+      health: () => AiRuntime.health(this.currentRepository?.classes.Namespace),
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
       compare: (left, right) => AiRuntime.compare(left, right),

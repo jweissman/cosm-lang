@@ -11,7 +11,8 @@ def appendMessage(conversation, role, text)
     thread: conversation.thread,
     messages: messages,
     sessionName: conversation.sessionName,
-    sessionLength: messages.length
+    sessionLength: messages.length,
+    transcript: conversation.transcript
   }
   models.Conversation.validate(value)
   value
@@ -28,7 +29,8 @@ def appendUserMessage(conversation, inbound)
     thread: conversation.thread,
     messages: messages,
     sessionName: conversation.sessionName,
-    sessionLength: messages.length
+    sessionLength: messages.length,
+    transcript: conversation.transcript
   }
   models.Conversation.validate(value)
   value
@@ -41,7 +43,22 @@ def cliConversation(messages)
     thread: "cli",
     messages: messages,
     sessionName: "iapetus-cli",
-    sessionLength: messages.length
+    sessionLength: messages.length,
+    transcript: false
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def pageConversation(key, transcript)
+  let value = {
+    key: key,
+    channel: "web",
+    thread: key,
+    messages: [],
+    sessionName: "iapetus-page",
+    sessionLength: 0,
+    transcript: transcript
   }
   models.Conversation.validate(value)
   value
@@ -59,23 +76,52 @@ def cliInbound(text)
   value
 end
 
+def pageInbound(key, text)
+  let value = {
+    channel: "web",
+    thread: key,
+    user: "visitor",
+    text: text,
+    ts: key
+  }
+  models.InboundMessage.validate(value)
+  value
+end
+
 def reply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  agent.replyForTranscript(agent.transcriptFromConversation(conversation), inbound.text)
+  agent.replyForTranscript(currentTranscript(conversation), inbound.text)
 end
 
 def streamReply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  agent.streamReplyForTranscript(agent.transcriptFromConversation(conversation), inbound.text) do |event|
+  agent.streamReplyForTranscript(currentTranscript(conversation), inbound.text) do |event|
     yield(event)
   end
 end
 
 def nextConversation(conversation, inbound, reply)
-  let withUser = appendUserMessage(conversation, inbound)
-  appendMessage(withUser, "assistant", reply.text)
+  if conversation.transcript == false then
+    let withUser = appendUserMessage(conversation, inbound)
+    appendMessage(withUser, "assistant", reply.text)
+  else
+    let nextTranscript = agent.appendTranscript(agent.appendTranscript(currentTranscript(conversation), "user", inbound.text), "assistant", reply.text)
+    pageConversation(conversation.key, nextTranscript)
+  end
+end
+
+def currentTranscript(conversation)
+  if conversation.transcript == false then
+    agent.transcriptFromConversation(conversation)
+  else
+    conversation.transcript
+  end
+end
+
+def displayTranscript(conversation)
+  currentTranscript(conversation)
 end
 
 def turn(conversation, inbound)
