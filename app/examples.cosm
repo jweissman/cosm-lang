@@ -1,31 +1,67 @@
+def example(category, title, description, code)
+  { category: category, title: title, description: description, code: code }
+end
+
 def mathReflection()
-  "1 + 2; Kernel.inspect(classes.Number)"
+  example("Reflection", "Math + reflection", "Tiny arithmetic and runtime reflection smoke.", "1 + 2; Kernel.inspect(classes.Number)")
+end
+
+def receiverReflection()
+  example("Reflection", "Receiver reflection", "See the simplified receiver-side symbol list.", "Object.new().methods()")
+end
+
+def methodLookup()
+  example("Reflection", "Method lookup", "Use method(:name) for the actual method object.", "Object.new().method(:send).name")
+end
+
+def dispatchHelper()
+  example("Dispatch", "Kernel.dispatch", "Use the explicit helper-form dispatch API when you already have a receiver.", "Kernel.dispatch(1, :plus, 2)")
 end
 
 def dataModel()
-  "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.cast({ answer: \"hi\", choice: \"yes\" })"
+  example("Data", "Data model", "Define and cast a model on top of Schema.", "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.cast({ answer: \"hi\", choice: \"yes\" })")
 end
 
 def schemaExport()
-  "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()"
+  example("Data", "Schema export", "Inspect a raw structural schema.", "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()")
 end
 
 def promptObject()
-  "Prompt.text(\"Summarize Cosm in one sentence.\")"
+  example("AI", "Prompt object", "Inspect the explicit prompt runtime object.", "Prompt.text(\"Summarize Cosm in one sentence.\")")
 end
 
 def aiStatus()
-  "cosm.ai.status()"
+  example("AI", "AI status", "Check the local LM Studio boundary.", "cosm.ai.status()")
 end
 
 def aiCastHelper()
-  "require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)"
+  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
 end
 
 def routerSketch()
-  "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)"
+  example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
 
-def reflectionSmoke()
-  "Object.new().methods().get(:send).name"
+def reflection()
+  [mathReflection(), receiverReflection(), methodLookup()]
+end
+
+def dispatch()
+  [dispatchHelper()]
+end
+
+def data()
+  [dataModel(), schemaExport()]
+end
+
+def ai()
+  [promptObject(), aiStatus(), aiCastHelper()]
+end
+
+def services()
+  [routerSketch()]
+end
+
+def catalog()
+  [mathReflection(), receiverReflection(), methodLookup(), dispatchHelper(), dataModel(), schemaExport(), promptObject(), aiStatus(), aiCastHelper(), routerSketch()]
 end

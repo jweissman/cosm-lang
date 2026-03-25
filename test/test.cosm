@@ -8,7 +8,7 @@ def kernelExamples()
   test("math smoke", ->() { assert(1 + 1 == 2) });
   test("expectEqual smoke", ->() { expectEqual([1, 2], [1, 2]) });
   test("inspect smoke", ->() { assert(Kernel.inspect(Kernel) == "#<Kernel>") });
-  test("explicit send smoke", ->() { assert(Kernel.send(1, :plus, 2) == 3) })
+  test("explicit send smoke", ->() { assert(Kernel.dispatch(1, :plus, 2) == 3) })
 end;
 
 def callableExamples()

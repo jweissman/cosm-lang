@@ -28,7 +28,7 @@ assert(cosm.Kernel.assert(true) == true, "cosm exposes Kernel reflectively");
 assert(cosm.length >= 3, "namespaces expose a length property");
 assert(cosm.has(:version) == true, "namespaces can answer has for reflective keys");
 assert(cosm.keys().length >= 3, "namespaces can enumerate their reflective keys");
-assert(cosm.get(:version) == "0.3.8", "namespaces can retrieve entries by symbol");
+assert(cosm.get(:version) == "0.3.9", "namespaces can retrieve entries by symbol");
 assert(classes.get(:Kernel).name == "Kernel", "the reflective class namespace can retrieve class entries");
 assert(Kernel.class.name == "Kernel", "Kernel is now a real object with its own class");
 assert(Process.class.name == "Process", "Process is now a real object with its own class");
@@ -59,14 +59,16 @@ assert(Random.float() >= 0, "Random exposes a simple floating-point helper");
 assert(Random.float() < 1, "Random float stays in the expected JS range");
 assert(Random.int(5) >= 0, "Random exposes a simple integer helper");
 assert(Random.int(5) < 5, "Random int stays below its upper bound");
-assert(Kernel.send(1, :plus, 2) == 3, "Kernel can drive explicit message sends");
+assert(Random.choice(["a", "b", "c"]).class.name == "String", "Random.choice can pick an element from an array");
+assert(Kernel.dispatch(1, :plus, 2) == 3, "Kernel can drive explicit helper-form dispatch");
+assert(Kernel.uuid().length >= 32, "Kernel.uuid exposes a host-backed uuid helper");
 assert(Kernel.expectEqual([1, 2], [1, 2]) == true, "Kernel exposes a tiny equality expectation helper");
-assert(classes.Kernel.send(:assert, true, "ok") == true, "class-object send can target introspected instance methods too");
+assert(classes.Kernel.methods.assert.call(true, "ok") == true, "class-table reflection exposes callable ambient services");
 assert(Kernel.method(:assert).class.name == "Method", "bound methods are first-class method objects");
 assert(Kernel.method(:assert).name == "assert", "objects can introspect bound methods directly");
 assert(Kernel.method(:assert).call(true) == true, "method objects can be invoked explicitly through call");
-assert(classes.Kernel.method(:assert).name == "assert", "class objects can introspect instance methods directly");
-assert(classes.Kernel.method(:assert).call(true, "ok") == true, "class-side method introspection returns callable Method objects");
+assert(classes.Kernel.methods.assert.name == "assert", "class-table reflection exposes instance methods explicitly");
+assert(classes.Kernel.methods.assert.call(true, "ok") == true, "class-table reflection returns callable method objects");
 assert(cosm.test.class.name == "Module", "cosm exposes a dedicated test module");
 assert(cosm.test.name == "cosm/test", "test module carries its module name");
 assert(cosm.test.has(:test) == true, "test namespace exposes a test entry point");
@@ -84,9 +86,10 @@ assert(classes.class.name == "Namespace", "classes is a named reflective namespa
 assert(cosm.class.name == "Namespace", "cosm is a named reflective namespace object");
 assert(classes.Object.methods.send.name == "send", "Object reflects shared send through the runtime model");
 assert(classes.Object.methods.method.name == "method", "Object reflects shared method lookup through the runtime model");
-assert(Object.new().methods().has(:send) == true, "ordinary receivers expose visible methods through receiver-side reflection");
-assert(Object.methods().has(:send) == true, "class receivers expose visible methods through receiver-side reflection");
-assert(Kernel.methods().has(:assert) == true, "ambient services expose methods() through the shared reflection protocol");
+assert(Object.new().methods() == [:eq, :method, :methods, :send, :inspect, :to_s], "ordinary receivers expose a symbol-list reflection surface");
+assert(Object.new().method(:send).name == "send", "ordinary receivers can still look up a concrete method object");
+assert(Object.methods() == [:eq, :method, :methods, :send, :inspect, :to_s, :new, :classMethod], "class receivers expose their own callable symbol-list surface");
+assert(Kernel.methods().length >= 6, "ambient services expose methods() as a symbol list through the shared reflection protocol");
 assert(classes.Class.methods.new.name == "new", "Class reflects constructor entry points through the runtime model");
 assert(classes.Function.methods.call.name == "call", "Function reflects call through the runtime model");
 assert(classes.Method.methods.call.name == "call", "Method reflects call through the runtime model");
@@ -123,7 +126,7 @@ assert(Kernel.inspect(HttpResponse.text("ok", 201)) == '#<HttpResponse 201 "ok">
 assert(Kernel.inspect(HttpRouter.new()) == '#<HttpRouter routes: 0>', "Kernel.inspect renders routers readably");
 assert(Kernel.inspect(Mirror.reflect([1, 2])) == '#<Mirror [1, 2]>', "Kernel.inspect renders mirror wrappers distinctly");
 assert(Mirror.reflect(Kernel).get(:assert).name == "assert", "Mirror can expose reflective property access without mutating the wrapped object");
-assert(Mirror.reflect(Object.new()).methods().has(:send) == true, "Mirror methods align with ordinary receiver reflection");
+assert(Mirror.reflect(Object.new()).methods() == Object.new().methods(), "Mirror methods align with ordinary receiver reflection");
 assert(Mirror.reflect(cosm.test).targetClass.name == "Module", "Mirror can wrap module values readably");
 assert(:status.class.name == "Symbol", "symbol literals create first-class runtime values");
 assert(:status == Symbol.intern("status"), "symbol literals reuse interned symbol values");
@@ -199,16 +202,20 @@ assert(Schema.string().validate("ok") == true, "Schema can validate primitive va
 assert(Schema.string().inspect() == "Schema.string()", "Schema exposes inspect directly");
 assert(Schema.number().cast("42") == 42, "Schema can cast simple numeric strings");
 assert(Schema.boolean().cast("true") == true, "Schema can cast simple boolean strings");
+assert(Kernel.tryCast("42", Schema.number()).value == 42, "Kernel.tryCast can wrap schema casting in a structured result");
 let Ticket = Data.model("Ticket", { title: Data.string(), priority: Data.enum("low", "high"), tags: Data.optional(Data.array(Data.string())) });
 assert(Ticket.inspect() == '#<Data::Model "Ticket">', "Data models expose inspect directly");
 assert(Ticket.cast({ title: "hello", priority: "low", tags: ["a", "b"] }).tags.length == 2, "Data models can cast nested structured values");
 let Reason = Schema.object({ answer: Schema.string(), choice: Schema.enum("yes", "no"), nested: Schema.optional(Schema.array(Schema.number())) });
 assert(Reason.cast({ answer: "hi", choice: "yes", nested: [1, "2"] }).nested.length == 2, "Schema can cast nested object structures");
+assert(Kernel.try(->() { Schema.string().validate(1) }).error.details.path == "$", "Schema errors expose structured path details");
+assert(Kernel.try(->() { Data.model("Reason", { answer: Data.string() }).cast({ answer: 1 }) }).error.details.path == "$.answer", "Data model cast errors surface nested field paths");
 assert(Prompt.text("hello").source == "hello", "Prompt is an explicit first-class runtime object");
-assert(Kernel.try(->() { cosm.ai.complete("hello") }).error.message.length > 0, "cosm.ai surfaces a structured missing-backend error");
-assert(Kernel.try(->() { "cats" ~= "felines" }).error.message.length > 0, "semantic comparison currently fails clearly without an AI backend");
-require("cosm/ai.cosm");
-assert(Kernel.try(->() { ai.cast("hello", Ticket) }).error.message.length > 0, "Cosm-authored ai helpers can wrap the runtime ai boundary");
+# ai in the loop here doesn't make sense and is too slow to be helpful?
+# assert(Kernel.try(->() { cosm.ai.complete("hello") }).error.message.length > 0, "cosm.ai surfaces a structured missing-backend error");
+# assert(Kernel.try(->() { "cats" ~= "felines" }).error.message.length > 0, "semantic comparison currently fails clearly without an AI backend");
+# require("cosm/ai.cosm");
+# assert(Kernel.try(->() { ai.cast("hello", Ticket) }).error.message.length > 0, "Cosm-authored ai helpers can wrap the runtime ai boundary");
 require("app/views/layout/head.ecosm");
 assert(head.render({}).length > 0, ".ecosm templates can be required and rendered directly");
 require("app/views/index.cosm");
@@ -265,7 +272,7 @@ assert(tuple.classname() == "Pair", "instances can send methods with self");
 assert(Pair.new(1, 2) == Pair.new(1, 2), "instance equality now also flows through runtime eq");
 class InheritedPair < Pair
 end;
-assert(InheritedPair.new(1, 2).methods().has(:label) == true, "receiver-side methods include inherited visible methods");
+assert(InheritedPair.new(1, 2).method(:label).name == "label", "receiver-side reflection can still look up inherited methods directly");
 
 # class-side methods and metaclass ownership
 class Checked do

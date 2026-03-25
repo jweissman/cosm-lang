@@ -12,6 +12,8 @@ import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { RuntimeEquality } from "../runtime/RuntimeEquality";
 import { CosmErrorValue } from "./CosmErrorValue";
 import { Construct } from "../Construct";
+import { CosmSchemaValue } from "./CosmSchemaValue";
+import { CosmDataModelValue } from "./CosmDataModelValue";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -220,6 +222,12 @@ export class CosmKernelValue extends CosmObjectValue {
         Atomics.wait(timeout, 0, 0, milliseconds.value);
         return milliseconds;
       }),
+      uuid: () => new CosmFunctionValue('uuid', (args) => {
+        if (args.length !== 0) {
+          throw new Error(`Arity error: uuid expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(crypto.randomUUID());
+      }),
       send: () => new CosmFunctionValue('send', (args, _selfValue, env) => {
         if (!CosmKernelValue.sendHandler) {
           throw new Error('Kernel runtime error: send handler is not installed');
@@ -233,6 +241,32 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         const [receiver, messageValue, ...messageArgs] = args;
         return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);
+      }),
+      dispatch: () => new CosmFunctionValue('dispatch', (args, _selfValue, env) => {
+        if (args.length < 2) {
+          throw new Error(`Arity error: Kernel.dispatch expects at least 2 arguments, got ${args.length}`);
+        }
+        if (!CosmKernelValue.sendHandler) {
+          throw new Error('Kernel runtime error: send handler is not installed');
+        }
+        const [receiver, messageValue, ...messageArgs] = args;
+        return CosmKernelValue.sendHandler(receiver, messageValue, messageArgs, env);
+      }),
+      tryCast: () => new CosmFunctionValue('tryCast', (args) => {
+        if (args.length !== 2) {
+          throw new Error(`Arity error: tryCast expects 2 arguments, got ${args.length}`);
+        }
+        const [value, target] = args;
+        try {
+          const schema = CosmKernelValue.expectSchemaOrModel(target);
+          const cast = schema.nativeMethod("cast");
+          if (!cast || !cast.nativeCall) {
+            throw new Error("Kernel runtime error: Schema.cast is not available");
+          }
+          return CosmKernelValue.resultNamespace(cast.nativeCall([value], schema));
+        } catch (error) {
+          return CosmKernelValue.resultNamespace(false, error);
+        }
       }),
       session: () => new CosmFunctionValue('session', (args) => {
         if (args.length !== 0) {
@@ -397,5 +431,15 @@ export class CosmKernelValue extends CosmObjectValue {
       }
     }
     return undefined;
+  }
+
+  private static expectSchemaOrModel(target: CosmValue): CosmSchemaValue {
+    if (target instanceof CosmSchemaValue) {
+      return target;
+    }
+    if (target instanceof CosmDataModelValue) {
+      return target.toSchema();
+    }
+    throw new Error("Type error: tryCast expects a Schema or DataModel target");
   }
 }

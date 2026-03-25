@@ -3,6 +3,7 @@ import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmObjectValue } from "./CosmObjectValue";
+import { CosmArrayValue } from "./CosmArrayValue";
 
 export class CosmRandomValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmRandomValue> = {
@@ -22,6 +23,19 @@ export class CosmRandomValue extends CosmObjectValue {
           throw new Error('Type error: int expects a positive integer max');
         }
         return new CosmNumberValue(Math.floor(Math.random() * max.value));
+      }),
+      choice: () => new CosmFunctionValue('choice', (args) => {
+        if (args.length !== 1) {
+          throw new Error(`Arity error: choice expects 1 arguments, got ${args.length}`);
+        }
+        const [items] = args;
+        if (!(items instanceof CosmArrayValue)) {
+          throw new Error('Type error: choice expects an array');
+        }
+        if (items.items.length === 0) {
+          throw new Error('Type error: choice expects a non-empty array');
+        }
+        return items.items[Math.floor(Math.random() * items.items.length)];
       }),
     },
   };

@@ -5,8 +5,59 @@
   const code = document.getElementById("notebook-code");
   const status = document.getElementById("notebook-status");
   const exampleButtons = Array.from(document.querySelectorAll(".notebook-example"));
+  const recents = document.getElementById("notebook-recents");
   let pendingTimer = null;
   let latestRequest = 0;
+  const RECENT_KEY = "cosm:notebook:recents";
+
+  const loadRecents = () => {
+    try {
+      return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    } catch (_error) {
+      return [];
+    }
+  };
+
+  const saveRecents = (items) => {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, 5)));
+  };
+
+  const renderRecents = () => {
+    if (!recents) {
+      return;
+    }
+    const items = loadRecents();
+    if (!Array.isArray(items) || items.length === 0) {
+      recents.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400">Recent snippets will appear here after you run a few examples.</div>';
+      return;
+    }
+    recents.innerHTML = items.map((snippet) => {
+      const escaped = String(snippet)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+      return `<button class="notebook-recent w-full rounded-2xl border border-slate-800 bg-slate-950/70 p-3 text-left text-sm text-slate-200 transition hover:border-cyan-400" type="button" data-code="${escaped}"><pre class="overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs text-cyan-100">${escaped}</pre></button>`;
+    }).join("");
+    Array.from(document.querySelectorAll(".notebook-recent")).forEach((button) => {
+      button.addEventListener("click", async () => {
+        code.value = button.dataset.code || "";
+        setStatus("Loaded recent snippet. Running live eval...");
+        await submitEval("live");
+      });
+    });
+  };
+
+  const rememberSnippet = (snippet) => {
+    if (!snippet || !snippet.trim()) {
+      return;
+    }
+    const items = loadRecents().filter((item) => item !== snippet);
+    items.unshift(snippet);
+    saveRecents(items);
+    renderRecents();
+  };
 
   const setStatus = (text) => {
     if (status) {
@@ -37,6 +88,7 @@
       return;
     }
     output.innerHTML = body;
+    rememberSnippet(code.value);
     setStatus(mode === "live" ? "Live eval updated." : "Run complete.");
   };
 
@@ -85,4 +137,5 @@
       });
     });
   }
+  renderRecents();
 </script>

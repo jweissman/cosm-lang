@@ -1,0 +1,10 @@
+<section class="rounded-[2rem] border border-slate-800 bg-slate-900/70 p-6">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <p class="text-sm uppercase tracking-[0.35em] text-amber-300">Examples</p>
+      <h2 class="mt-2 text-2xl font-bold text-slate-100">Try the current surface</h2>
+    </div>
+    <p class="max-w-xl text-sm text-slate-400">These examples teach the intended layering: receiver reflection, explicit dispatch, `Schema`, `Data`, and the explicit AI boundary.</p>
+  </div>
+  <div class="mt-5 space-y-6"><%= groups %></div>
+</section>

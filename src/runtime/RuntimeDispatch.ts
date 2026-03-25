@@ -72,21 +72,20 @@ export class RuntimeDispatch {
     return classValue.lookupInstanceMethod(name);
   }
 
-  static visibleMethodsNamespace(receiver: CosmValue, repository: RuntimeRepository): CosmValue {
-    const methodOwner = receiver.type === 'class' ? receiver : this.classOf(receiver, repository.classes);
-    const methods = this.visibleMethods(methodOwner);
-    const boundMethods = Object.fromEntries(
-      Object.entries(methods).map(([name, method]) => [name, this.bindMethod(receiver, method)]),
+  static visibleMethodSymbols(receiver: CosmValue, repository: RuntimeRepository): CosmValue {
+    return Construct.array(
+      this.visibleMethodNames(receiver, repository).map((name) => Construct.symbol(name)),
     );
-    if (receiver instanceof CosmValueBase && receiver.type !== 'class') {
+  }
+
+  static visibleMethodNames(receiver: CosmValue, repository: RuntimeRepository): string[] {
+    const visible = new Set<string>(Object.keys(this.visibleMethods(this.classOf(receiver, repository.classes))));
+    if (receiver instanceof CosmValueBase) {
       for (const name of receiver.visibleNativeMethodNames()) {
-        const nativeMethod = receiver.nativeMethod(name);
-        if (nativeMethod) {
-          boundMethods[name] = this.bindMethod(receiver, nativeMethod);
-        }
+        visible.add(name);
       }
     }
-    return Construct.namespace(boundMethods, repository.classes.Namespace);
+    return [...visible];
   }
 
   static visibleMethods(classValue: CosmClass): Record<string, CosmFunctionValue> {
@@ -104,9 +103,9 @@ export class RuntimeDispatch {
   static reflectMethod(receiver: CosmValue, messageValue: CosmValue, repository: RuntimeRepository): CosmValue {
     const message = this.messageName(messageValue);
     if (receiver.type === 'class') {
-      const method = this.lookupMethod(receiver, message);
+      const method = this.lookupMethod(this.classOf(receiver, repository.classes), message);
       if (!method) {
-        throw new Error(`Property error: class ${receiver.name} has no instance method '${message}'`);
+        throw new Error(`Property error: class ${receiver.name} has no method '${message}'`);
       }
       return this.bindMethod(receiver, method);
     }

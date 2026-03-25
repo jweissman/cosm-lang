@@ -41,7 +41,7 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 - Named defs may also omit `do` when the body is already delimited by `end`: `def name(arg1) expr end`
 - Calls may also take a trailing `do ... end` block, which still lowers to a final lambda argument under the hood.
 
-In `0.3.8`, stabby lambdas remain the only standalone parameterized lambda form. Trailing call blocks may now bind parameters like `get "/" do |req| ... end`, and method/function bodies may call `yield(...)` to invoke the current implicit trailing block. `Kernel.blockGiven()` now exposes the presence of that current block, while block capture and forwarding are still intentionally deferred.
+In `0.3.9`, stabby lambdas remain the only standalone parameterized lambda form. Trailing call blocks may now bind parameters like `get "/" do |req| ... end`, and method/function bodies may call `yield(...)` to invoke the current implicit trailing block. `Kernel.blockGiven()` now exposes the presence of that current block, while block capture and forwarding are still intentionally deferred.
 
 ### Classes
 
@@ -67,7 +67,7 @@ class Thing
 end
 ```
 
-Inside `class << self ... end`, `self` is the class object, and defs become class-side methods. In `0.3.8`, this is equivalent to existing `def self.name(...)` behavior rather than a second metaclass semantics.
+Inside `class << self ... end`, `self` is the class object, and defs become class-side methods. In `0.3.9`, this is equivalent to existing `def self.name(...)` behavior rather than a second metaclass semantics.
 
 ### Control Flow
 
@@ -86,7 +86,7 @@ router.draw do
 end
 ```
 
-That trailing block form is intentionally narrow in `0.3.8`: it is still just sugar for an extra final lambda argument. It now supports block parameters on trailing call blocks, but it does not yet support ampersand-style capture/forwarding.
+That trailing block form is intentionally narrow in `0.3.9`: it is still just sugar for an extra final lambda argument. It now supports block parameters on trailing call blocks, but it does not yet support ampersand-style capture/forwarding.
 
 ```cosm
 def around(value)
@@ -141,7 +141,7 @@ Module objects currently support:
 
 `require("cosm/test")` still parses as a statement today, but it returns the same `Module` object exposed as `cosm.test` while also injecting bootstrap helpers like `test`, `describe`, and `expectEqual` into the current scope.
 
-Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.8`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` or `render(context, body)` entry point, which fits naturally with an `app/views/...` layout. `.ecosm` now supports both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation. Layout composition may provide template child content through `yield()` inside `.ecosm`, and in `0.3.8` that body now flows through renderer-owned metadata rather than hijacking ordinary context keys.
+Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.9`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` or `render(context, body)` entry point, which fits naturally with an `app/views/...` layout. `.ecosm` now supports both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation. Layout composition may provide template child content through `yield()` inside `.ecosm`, and in `0.3.9` that body now flows through renderer-owned metadata rather than hijacking ordinary context keys.
 
 `require("app/examples.cosm")` is also now used as a small example of Cosm-authored app support code: a plain module that exposes notebook example source through ordinary defs.
 
@@ -318,12 +318,16 @@ Class.class.name
   Exits the current host process. `code` defaults to `0` and must be an integer when provided.
 - `Kernel.sleep(ms)`
   Sleeps synchronously for a non-negative millisecond duration.
+- `Kernel.uuid()`
+  Returns a host-backed UUID string for lightweight ids in notebook/app code.
 - `Kernel.escapeHtml(string)`
   Escapes a string for safe inclusion in server-rendered HTML text contexts.
 - `Kernel.eval(source)`
   Evaluates Cosm source in `Session.default()` and returns the resulting value.
 - `Kernel.tryEval(source)`
   Evaluates Cosm source in that same default session, but returns a namespace with `.ok`, `.value`, `.inspect`, and `.error` instead of raising.
+- `Kernel.tryCast(value, schemaOrModel)`
+  Attempts a `Schema` or `DataModel` cast and returns `{ ok, value, inspect, error }` instead of raising.
 - `Kernel.blockGiven()`
   Returns whether the current function or method has an implicit trailing block available to `yield(...)`.
 - `Session.default()`
@@ -349,6 +353,8 @@ Class.class.name
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
 - `Random.int(max)`
   Returns a host integer `0 <= n < max`.
+- `Random.choice(array)`
+  Returns one random element from a non-empty array.
 - `Kernel.expectEqual(actual, expected, message?)`
   Tiny bootstrap equality helper for tests. Raises if the two values are not equal under Cosm equality.
 - `Kernel.test(name, fn)`
@@ -389,7 +395,7 @@ Class.class.name
 - `router.draw(->() { ... })`
 - `router.draw do ... end`
 - `router.use(middleware)`
-  Tiny exact-path router helpers. In `0.3.8`, routes match on exact method + exact path only. Unmatched routes return a plain `404` response, invalid handler registration errors are raised immediately, and router-level middleware may wrap dispatch through `next()`.
+  Tiny exact-path router helpers. In `0.3.9`, routes match on exact method + exact path only. Unmatched routes return a plain `404` response, invalid handler registration errors are raised immediately, and router-level middleware may wrap dispatch through `next()`.
 - `HttpRequest.method`
 - `HttpRequest.url`
 - `HttpRequest.path`
@@ -406,8 +412,8 @@ Class.class.name
 - `HttpResponse.headers`
 - `HttpServer.stop()`
   Stops a server started through `http.serve(...)`.
-- `Kernel.send(receiver, message, ...args)`
-  Performs an explicit message send where `message` is a string or symbol.
+- `Kernel.dispatch(receiver, message, ...args)`
+  Performs an explicit helper-form message send where `message` is a string or symbol.
 - `Mirror.reflect(value)`
   Returns a readonly reflective wrapper around `value`.
 - `mirror.targetClass`
@@ -416,9 +422,9 @@ Class.class.name
 - `mirror.get(name)`
 - `mirror.has(name)`
 - `value.methods()`
-  Returns a reflective namespace of visible methods for a live receiver. For ordinary values this includes inherited methods and runtime-backed primitive methods visible to dispatch. On class objects, this continues to introspect instance methods.
+  Returns an array of visible method symbols for a live receiver. For ordinary values this includes inherited methods and runtime-backed primitive methods visible to dispatch. On class objects, this reflects the receiver's own callable surface.
 - `value.method(message)`
-  Returns a bound `Method` object for a method on a receiver. On class objects, this introspects instance methods.
+  Returns a bound `Method` object for a method on a receiver. On class objects, this reflects the receiver's own callable surface.
 - `ClassValue.classMethod(message)`
   Returns a bound class-side `Method` object for a class object.
 - `fn.call(arg1, arg2)`
@@ -487,12 +493,15 @@ Process.platform()
 Process.arch()
 Process.env("HOME")
 Kernel.sleep(0)
+Kernel.uuid()
 Kernel.escapeHtml("<tag>")
 Kernel.tryEval("1 + 2").inspect
+Kernel.tryCast("42", Schema.number()).value
 Session.default().history().length
 Kernel.blockGiven()
 Random.float()
 Random.int(10)
+Random.choice(["red", "green", "blue"])
 Mirror.reflect({ answer: 42 }).inspect()
 Mirror.reflect(Kernel).get(:assert)
 Kernel.expectEqual([1, 2], [1, 2])
@@ -508,7 +517,7 @@ router.draw do
     HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200)
   end
 end
-Kernel.send(1, Symbol.intern("plus"), 2)
+Kernel.dispatch(1, Symbol.intern("plus"), 2)
 Kernel.method(:assert).name
 Kernel.method(:assert).call(true)
 cosm.Kernel.assert(true)
@@ -527,7 +536,7 @@ classes.Object.methods.send.name
 classes.Class.methods.new.name
 classes.Function.methods.call.name
 classes.Symbol.classMethods.intern.name
-classes.Kernel.method(:assert).name
+classes.Kernel.methods.assert.name
 1.send(Symbol.intern("plus"), 2)
 [1, 2].class.name
 "cosm".length
@@ -541,7 +550,7 @@ do let x = 1; x + 2 end
 
 - Identifiers resolve lexically first, then fall back to the built-in/global repository.
 - Inside `router.draw(...)`, bare verb calls like `get(...)` and `post(...)` are handled through a tiny builder receiver that uses `does_not_understand(message, args)` under the hood. That keeps the first routing DSL object-first and runtime-backed rather than introducing route-specific syntax.
-- `router.draw do ... end` and `get "/" do |req| ... end` are the intended `0.3.8` routing ergonomics boundary. They are still just final-argument block sugar over the existing callable model, not a full block system.
+- `router.draw do ... end` and `get "/" do |req| ... end` are the intended `0.3.9` routing ergonomics boundary. They are still just final-argument block sugar over the existing callable model, not a full block system.
 - Hash keys are currently identifier keys, not string keys.
 - Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
 - `self` is reserved for method bodies.
@@ -551,8 +560,8 @@ do let x = 1; x + 2 end
 - String interpolation uses Ruby-style `#{...}` inside double-quoted strings.
 - Single-quoted strings do not interpolate.
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
-- Triple-quoted strings remain the small inline multiline template form in `0.3.8`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
-- `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.8` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
+- Triple-quoted strings remain the small inline multiline template form in `0.3.9`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
+- `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.9` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
 - `methods()` on live receivers is now the intended everyday reflection path; `Mirror` stays the readonly wrapper path, and `.methods` / `.classMethods` on class objects remain the explicit class-table views.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `class << self ... end` is now available as an explicit class-side authoring form and is currently equivalent to `def self.name(...)`.
@@ -572,13 +581,13 @@ do let x = 1; x + 2 end
 - Statement separators are still semicolon-oriented at the grammar level, but the parser now performs a conservative newline-to-semicolon normalization pass for common one-statement-per-line code.
 - Parenthesis-free call sugar is currently narrow and statement-oriented; it exists mainly for lightweight convenience calls such as `assert true` and `puts 'hello'`.
 - `:name` is syntax sugar for an interned symbol value, and `Symbol.intern("name")` exposes the same underlying TS runtime symbol model directly.
-- `send` is now available both as `Kernel.send(receiver, message, ...)` and `receiver.send(message, ...)`, which gives us a more explicit message-passing path while the broader dispatch model settles.
+- `receiver.send(message, ...)` is the ordinary explicit message-passing path, and `Kernel.dispatch(receiver, message, ...)` is the helper-form dispatch API when you already have a receiver value.
 - Missing instance sends can now fall back through `does_not_understand(message, args)` when an object defines it. This is the first small DSL-oriented dispatch hook, and it does not yet include splats or block capture.
 - `Kernel.inspect` and `Kernel.send` now live on the TS-backed `Kernel` runtime value rather than only being interpreter-installed helpers.
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
-- `HttpRouter` is intentionally exact-path and object-first in `0.3.8`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
-- `Mirror` is intentionally readonly and observational in `0.3.8`; it is not yet a JS bridge, proxy, or hologram-style presenter.
-- `methods` and `classMethods` currently return ordinary reflective objects, so dot access like `classes.Kernel.methods.assert` works. Bracket indexing like `methods[:assert]` is not implemented yet.
+- `HttpRouter` is intentionally exact-path and object-first in `0.3.9`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
+- `Mirror` is intentionally readonly and observational in `0.3.9`; it is not yet a JS bridge, proxy, or hologram-style presenter.
+- Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
@@ -588,7 +597,7 @@ do let x = 1; x + 2 end
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.
 
-## Explicitly Not In 0.3.8
+## Explicitly Not In 0.3.9
 
 - ampersand block capture or forwarding
 - route params, wildcards, middleware groups, and route macros

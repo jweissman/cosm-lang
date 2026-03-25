@@ -184,21 +184,30 @@ export class CosmSchemaValue extends CosmObjectValue {
     CosmErrorValue.raise(new CosmStringValue(message), this.errorClassRef, details);
   }
 
+  private pathDetails(path: string, expected: string, actual: string, schemaKind?: string): CosmHashValue {
+    return new CosmHashValue({
+      path: new CosmStringValue(path),
+      expected: new CosmStringValue(expected),
+      actual: new CosmStringValue(actual),
+      schema: new CosmStringValue(schemaKind ?? this.schemaKind),
+    });
+  }
+
   private validateValue(value: CosmValue, path: string): void {
     switch (this.schemaKind) {
       case "string":
         if (!(value instanceof CosmStringValue)) {
-          this.fail(`Schema validation failed at ${path}: expected string, got ${value.type}`);
+          this.fail(`Schema validation failed at ${path}: expected string, got ${value.type}`, this.pathDetails(path, "string", value.type));
         }
         return;
       case "number":
         if (!(value instanceof CosmNumberValue)) {
-          this.fail(`Schema validation failed at ${path}: expected number, got ${value.type}`);
+          this.fail(`Schema validation failed at ${path}: expected number, got ${value.type}`, this.pathDetails(path, "number", value.type));
         }
         return;
       case "boolean":
         if (!(value instanceof CosmBoolValue)) {
-          this.fail(`Schema validation failed at ${path}: expected boolean, got ${value.type}`);
+          this.fail(`Schema validation failed at ${path}: expected boolean, got ${value.type}`, this.pathDetails(path, "boolean", value.type));
         }
         return;
       case "optional":
@@ -209,7 +218,7 @@ export class CosmSchemaValue extends CosmObjectValue {
         return;
       case "array":
         if (!(value instanceof CosmArrayValue)) {
-          this.fail(`Schema validation failed at ${path}: expected array, got ${value.type}`);
+          this.fail(`Schema validation failed at ${path}: expected array, got ${value.type}`, this.pathDetails(path, "array", value.type));
         }
         value.items.forEach((item, index) => this.expectItemSchema().validateValue(item, `${path}[${index}]`));
         return;
@@ -217,7 +226,10 @@ export class CosmSchemaValue extends CosmObjectValue {
         const options = this.expectOptions();
         const matched = options.items.some((option) => ValueAdapter.format(option) === ValueAdapter.format(value));
         if (!matched) {
-          this.fail(`Schema validation failed at ${path}: expected one of ${ValueAdapter.format(options)}, got ${ValueAdapter.format(value)}`);
+          this.fail(
+            `Schema validation failed at ${path}: expected one of ${ValueAdapter.format(options)}, got ${ValueAdapter.format(value)}`,
+            this.pathDetails(path, ValueAdapter.format(options), ValueAdapter.format(value), "enum"),
+          );
         }
         return;
       }
@@ -237,7 +249,7 @@ export class CosmSchemaValue extends CosmObjectValue {
         if (value instanceof CosmStringValue) {
           return value;
         }
-        return this.fail(`Schema cast failed at ${path}: expected string, got ${value.type}`);
+        return this.fail(`Schema cast failed at ${path}: expected string, got ${value.type}`, this.pathDetails(path, "string", value.type));
       case "number":
         if (value instanceof CosmNumberValue) {
           return value;
@@ -248,7 +260,7 @@ export class CosmSchemaValue extends CosmObjectValue {
             return new CosmNumberValue(parsed);
           }
         }
-        return this.fail(`Schema cast failed at ${path}: expected number-like value, got ${value.type}`);
+        return this.fail(`Schema cast failed at ${path}: expected number-like value, got ${value.type}`, this.pathDetails(path, "number-like", value.type));
       case "boolean":
         if (value instanceof CosmBoolValue) {
           return value;
@@ -256,7 +268,7 @@ export class CosmSchemaValue extends CosmObjectValue {
         if (value instanceof CosmStringValue && (value.value === "true" || value.value === "false")) {
           return new CosmBoolValue(value.value === "true");
         }
-        return this.fail(`Schema cast failed at ${path}: expected boolean-like value, got ${value.type}`);
+        return this.fail(`Schema cast failed at ${path}: expected boolean-like value, got ${value.type}`, this.pathDetails(path, "boolean-like", value.type));
       case "optional":
         if (value instanceof CosmBoolValue && value.value === false) {
           return value;
@@ -264,7 +276,7 @@ export class CosmSchemaValue extends CosmObjectValue {
         return this.expectInnerSchema("optional").castValue(value, path);
       case "array":
         if (!(value instanceof CosmArrayValue)) {
-          this.fail(`Schema cast failed at ${path}: expected array, got ${value.type}`);
+          this.fail(`Schema cast failed at ${path}: expected array, got ${value.type}`, this.pathDetails(path, "array", value.type));
         }
         return new CosmArrayValue(value.items.map((item, index) => this.expectItemSchema().castValue(item, `${path}[${index}]`)));
       case "enum":
@@ -288,7 +300,7 @@ export class CosmSchemaValue extends CosmObjectValue {
     if (value instanceof CosmNamespaceValue || value instanceof CosmObjectValue) {
       return value.fields;
     }
-    this.fail(`Schema validation failed at ${path}: expected object-like value, got ${value.type}`);
+    this.fail(`Schema validation failed at ${path}: expected object-like value, got ${value.type}`, this.pathDetails(path, "object-like", value.type, "object"));
   }
 
   private expectItemSchema(): CosmSchemaValue {

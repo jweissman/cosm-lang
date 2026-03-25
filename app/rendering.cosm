@@ -1,0 +1,32 @@
+class HtmlView
+  class << self
+    def escape(value)
+      Kernel.escapeHtml(value)
+    end
+
+    def render(template, context)
+      template.render(context)
+    end
+
+    def renderWithYield(template, context, body)
+      template.render(context, body)
+    end
+
+    def pageLayoutTemplate()
+      require("app/views/layout/page.ecosm")
+    end
+
+    def headTemplate()
+      require("app/views/layout/head.ecosm")
+    end
+
+    def head()
+      render(headTemplate(), { })
+    end
+
+    def renderLayout(title, bodyTemplate, bodyContext, extraHead, extraScript)
+      let body = render(bodyTemplate, bodyContext)
+      renderWithYield(pageLayoutTemplate(), { title: escape(title), extraHead: extraHead, extraScript: extraScript }, body)
+    end
+  end
+end

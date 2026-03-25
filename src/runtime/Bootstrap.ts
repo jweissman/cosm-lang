@@ -93,7 +93,7 @@ export class Bootstrap {
     CosmMirrorValue.installRuntimeHooks({
       classOf: (value) => runtime.classOf(value),
       lookupProperty: (receiver, property) => RuntimeDispatch.lookupProperty(receiver, property, this.currentRepository!),
-      visibleMethods: (receiver) => RuntimeDispatch.visibleMethodsNamespace(receiver, this.currentRepository!),
+      visibleMethods: (receiver) => RuntimeDispatch.visibleMethodSymbols(receiver, this.currentRepository!),
     });
     CosmMethodValue.installRuntimeHooks({
       invoke: (callee, args, selfValue) => runtime.invokeFunction(callee, args, selfValue),
@@ -104,7 +104,7 @@ export class Bootstrap {
     CosmValueBase.installRuntimeHooks({
       send: (receiver, messageValue, args, env) => runtime.invokeSend(receiver, messageValue, args, env),
       lookupMethod: (receiver, message) => RuntimeDispatch.reflectMethod(receiver, message, this.currentRepository!),
-      lookupMethods: (receiver) => RuntimeDispatch.visibleMethodsNamespace(receiver, this.currentRepository!),
+      lookupMethods: (receiver) => RuntimeDispatch.visibleMethodSymbols(receiver, this.currentRepository!),
       classOf: (receiver) => runtime.classOf(receiver),
       equal: (left, right) => RuntimeEquality.compare(left, right),
     });

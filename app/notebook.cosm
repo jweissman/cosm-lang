@@ -1,0 +1,92 @@
+require("app/rendering.cosm")
+require("app/examples.cosm")
+
+class NotebookExamples
+  class << self
+    def exampleSectionTemplate()
+      require("app/views/notebook/examples.ecosm")
+    end
+
+    def exampleCategoryTemplate()
+      require("app/views/notebook/example_category.ecosm")
+    end
+
+    def exampleCardTemplate()
+      require("app/views/notebook/example_card.ecosm")
+    end
+
+    def reflectionMarkup()
+      category("Reflection", "Method names first, method objects second, and ordinary runtime reflection through live values.", card(examples.mathReflection()) + card(examples.receiverReflection()) + card(examples.methodLookup()))
+    end
+
+    def dispatchMarkup()
+      category("Dispatch", "Explicit helper dispatch stays available when you already have a receiver value.", card(examples.dispatchHelper()))
+    end
+
+    def dataMarkup()
+      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top.", card(examples.dataModel()) + card(examples.schemaExport()))
+    end
+
+    def aiMarkup()
+      category("AI", "Prompt objects, runtime AI status, and the Cosm-authored helper layer stay explicit.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiCastHelper()))
+    end
+
+    def servicesMarkup()
+      category("Services", "The service layer stays object-first and deliberately small.", card(examples.routerSketch()))
+    end
+
+    def markup()
+      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + aiMarkup() + servicesMarkup() })
+    end
+
+    def category(title, description, cards)
+      rendering.HtmlView.render(exampleCategoryTemplate(), { title: rendering.HtmlView.escape(title), description: rendering.HtmlView.escape(description), cards: cards })
+    end
+
+    def card(example)
+      rendering.HtmlView.render(exampleCardTemplate(), { category: rendering.HtmlView.escape(example.category), title: rendering.HtmlView.escape(example.title), description: rendering.HtmlView.escape(example.description), code: rendering.HtmlView.escape(example.code) })
+    end
+  end
+end
+
+class NotebookView
+  class << self
+    def pageTemplate()
+      require("app/views/notebook/page.ecosm")
+    end
+
+    def scriptTemplate()
+      require("app/views/notebook/script.ecosm")
+    end
+
+    def emptyTemplate()
+      require("app/views/notebook/empty.ecosm")
+    end
+
+    def resultTemplate()
+      require("app/views/notebook/result.ecosm")
+    end
+
+    def errorTemplate()
+      require("app/views/notebook/error.ecosm")
+    end
+
+    def page(code, evaluation, session)
+      let output = fragment(code, evaluation)
+      rendering.HtmlView.renderLayout("Cosm Notebook", pageTemplate(), { code: rendering.HtmlView.escape(code), output: output, pid: Process.pid(), platform: rendering.HtmlView.escape(Process.platform()), arch: rendering.HtmlView.escape(Process.arch()), now: rendering.HtmlView.escape(Time.isoNow()), sessionName: rendering.HtmlView.escape(session.name), historyLength: session.length, examplesMarkup: NotebookExamples.markup() }, rendering.HtmlView.head(), rendering.HtmlView.render(scriptTemplate(), { }))
+    end
+
+    def fragment(code, evaluation)
+      if evaluation == false then
+        rendering.HtmlView.render(emptyTemplate(), { })
+      else
+        if evaluation.ok then
+          rendering.HtmlView.render(resultTemplate(), { inspect: rendering.HtmlView.escape(evaluation.inspect) })
+        else
+          let details = if evaluation.error.details == false then "" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.details)) end
+          rendering.HtmlView.render(errorTemplate(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: rendering.HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) })
+        end
+      end
+    end
+  end
+end
