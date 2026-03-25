@@ -30,3 +30,6 @@ watch-server:
 
 bench-vm:
   {{dev-bun}} run script/bench_vm.ts
+
+chat:
+  {{dev-bun}} bin/cosm support/chat_cli.cosm

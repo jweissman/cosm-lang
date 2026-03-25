@@ -17,6 +17,7 @@ export class Parser {
         kind: 'lambda_expr',
         value: '<lambda>',
         params: normalizedBlock.params ?? [],
+        defaults: normalizedBlock.defaults ?? {},
         children: [{
           kind: 'block_expr',
           value: '',
@@ -169,11 +170,23 @@ export class Parser {
       return children;
     }
 
-    private static paramNames(node: SurfaceNode): string[] {
+    private static paramSignature(node: SurfaceNode): { params: string[]; defaults: Record<string, SurfaceNode> } {
       if (node.kind === 'ident') {
-        return [node.value];
+        return { params: [node.value], defaults: {} };
       }
-      return (node.children ?? []).flatMap((child) => this.paramNames(child));
+      if (node.kind === 'pair') {
+        return {
+          params: [node.value],
+          defaults: node.left ? { [node.value]: node.left } : {},
+        };
+      }
+      return (node.children ?? []).reduce<{ params: string[]; defaults: Record<string, SurfaceNode> }>((acc, child) => {
+        const signature = this.paramSignature(child);
+        return {
+          params: [...acc.params, ...signature.params],
+          defaults: { ...acc.defaults, ...signature.defaults },
+        };
+      }, { params: [], defaults: {} });
     }
 
     static parseSurface(input: string): SurfaceNode {
@@ -271,27 +284,31 @@ export class Parser {
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         ClassDefStmt_class: (_def, _self, _dot, name, _open, params, _close, _do, body, _end) => ({
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         ClassDefStmt_instance: (_def, name, _open, params, _close, _do, body, _end) => ({
           kind: 'def_stmt',
           value: name.sourceString,
           target: 'instance',
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         DefStmt: (_def, name, _open, params, _close, _do, body, _end) => ({
           kind: 'def_stmt',
           value: name.sourceString,
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         LetStmt: (_let, name, _eq, expr) => ({
@@ -322,7 +339,8 @@ export class Parser {
         PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => ({
           kind: 'lambda_expr',
           value: '<lambda>',
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
@@ -384,7 +402,8 @@ export class Parser {
         TrailingBlock: (_do, params, body, _end) => ({
           kind: 'block_expr',
           value: '',
-          params: Parser.paramNames(params.ast()),
+          params: Parser.paramSignature(params.ast()).params,
+          defaults: Parser.paramSignature(params.ast()).defaults,
           children: Parser.listChildren(body.ast()),
         }),
         BlockParams: (_open, params, _close) => params.ast(),
@@ -418,6 +437,15 @@ export class Parser {
           kind: 'list',
           value: '',
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
+        }),
+        Param_default: (name, _eq, value) => ({
+          kind: 'pair',
+          value: name.sourceString,
+          left: value.ast(),
+        }),
+        Param_plain: (name) => ({
+          kind: 'ident',
+          value: name.sourceString,
         }),
         HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
         dstring: (_open, parts, _close) => {

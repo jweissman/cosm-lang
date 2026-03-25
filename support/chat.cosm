@@ -5,7 +5,7 @@ def banner()
 end
 
 def help()
-  "Commands: /help shows this message. /reset clears the current conversation transcript. Press enter on an empty line to exit."
+  "Commands: /help shows this message. /reset clears the current conversation transcript. Streaming is explicit, but local AI transport may still buffer before chunks arrive. Press enter on an empty line to exit."
 end
 
 def appendTranscript(transcript, role, text)

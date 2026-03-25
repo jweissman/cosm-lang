@@ -38,22 +38,24 @@ Those should begin as standard/runtime libraries rather than syntax features, so
 
 ## Current Milestones
 
-### Milestone A: PL Core Hardening (`0.3.12`)
+### Milestone A: PL Core Hardening (`0.3.12.2`)
 
 - keep the pure Cosm support chatbot as the canonical proving surface
 - keep Slack DM ingress as a thin adapter around that same support core
 - reduce interpreter-owned semantic special cases
 - add the first runtime-backed `include(...)` path for reusable module behavior
+- add default arguments through the shared invoke path instead of evaluator special cases
+- make small Enumerable-style helpers good enough to support more Cosm-authored code
 - make explicit AI streaming part of the stable support-assistant story
 - keep reflection, dispatch, and docs telling the same story
 
-### Milestone B: VM Prep Becomes Real (`0.3.12`)
+### Milestone B: VM Prep Becomes Real (`0.3.12.2`)
 
 - keep a VM-oriented IR for a narrow executable subset
 - make CLI tracing show surface AST, core AST, and IR
 - keep expanding the tiny opt-in VM executor where it overlaps with real support/service logic
 
-### Milestone C: Harness-First Spec Discipline (`0.3.12`)
+### Milestone C: Harness-First Spec Discipline (`0.3.12.2`)
 
 - keep `spec/` as the primary Cosm-authored spec surface
 - push organized specs onto the Cosm-native harness

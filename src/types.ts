@@ -65,6 +65,7 @@ export type CoreNode = {
   left?: CoreNode;
   right?: CoreNode;
   params?: string[];
+  defaults?: Record<string, CoreNode>;
   target?: string;
 };
 
@@ -184,5 +185,6 @@ export type SurfaceNode = {
   left?: SurfaceNode;
   right?: SurfaceNode;
   params?: string[];
+  defaults?: Record<string, SurfaceNode>;
   target?: string;
 };

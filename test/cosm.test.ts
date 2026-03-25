@@ -158,13 +158,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.12");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.12.2");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.12");
+  expect(cosmEval("cosm.version")).toBe("0.3.12.2");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -467,7 +467,11 @@ test("user-defined functions work", () => {
   expect(cosmEval("let id = ->(x) { x }; id(42)")).toBe(42);
   expect(cosmEval("let id = ->(x) { x }; id.call(42)")).toBe(42);
   expect(cosmEval('def greet(name) "hi " + name end; greet("cosm")')).toBe("hi cosm");
+  expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet()')).toBe("hi cosm");
+  expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet("runtime")')).toBe("hi runtime");
   expect(cosmEval('let greet = ->(name) { "hello " + name }; greet("cosm")')).toBe("hello cosm");
+  expect(cosmEval('let greet = ->(name = "cosm") { "hello " + name }; greet()')).toBe("hello cosm");
+  expect(cosmEval('let greet = ->(name = "runtime") { "hello " + name }; greet("cosm")')).toBe("hello cosm");
   expect(cosmEval("let pair = ->(a, b) { a + b }; pair(20, 22)")).toBe(42);
   expect(cosmEval('let outer = "co"; let join = ->(rest) { outer + rest }; join("sm")')).toBe("cosm");
   expect(cosmEval('let fortyTwo = ->() { 42 }; fortyTwo()')).toBe(42);
@@ -562,6 +566,7 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("class Thing do def go() do 1 end; def go() do 2 end end")).toThrow("Name error: duplicate method 'go' in class 'Thing'");
   expect(() => cosmEval("class Greeter do def label() do self.name end end; Greeter.label()")).toThrow("Property error: class Greeter has no property 'label'");
   expect(() => cosmEval("class Thing do def init(value) do true end end; Thing.new()")).toThrow("Arity error: Thing.new expects 1 arguments, got 0");
+  expect(() => cosmEval("def greet(name = \"cosm\", suffix) do name + suffix end; greet()")).toThrow("Arity error: function expects 2 arguments, got 0");
   expect(() => cosmEval("class Thing do def init(value, value) do true end end")).toThrow("Name error: duplicate slot 'value' in class 'Thing'");
   expect(() => cosmEval("@value")).toThrow("Name error: ivar access '@value' requires self");
   expect(() => cosmEval("class Thing do def init(value) do true end; def missing() do @other end end; Thing.new(1).missing()")).toThrow("Property error: object of class Thing has no ivar '@other'");

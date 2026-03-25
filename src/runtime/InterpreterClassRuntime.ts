@@ -3,6 +3,7 @@ import { CoreNode, CosmClass, CosmEnv, CosmFunction, CosmObject, CosmValue } fro
 import { Bootstrap } from "./Bootstrap";
 import { CosmHttpRouterValue } from "../values/CosmHttpRouterValue";
 import { CosmSessionValue } from "../values/CosmSessionValue";
+import { InterpreterInvoke } from "./InterpreterInvoke";
 
 type Repository = {
   classes: Record<string, CosmClass>;
@@ -20,7 +21,7 @@ export class InterpreterClassRuntime {
     if (!body) {
       throw new Error(`Invalid AST: ${ast.kind} node must have a body`);
     }
-    return Construct.closure(ast.value, ast.params ?? [], body, env);
+    return Construct.closure(ast.value, ast.params ?? [], body, env, ast.defaults);
   }
 
   static evalClass(ast: CoreNode, env: CosmEnv, hooks: ClassRuntimeHooks): CosmValue {
@@ -39,11 +40,9 @@ export class InterpreterClassRuntime {
   }
 
   static instantiateClass(classValue: CosmClass, args: CosmValue[], hooks: ClassRuntimeHooks): CosmObject {
-    if (args.length !== classValue.slots.length) {
-      throw new Error(`Arity error: ${classValue.name}.new expects ${classValue.slots.length} arguments, got ${args.length}`);
-    }
-    const instance = this.buildInstance(classValue, args, hooks.repository);
-    this.invokeInitializerChain(classValue, instance, args, hooks);
+    const resolvedArgs = this.resolveInitializerArgs(classValue, args);
+    const instance = this.buildInstance(classValue, resolvedArgs, hooks.repository);
+    this.invokeInitializerChain(classValue, instance, resolvedArgs, hooks);
     return instance;
   }
 
@@ -103,5 +102,30 @@ export class InterpreterClassRuntime {
 
     const ownArgs = args.slice(inheritedSlotCount);
     hooks.invokeFunction(initMethod, ownArgs, instance);
+  }
+
+  private static resolveInitializerArgs(classValue: CosmClass, args: CosmValue[]): CosmValue[] {
+    const inheritedArgs = classValue.superclass
+      ? this.resolveInitializerArgs(classValue.superclass, args.slice(0, classValue.superclass.slots.length))
+      : [];
+    const initMethod = classValue.methods.init;
+    const ownArgs = args.slice(inheritedArgs.length);
+    if (!initMethod?.params) {
+      if (ownArgs.length > 0) {
+        throw new Error(`Arity error: ${classValue.name}.new expects ${classValue.slots.length} arguments, got ${args.length}`);
+      }
+      return inheritedArgs;
+    }
+    const callEnv = { bindings: {}, allowTopLevelRebinds: false } as CosmEnv;
+    let resolvedOwnArgs: CosmValue[];
+    try {
+      resolvedOwnArgs = InterpreterInvoke.resolveFunctionArgs(initMethod, ownArgs, callEnv);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Arity error: function expects")) {
+        throw new Error(`Arity error: ${classValue.name}.new expects ${classValue.slots.length} arguments, got ${args.length}`);
+      }
+      throw error;
+    }
+    return [...inheritedArgs, ...resolvedOwnArgs];
   }
 }

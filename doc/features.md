@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.12
+## Current Release Target: 0.3.12.2
 
-`0.3.12` is now best read as a PL-core hardening slice on top of the earlier chatbot-and-runtime consolidation work:
+`0.3.12.2` is now best read as a PL-core hardening slice on top of the earlier chatbot-and-runtime consolidation work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -24,8 +24,10 @@
 - make `cast(...)` AI-owned in the taught surface, while local schema/model work becomes validation-only
 - add a narrow VM-oriented IR plus `--trace-ir` / `--vm` for a supported subset
 - add a first runtime-backed `include(...)` path for reusable module-backed instance behavior
+- add default arguments for `def` and lambdas through the shared invoke path
 - add an explicit AI streaming surface through `cosm.ai.stream(...)` and `require("cosm/ai.cosm").stream(...)`
 - let the chat CLI stream output with a small wait-state message before the first chunk arrives
+- make `Enumerable`-style authoring less provisional through helpers like `any`, `none`, `one`, `first`, `find`, `reject`, and `join`
 - start lifting more harness behavior into Cosm through `require("cosm/spec.cosm")`
 - make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
 - make the notebook feel more like a workbench through Cosm-inspected output, debounced live eval, secondary/collapsible examples, and lightweight recent-snippet affordances
@@ -104,7 +106,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.12 Definition Of Done
+## v0.3.12.2 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.

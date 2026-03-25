@@ -127,6 +127,16 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
   expect(cosmEval("[].empty()")).toBe(true);
   expect(cosmEval('{ answer: 42 }.present()')).toBe(true);
+  expect(cosmEval("[1, 2, 3].any()")).toBe(true);
+  expect(cosmEval("[].none()")).toBe(true);
+  expect(cosmEval("[1].one()")).toBe(true);
+  expect(cosmEval("[1, 2, 3].first()")).toBe(1);
+  expect(cosmEval('[1, 2, 3].find(->(value) { value > 1 })')).toBe(2);
+  expect(cosmEval('[1, 2, 3].reject(->(value) { value > 1 })')).toEqual([1]);
+  expect(cosmEval('["co", "sm"].join("-")')).toBe("co-sm");
+  expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
+  expect(cosmEval('{ a: 1, b: 2 }.find(->(key, value) { value > 1 })')).toEqual(["b", 2]);
+  expect(cosmEval('{ a: 1, b: 2 }.reject(->(key, value) { value > 1 })')).toEqual({ a: 1 });
   expect(cosmEval("let increment = ->(value) { value + 1 }; [1, 2, 3].map(increment)")).toEqual([2, 3, 4]);
   expect(cosmEval("let gtOne = ->(key, value) { value > 1 }; { a: 1, b: 2 }.select(gtOne)")).toEqual({ b: 2 });
 });

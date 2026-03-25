@@ -2,6 +2,7 @@ import { CosmEnv, CosmValue } from "../types";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmNumberValue } from "./CosmNumberValue";
+import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 
 
@@ -68,6 +69,17 @@ export class CosmArrayValue extends CosmValueBase {
         return new CosmArrayValue([...selfValue.items, args[0]]);
       });
     }
+    if (name === "first") {
+      return new CosmFunctionValue("first", (args, selfValue) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: first expects an Array receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: first expects 0 arguments, got ${args.length}`);
+        }
+        return selfValue.items[0] ?? new CosmBoolValue(false);
+      });
+    }
     if (name === "map") {
       return new CosmFunctionValue("map", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmArrayValue)) {
@@ -111,11 +123,78 @@ export class CosmArrayValue extends CosmValueBase {
         return new CosmArrayValue(items);
       });
     }
+    if (name === "reject") {
+      return new CosmFunctionValue("reject", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: reject expects an Array receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: reject expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const callback = args[0] ?? CosmArrayValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: reject expects a callback or trailing block");
+        }
+        if (!CosmArrayValue.invokeHandler) {
+          throw new Error("Array runtime error: invoke handler is not installed");
+        }
+        const items = selfValue.items.filter((item) => {
+          const result = CosmArrayValue.invokeHandler!(callback, [item], undefined, env);
+          if (!(result instanceof CosmBoolValue)) {
+            throw new Error("Type error: reject expects the callback to return a boolean");
+          }
+          return !result.value;
+        });
+        return new CosmArrayValue(items);
+      });
+    }
+    if (name === "find") {
+      return new CosmFunctionValue("find", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: find expects an Array receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: find expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const callback = args[0] ?? CosmArrayValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: find expects a callback or trailing block");
+        }
+        if (!CosmArrayValue.invokeHandler) {
+          throw new Error("Array runtime error: invoke handler is not installed");
+        }
+        for (const item of selfValue.items) {
+          const result = CosmArrayValue.invokeHandler!(callback, [item], undefined, env);
+          if (!(result instanceof CosmBoolValue)) {
+            throw new Error("Type error: find expects the callback to return a boolean");
+          }
+          if (result.value) {
+            return item;
+          }
+        }
+        return new CosmBoolValue(false);
+      });
+    }
+    if (name === "join") {
+      return new CosmFunctionValue("join", (args, selfValue) => {
+        if (!(selfValue instanceof CosmArrayValue)) {
+          throw new Error("Type error: join expects an Array receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: join expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const separator = args[0];
+        if (separator && separator.type !== "string") {
+          throw new Error("Type error: join expects a string separator");
+        }
+        return new CosmStringValue(selfValue.items.map((item) => item.toCosmString()).join(separator?.value ?? ""));
+      });
+    }
     return undefined;
   }
 
   override visibleNativeMethodNames(): string[] {
-    return [...super.visibleNativeMethodNames(), "append", "each", "map", "select"];
+    return [...super.visibleNativeMethodNames(), "append", "each", "find", "first", "join", "map", "reject", "select"];
   }
 
   private static currentBlock(env?: CosmEnv): CosmValue | undefined {

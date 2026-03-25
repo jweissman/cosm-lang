@@ -16,6 +16,7 @@ test("parser accepts narrow bare-call sugar", () => {
 test("parser accepts require and optional do elision", () => {
   expect(() => Parser.parse('require("cosm/test")')).not.toThrow();
   expect(() => Parser.parse('def greet(name) "hi " + name end; greet("cosm")')).not.toThrow();
+  expect(() => Parser.parse('def greet(name = "cosm") "hi " + name end; greet()')).not.toThrow();
   expect(() => Parser.parse('class Greeter def label() "hi" end end; Greeter.name')).not.toThrow();
   expect(() => Parser.parse('class App\n  def handle(req)\n    HttpResponse.text(respond(req), 200)\n  end\n  def respond(req)\n    hello(req.path)\n  end\n  def hello(subject)\n    "Hello #{subject}"\n  end\nend; let app = App.new();')).not.toThrow();
   expect(() => Parser.parse('class Greeter\n  class << self\n    def label()\n      "hi"\n    end\n  end\nend\nGreeter.label()')).not.toThrow();
@@ -45,6 +46,7 @@ test("parser accepts interpolated triple-quoted strings", () => {
 
 test("parser accepts multi-statement lambdas with bare calls", () => {
   expect(() => Parser.parse('->(req) { puts "#{Time.isoNow()}"; HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) }')).not.toThrow();
+  expect(() => Parser.parse('let greet = ->(name = "cosm") { "hi " + name }; greet()')).not.toThrow();
 });
 
 test("parser lowers trailing do-end blocks on calls", () => {

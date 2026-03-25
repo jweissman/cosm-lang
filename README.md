@@ -4,7 +4,7 @@ Cosm is a small reflective programming language built on top of the JS runtime.
 
 ## Current Focus
 
-The current tree is best read as **`0.3.12`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, first-class runtime include, explicit AI streaming, and a more Cosm-owned spec/harness surface:
+The current tree is best read as **`0.3.12.2`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, first-class runtime include, explicit AI streaming, default-arg callable cleanup, and a more Cosm-owned spec/harness surface:
 
 - reflective classes, metaclasses, and method lookup
 - a tiny router/service story through `HttpRouter`
@@ -37,7 +37,7 @@ The current tree is best read as **`0.3.12`**: it is using the shared support-as
 - a streamed chat CLI path with a small wait-state message before the first chunk arrives
 - an incremental Cosm-owned harness layer through `require("cosm/spec.cosm")`
 
-This is intentionally still below a full notebook product or framework layer. `0.3.12` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
+This is intentionally still below a full notebook product or framework layer. `0.3.12.2` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, more useful `Enumerable`-style authoring helpers, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook that teaches those layers without pretending to be the next product yet.
 
 Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding

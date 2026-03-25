@@ -22,6 +22,14 @@ def greet(name) do
   "hello " + name
 end;
 assert(greet("cosm") == "hello cosm", "def introduces named functions");
+def defaultGreet(name = "cosm") do
+  "hello " + name
+end;
+assert(defaultGreet() == "hello cosm", "defs can use default arguments");
+assert(defaultGreet("runtime") == "hello runtime", "defs can override default arguments");
+let defaultJoin = ->(left, right = "sm") { left + right };
+assert(defaultJoin("co") == "cosm", "lambdas can use default arguments");
+assert(defaultJoin("co", "dex") == "codex", "lambdas can override default arguments");
 
 class ImplicitDispatch do
   def greet(name) do

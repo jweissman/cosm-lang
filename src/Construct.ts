@@ -87,7 +87,7 @@ export class Construct {
   static method(name: string, receiver: CosmValue, target: CosmFunction): CosmMethod {
     return new CosmMethodValue(name, receiver, target);
   }
-  static closure(name: string, params: string[], body: CoreNode, env: CosmEnv): CosmFunction {
-    return new CosmFunctionValue(name, undefined, params, body, env);
+  static closure(name: string, params: string[], body: CoreNode, env: CosmEnv, defaults?: Record<string, CoreNode>): CosmFunction {
+    return new CosmFunctionValue(name, undefined, params, defaults, body, env);
   }
 }

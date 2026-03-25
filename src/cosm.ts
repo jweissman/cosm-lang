@@ -10,6 +10,7 @@ import { ValueAdapter } from './ValueAdapter';
 import { RuntimeIr } from './runtime/RuntimeIr';
 import { InterpreterClassRuntime } from './runtime/InterpreterClassRuntime';
 import { InterpreterRoots } from './runtime/InterpreterRoots';
+import { InterpreterInvoke } from './runtime/InterpreterInvoke';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -136,6 +137,9 @@ namespace Cosm {
     }
 
     private static createRepository(): Repository {
+      InterpreterInvoke.installHooks({
+        evalDefault: (ast, env) => this.evalNode(ast, env),
+      });
       const repository = Bootstrap.createRepository({
         invokeFunction: (callee, args, selfValue, env) => this.invokeFunction(callee, args, selfValue, env),
         instantiateClass: (classValue, args) => this.instantiateClass(classValue, args),
@@ -438,66 +442,34 @@ namespace Cosm {
     }
 
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
-      return this.withFrame(`access ${this.describeCallTarget(ast)}`, () => {
+      return this.withFrame(`access ${this.describeAccessTarget(ast)}`, () => {
         const receiver = this.evalNode(this.expectChild(ast, 'access'), env);
         return this.lookupProperty(receiver, ast.value);
       });
     }
 
     private static evalCall(ast: CoreNode, env: Env): CosmValue {
-      const calleeAst = this.expectChild(ast, 'call');
-      return this.withFrame(`call ${this.describeCallTarget(calleeAst)}`, () => {
-        const { args, currentBlock } = this.evaluateCallArgs(ast, env);
-        return this.invokeCallTarget(calleeAst, args, env, currentBlock);
+      return InterpreterInvoke.evalCall(ast, env, {
+        evalNode: (node, scope) => this.evalNode(node, scope),
+        expectChild: (node, op) => this.expectChild(node, op),
+        lookupName: (name, scope) => this.lookupName(name, scope),
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
       });
     }
 
-    private static evaluateCallArgs(ast: CoreNode, env: Env): { args: CosmValue[]; currentBlock?: CosmValue } {
-      const blockArg = ast.target === 'trailing_block' ? (ast.children ?? []).at(-1) : undefined;
-      const currentBlock = blockArg ? this.evalNode(blockArg, env) : undefined;
-      const args = (ast.children ?? []).map((child) => child === blockArg && currentBlock ? currentBlock : this.evalNode(child, env));
-      return { args, currentBlock };
-    }
-
-    private static invokeCallTarget(calleeAst: CoreNode, args: CosmValue[], env: Env, currentBlock?: CosmValue): CosmValue {
-      if (calleeAst.kind === 'access') {
-        const receiver = this.evalNode(this.expectChild(calleeAst, 'access'), env);
-        return RuntimeDispatch.invokeAccessCall(
-          receiver,
-          calleeAst.value,
-          args,
-          this.repo(),
-          (callee, invokeArgs, selfValue, scope) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
-          env,
-        );
-      }
-      if (calleeAst.kind === 'ident') {
-        return this.invokeNamedCall(calleeAst.value, args, env, currentBlock);
-      }
-      const callee = this.evalNode(calleeAst, env);
-      return this.invokeFunction(callee, args, undefined, env, currentBlock);
-    }
-
-    private static invokeNamedCall(name: string, args: CosmValue[], env: Env, currentBlock?: CosmValue): CosmValue {
-      try {
-        const callee = this.lookupName(name, env);
-        return this.invokeFunction(callee, args, undefined, env, currentBlock);
-      } catch (error) {
-        const selfValue = this.findSelfBinding(env);
-        if (selfValue && error instanceof Error && error.message === `Name error: unknown identifier '${name}'`) {
-          return this.send(selfValue, name, args, env);
-        }
-        throw error;
-      }
-    }
-
     private static evalYield(ast: CoreNode, env: Env): CosmValue {
-      const currentBlock = this.findCurrentBlock(env);
-      if (!currentBlock) {
-        throw new Error('Block error: yield called without a current block');
-      }
-      const args = (ast.children ?? []).map((child) => this.evalNode(child, env));
-      return this.withFrame('yield', () => this.invokeFunction(currentBlock, args, undefined, env));
+      return InterpreterInvoke.evalYield(ast, env, {
+        evalNode: (node, scope) => this.evalNode(node, scope),
+        expectChild: (node, op) => this.expectChild(node, op),
+        lookupName: (name, scope) => this.lookupName(name, scope),
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
     }
 
     private static evalIvar(ast: CoreNode, env: Env): CosmValue {
@@ -510,40 +482,14 @@ namespace Cosm {
     }
 
     private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env, currentBlock?: CosmValue): CosmValue {
-      return this.withFrame(`invoke ${this.describeCallable(callee, selfValue)}`, () => {
-        const activeBlock = currentBlock ?? (env ? this.findCurrentBlock(env) : undefined);
-        if (callee.type === 'method') {
-          return this.invokeFunction(callee.target, args, callee.receiver, env, activeBlock);
-        }
-        if (callee.type !== 'function') {
-          throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
-        }
-        if (callee.nativeCall) {
-          return callee.nativeCall(args, selfValue, env);
-        }
-        if (!callee.params || !callee.body || !callee.env) {
-          throw new Error(`Invalid function: ${callee.name}`);
-        }
-        const effectiveArgs = activeBlock
-          && args.length === (callee.params.length + 1)
-          && args.at(-1) === activeBlock
-          ? args.slice(0, -1)
-          : args;
-        if (effectiveArgs.length !== callee.params.length) {
-          throw new Error(`Arity error: function expects ${callee.params.length} arguments, got ${effectiveArgs.length}`);
-        }
-        const callEnv = this.createEnv(callee.env);
-        callEnv.currentBlock = activeBlock === callee ? this.findOuterBlock(env, activeBlock) : activeBlock;
-        if (selfValue) {
-          callEnv.bindings.self = selfValue;
-        }
-        for (const [index, param] of callee.params.entries()) {
-          if (Object.hasOwn(callEnv.bindings, param)) {
-            throw new Error(`Name error: duplicate parameter '${param}'`);
-          }
-          callEnv.bindings[param] = effectiveArgs[index];
-        }
-        return this.evalStatements(callee.body.children ?? [], callEnv);
+      return InterpreterInvoke.invokeFunction(callee, args, selfValue, env, currentBlock, {
+        evalNode: (node, scope) => this.evalNode(node, scope),
+        expectChild: (node, op) => this.expectChild(node, op),
+        lookupName: (name, scope) => this.lookupName(name, scope),
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        send: (receiver, message, invokeArgs, scope) => this.send(receiver, message, invokeArgs, scope),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
       });
     }
 
@@ -647,30 +593,21 @@ namespace Cosm {
       return new CosmRaisedError(cosmError);
     }
 
-    private static describeCallTarget(ast: CoreNode): string {
-      if (ast.kind === 'ident') {
+    private static describeAccessTarget(ast: CoreNode): string {
+      if (ast.kind !== "access") {
         return ast.value;
       }
-      if (ast.kind === 'access') {
-        return `${this.describeCallTarget(this.expectChild(ast, 'access'))}.${ast.value}`;
+      const receiver = ast.left;
+      if (!receiver) {
+        return ast.value;
       }
-      if (ast.kind === 'call') {
-        return this.describeCallTarget(this.expectChild(ast, 'call'));
+      if (receiver.kind === "ident") {
+        return `${receiver.value}.${ast.value}`;
       }
-      return `<${ast.kind}>`;
-    }
-
-    private static describeCallable(callee: CosmValue, selfValue?: CosmValue): string {
-      if (callee.type === 'method') {
-        return `${this.describeValue(callee.receiver)}.${callee.name}`;
+      if (receiver.kind === "access") {
+        return `${this.describeAccessTarget(receiver)}.${ast.value}`;
       }
-      if (callee.type === 'function') {
-        if (selfValue) {
-          return `${this.describeValue(selfValue)}.${callee.name}`;
-        }
-        return callee.name;
-      }
-      return callee.type;
+      return ast.value;
     }
 
     private static describeValue(value: CosmValue): string {
@@ -723,21 +660,6 @@ namespace Cosm {
       return undefined;
     }
 
-    private static findOuterBlock(env: Env | undefined, currentBlock: CosmValue): CosmValue | undefined {
-      let skippedCurrent = false;
-      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
-        if (!scope.currentBlock) {
-          continue;
-        }
-        if (!skippedCurrent && scope.currentBlock === currentBlock) {
-          skippedCurrent = true;
-          continue;
-        }
-        return scope.currentBlock;
-      }
-      return undefined;
-    }
-
     private static internSymbol(name: string): CosmValue {
       const existing = this.symbolTable.get(name);
       if (existing) {
@@ -749,6 +671,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.12";
+    export const version = "0.3.12.2";
 }
 export default Cosm;

@@ -28,6 +28,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'def',
             value: node.value,
             params: node.params ?? [],
+            defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
         case 'class_def_stmt':
@@ -35,6 +36,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'class_def',
             value: node.value,
             params: node.params ?? [],
+            defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
         case 'let_stmt':
@@ -72,6 +74,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'lambda',
             value: '<lambda>',
             params: node.params ?? [],
+            defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
         case 'number':
@@ -138,5 +141,14 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         throw new Error(`Invalid surface AST: ${kind} is missing a required child`);
       }
       return this.lower(node);
+    }
+
+    private static lowerDefaultMap(defaults: Record<string, SurfaceNode> | undefined): Record<string, CoreNode> | undefined {
+      if (!defaults) {
+        return undefined;
+      }
+      return Object.fromEntries(
+        Object.entries(defaults).map(([name, value]) => [name, this.lower(value)]),
+      );
     }
   }

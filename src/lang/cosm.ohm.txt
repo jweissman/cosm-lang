@@ -166,7 +166,11 @@ Cosm {
     = "{" HashItems? "}"
 
   ParamList
-    = ident ("," ident)*
+    = Param ("," Param)*
+
+  Param
+    = ident "=" Exp  -- default
+    | ident          -- plain
 
   ArrayItems
     = Exp ("," Exp)*

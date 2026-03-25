@@ -9,3 +9,15 @@ end
 def present()
   self.length > 0
 end
+
+def any()
+  self.present()
+end
+
+def none()
+  self.empty()
+end
+
+def one()
+  self.length == 1
+end

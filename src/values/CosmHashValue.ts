@@ -81,6 +81,21 @@ export class CosmHashValue extends CosmValueBase {
         );
       });
     }
+    if (name === "first") {
+      return new CosmFunctionValue("first", (args, selfValue) => {
+        if (!(selfValue instanceof CosmHashValue)) {
+          throw new Error("Type error: first expects a Hash receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: first expects 0 arguments, got ${args.length}`);
+        }
+        const [entry] = Object.entries(selfValue.entries);
+        if (!entry) {
+          return new CosmBoolValue(false);
+        }
+        return new CosmArrayValue([new CosmStringValue(entry[0]), entry[1]]);
+      });
+    }
     if (name === "select") {
       return new CosmFunctionValue("select", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmHashValue)) {
@@ -108,11 +123,65 @@ export class CosmHashValue extends CosmValueBase {
         return new CosmHashValue(entries);
       });
     }
+    if (name === "reject") {
+      return new CosmFunctionValue("reject", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmHashValue)) {
+          throw new Error("Type error: reject expects a Hash receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: reject expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const callback = args[0] ?? CosmHashValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: reject expects a callback or trailing block");
+        }
+        if (!CosmHashValue.invokeHandler) {
+          throw new Error("Hash runtime error: invoke handler is not installed");
+        }
+        const entries = Object.fromEntries(
+          Object.entries(selfValue.entries).filter(([key, value]) => {
+            const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env);
+            if (!(result instanceof CosmBoolValue)) {
+              throw new Error("Type error: reject expects the callback to return a boolean");
+            }
+            return !result.value;
+          }),
+        );
+        return new CosmHashValue(entries);
+      });
+    }
+    if (name === "find") {
+      return new CosmFunctionValue("find", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmHashValue)) {
+          throw new Error("Type error: find expects a Hash receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: find expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const callback = args[0] ?? CosmHashValue.currentBlock(env);
+        if (!callback) {
+          throw new Error("Block error: find expects a callback or trailing block");
+        }
+        if (!CosmHashValue.invokeHandler) {
+          throw new Error("Hash runtime error: invoke handler is not installed");
+        }
+        for (const [key, value] of Object.entries(selfValue.entries)) {
+          const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env);
+          if (!(result instanceof CosmBoolValue)) {
+            throw new Error("Type error: find expects the callback to return a boolean");
+          }
+          if (result.value) {
+            return new CosmArrayValue([new CosmStringValue(key), value]);
+          }
+        }
+        return new CosmBoolValue(false);
+      });
+    }
     return undefined;
   }
 
   override visibleNativeMethodNames(): string[] {
-    return [...super.visibleNativeMethodNames(), "each", "map", "select"];
+    return [...super.visibleNativeMethodNames(), "each", "find", "first", "map", "reject", "select"];
   }
 
   private static currentBlock(env?: CosmEnv): CosmValue | undefined {
