@@ -4,7 +4,7 @@
       <p class="text-sm uppercase tracking-[0.35em] text-emerald-300">Assistant Demo</p>
       <h1 class="mt-2 text-4xl font-black tracking-tight">Page-backed support conversation</h1>
       <p class="mt-3 max-w-3xl text-base text-slate-300">
-        One page key, one shared support/controller core, and explicit AI config plus health surfaces instead of vague agent magic.
+        One page key, one shared support/controller core, and explicit AI config plus health surfaces instead of vague agent magic. This stays in the same tiny proving family as the CLI chat, notebook, and Slack adapter.
       </p>
     </div>
     <a class="text-sm text-slate-300 underline decoration-emerald-400 underline-offset-4" href="/">Back home</a>
@@ -46,6 +46,7 @@
           <div><dt class="font-semibold text-slate-100">Config</dt><dd><code class="text-emerald-300"><%= aiConfig %></code></dd></div>
           <div><dt class="font-semibold text-slate-100">Health</dt><dd><code class="text-emerald-300"><%= aiHealth %></code></dd></div>
           <div><dt class="font-semibold text-slate-100">Transcript</dt><dd><%= transcriptSize %> character(s) on this page.</dd></div>
+          <div><dt class="font-semibold text-slate-100">Streaming</dt><dd>The support core uses explicit stream events; local transport may still buffer before the first chunk.</dd></div>
         </dl>
       </div>
     </section>

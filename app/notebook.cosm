@@ -27,8 +27,12 @@ class NotebookExamples
       category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(examples.dataModel()) + card(examples.schemaExport()) + card(examples.scalarCasts()))
     end
 
+    def collectionsMarkup()
+      category("Collections", "Enumerable-style helpers now make small Cosm-authored transforms clearer without broadening the language surface.", card(examples.enumerableReduce()) + card(examples.enumerableFilter()))
+    end
+
     def aiMarkup()
-      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiHealth()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()))
+      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiHealth()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()) + card(examples.promptData()))
     end
 
     def supportMarkup()
@@ -40,7 +44,7 @@ class NotebookExamples
     end
 
     def markup()
-      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + aiMarkup() + supportMarkup() + servicesMarkup() })
+      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + collectionsMarkup() + aiMarkup() + supportMarkup() + servicesMarkup() })
     end
 
     def category(title, description, cards)

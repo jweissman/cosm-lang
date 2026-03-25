@@ -17,7 +17,7 @@ export class CosmAiValue extends CosmObjectValue {
   private static completeHandler?: (prompt: string, env?: CosmEnv) => CosmValue;
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
-  private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
+  private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number; buffered?: boolean }) => void, env?: CosmEnv) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
 
   static installRuntimeHooks(hooks: {
@@ -26,7 +26,7 @@ export class CosmAiValue extends CosmObjectValue {
     complete?: (prompt: string, env?: CosmEnv) => CosmValue;
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
-    stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
+    stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number; buffered?: boolean }) => void, env?: CosmEnv) => CosmValue;
     invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
   }): void {
     if ("status" in hooks) {
@@ -179,12 +179,13 @@ export class CosmAiValue extends CosmObjectValue {
     return CosmAiValue.compareStrings(left, right, this.errorClassRef, env);
   }
 
-  private streamEvent(event: { kind: string; text?: string; first?: boolean; index?: number }): CosmValue {
+  private streamEvent(event: { kind: string; text?: string; first?: boolean; index?: number; buffered?: boolean }): CosmValue {
     return new CosmNamespaceValue({
       kind: new CosmStringValue(event.kind),
       text: event.text === undefined ? new CosmBoolValue(false) : new CosmStringValue(event.text),
       first: new CosmBoolValue(event.first === true),
       index: event.index === undefined ? new CosmBoolValue(false) : new CosmNumberValue(event.index),
+      buffered: new CosmBoolValue(event.buffered === true),
     }, this.classRef);
   }
 

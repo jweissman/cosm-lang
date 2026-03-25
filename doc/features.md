@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.12.3
+## Current Release Target: 0.3.12.4
 
-`0.3.12.3` is now best read as a PL-core hardening slice on top of the earlier chatbot-and-runtime consolidation work:
+`0.3.12.4` is now best read as a PL-core hardening slice on top of the earlier chatbot-and-runtime consolidation work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -25,9 +25,9 @@
 - add a narrow VM-oriented IR plus `--trace-ir` / `--vm` for a supported subset
 - add a first runtime-backed `include(...)` path for reusable module-backed instance behavior
 - add default arguments for `def` and lambdas through the shared invoke path
-- add an explicit AI streaming surface through `cosm.ai.stream(...)` and `require("cosm/ai.cosm").stream(...)`
+- keep an explicit AI streaming surface through `cosm.ai.stream(...)` and `require("cosm/ai.cosm").stream(...)`
 - split AI config discovery from health probing through `cosm.ai.status()` / `cosm.ai.config()` vs `cosm.ai.health()`
-- let the chat CLI stream output with a small wait-state message before the first chunk arrives
+- keep the chat CLI honest about transport buffering with a small wait-state message before the first chunk arrives
 - make `Enumerable`-style authoring less provisional through helpers like `any`, `none`, `one`, `first`, `find`, `reject`, and `join`
 - add a tiny page-backed support conversation wedge through the existing server app shape
 - start lifting more harness behavior into Cosm through `require("cosm/spec.cosm")`
@@ -70,7 +70,7 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - `inspect()` and `to_s()` now behave like true object text protocols: `Kernel.inspect(value)` dispatches through ordinary runtime sends, user-defined `def inspect()` is respected, and `print` / `puts` / `warn` use `to_s()` for non-string receivers.
 - Receiver-side reflection now exposes `methods()` as a symbol-list surface across ordinary values, with inherited visible methods and runtime-backed primitives like numeric `plus` reflected through the same dispatch-aware surface. `method(:name)` remains the path to the actual method object.
 - `Schema.jsonSchema()` now exports a backend-facing structural contract for AI-guided casting.
-- `cosm.ai.status()` now exposes the effective local backend config, and LM Studio is the default local backend path through its OpenAI-compatible API. `COSM_AI_MODEL` may still force a specific model, but `cosm.ai` now also auto-discovers a model through `/v1/models` when LM Studio exposes one.
+- `cosm.ai.config()` is now the preferred config/discovery surface, with `status()` kept as the compatibility alias. LM Studio is still the default local backend path through its OpenAI-compatible API, and `COSM_AI_MODEL` may still force a specific model when auto-discovery through `/v1/models` is not enough.
 - `Data` is now a module-backed ergonomic layer on top of `Schema`, with `Data.string()`, `Data.number()`, `Data.boolean()`, `Data.enum(...)`, `Data.array(...)`, `Data.optional(...)`, `Data.object(...)`, `Data.model(name, fields)`, and `Data.Model` values that expose `schema()`, `validate(...)`, and `jsonSchema()`.
 - Local schema/model work is validation-only in the taught surface; explicit scalar conversion now lives on core values through methods like `to_s()`, `to_i()`, and `to_f()`, while `cast(...)` is reserved for AI-assisted structured completion through `cosm.ai.cast(...)`.
 - A first narrow VM-prep artifact now exists through a VM-oriented IR plus `cosm --trace-ir` / `cosm --vm` for a small supported subset.
@@ -108,14 +108,14 @@ For `0.3.11`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.12.3 Definition Of Done
+## v0.3.12.4 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
 - `Kernel`, `Namespace`, `Mirror`, and `cosm` feel usable for ordinary experiments.
 - `Session` is an explicit runtime object instead of hidden notebook eval state.
 - `Session.default()` runs through a worker-backed isolation boundary with timeout/error wrapping for notebook/service eval.
-- `cosm.ai.status()` plus LM Studio defaults make the explicit AI surface locally usable.
+- `cosm.ai.config()` / `status()` plus LM Studio defaults make the explicit AI surface locally usable.
 - `Data` and `Data.Model` make schema-backed data contracts ergonomic enough to use directly in notebook/app code.
 - `cosm/ai.cosm` proves that a real helper layer can now live in Cosm on top of the TS host boundary.
 - `methods()` works on ordinary receivers as a symbol-list view of the same visible callable surface that runtime dispatch can actually invoke.

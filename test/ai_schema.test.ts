@@ -97,9 +97,9 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
     stream: (prompt, onEvent) => {
-      onEvent({ kind: "waiting", index: 0 });
-      onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0 });
-      onEvent({ kind: "done", text: `stream:${prompt}`, index: 1 });
+      onEvent({ kind: "waiting", index: 0, buffered: true });
+      onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0, buffered: true });
+      onEvent({ kind: "done", text: `stream:${prompt}`, index: 1, buffered: true });
       return Construct.string(`stream:${prompt}`);
     },
   });

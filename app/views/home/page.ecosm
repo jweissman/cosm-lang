@@ -3,7 +3,7 @@
     <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm <%= version %></p>
     <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
     <p class="max-w-2xl text-lg text-slate-300">
-      Object-first routing, router middleware, `.ecosm` templates, and a live-ish explicit-session notebook.
+      Object-first routing, router middleware, `.ecosm` templates, and one small interactive-tool family spanning the notebook, CLI chat, assistant page, and Slack adapter.
     </p>
   </div>
 

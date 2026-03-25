@@ -43,7 +43,7 @@ def streamStepTranscript(transcript, latestText)
 end
 
 def transcriptFromConversation(conversation)
-  Kernel.inspect(conversation.messages)
+  conversation.messages.map(->(entry) { entry.role + ": " + entry.text }).join("\n")
 end
 
 def handle(conversation, inbound)

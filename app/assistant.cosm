@@ -15,7 +15,7 @@ class AssistantView
         transcript: rendering.HtmlView.escape(transcript),
         reply: if replyText == false then false else rendering.HtmlView.escape(replyText) end,
         transcriptSize: transcript.length,
-        aiConfig: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.status())),
+        aiConfig: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.config())),
         aiHealth: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.health()))
       }, rendering.HtmlView.head(), "")
     end

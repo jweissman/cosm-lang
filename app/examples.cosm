@@ -34,12 +34,20 @@ def scalarCasts()
   example("Data", "Scalar casts", "Core scalar values expose explicit conversion helpers.", "\"42\".to_i(); \"3.5\".to_f(); :answer.to_s()")
 end
 
+def enumerableReduce()
+  example("Collections", "Enumerable reduce", "Use the small functional collection surface from Cosm itself.", "[1, 2, 3].reduce(0, ->(acc, value) { acc + value })")
+end
+
+def enumerableFilter()
+  example("Collections", "Enumerable filter", "Collection helpers stay explicit and runtime-backed through include plus Enumerable.", "{ reset: true, note: false }.filter(->(key, value) { value })")
+end
+
 def promptObject()
   example("AI", "Prompt object", "Inspect the explicit prompt runtime object.", "Prompt.text(\"Summarize Cosm in one sentence.\")")
 end
 
 def aiStatus()
-  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "cosm.ai.status()")
+  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "cosm.ai.config()")
 end
 
 def aiHealth()
@@ -86,6 +94,10 @@ def data()
   [dataModel(), schemaExport(), scalarCasts()]
 end
 
+def collections()
+  [enumerableReduce(), enumerableFilter()]
+end
+
 def ai()
   [promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData()]
 end
@@ -99,5 +111,5 @@ def support()
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), routerSketch()]
+  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), enumerableReduce(), enumerableFilter(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), routerSketch()]
 end

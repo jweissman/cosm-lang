@@ -170,6 +170,13 @@ test("cli can execute the dedicated vm smoke file", () => {
   expect(result.stdout).toContain("3");
 });
 
+test("cli can execute the assistant-shaped vm smoke file", () => {
+  const result = runCli(["test/vm_assistant.cosm", "--vm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("assistant: Use the Reset Session button. [offline]");
+});
+
 test("cli supports bare puts with single-quoted strings", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "bare-puts.cosm");

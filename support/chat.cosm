@@ -5,7 +5,7 @@ def banner()
 end
 
 def help()
-  "Commands: /help shows this message. /reset clears the current conversation transcript. Streaming is explicit, but local AI transport may still buffer before chunks arrive. Press enter on an empty line to exit."
+  "Commands: /help shows this message. /reset clears the current conversation transcript. Streaming is explicit, but the current local transport may still buffer before the first chunk arrives. Press enter on an empty line to exit."
 end
 
 def appendTranscript(transcript, role, text)
@@ -24,11 +24,15 @@ end
 
 def renderStreamEvent(event)
   if event.kind == "waiting" then
-    Kernel.puts("iapetus> [thinking locally...]")
+    if event.buffered then
+      Kernel.print("\\riapetus> [waiting for buffered local response...]")
+    else
+      Kernel.print("\\riapetus> [waiting for first chunk...]")
+    end
   else
     if event.kind == "chunk" then
       if event.first then
-        Kernel.print("iapetus> " + event.text)
+        Kernel.print("\\riapetus> " + event.text)
       else
         Kernel.print(event.text)
       end

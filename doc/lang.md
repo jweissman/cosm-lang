@@ -347,7 +347,7 @@ Class.class.name
   Optional host environment variable forcing a specific LM Studio model. When unset, `cosm.ai` attempts to discover one through `/v1/models`.
 
 - `require("cosm/ai.cosm")`
-  Loads a small Cosm-authored helper module that wraps `cosm.ai` with `status()`, `complete(prompt)`, `compare(left, right)`, and `cast(prompt, schemaOrModel)`.
+  Loads a small Cosm-authored helper module that wraps `cosm.ai` with `status()`, `config()`, `health()`, `complete(prompt)`, `compare(left, right)`, `stream(prompt)`, and `cast(prompt, schemaOrModel)`.
 - `Random.float()`
   Returns a host `Number` in the usual JS range `0 <= n < 1`.
 - `Random.int(max)`

@@ -4,7 +4,7 @@
       <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Notebook Workbench</p>
       <h1 class="mt-2 text-4xl font-black tracking-tight">Server-live Cosm session</h1>
       <p class="mt-3 max-w-3xl text-base text-slate-300">
-        This stays server-side: one explicit session object per process, one eval endpoint, and a live output panel that teaches the current reflective surface while pointing at the support assistant, AI config-vs-health split, and the next tiny app wedges.
+        This stays server-side: one explicit session object per process, one eval endpoint, and a live output panel that teaches the current reflective surface while pointing at the shared support/controller core, AI config-vs-health split, and the next tiny app wedges.
       </p>
     </div>
     <a class="text-sm text-slate-300 underline decoration-cyan-400 underline-offset-4" href="/">Back home</a>
@@ -18,7 +18,7 @@
         <div class="flex flex-wrap items-center gap-3">
           <button class="rounded-full bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300" type="submit">Run In Session</button>
           <button id="notebook-reset" class="rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-rose-400 hover:text-rose-200" type="button">Reset Session</button>
-          <p id="notebook-status" class="text-sm text-slate-400">Live eval is idle. Styling still uses CDN Tailwind in this patch slice.</p>
+          <p id="notebook-status" class="text-sm text-slate-400">Live eval is idle. Styling still uses CDN Tailwind in this patch slice; a real build/watch path stays app-level follow-up work.</p>
         </div>
       </form>
     </section>
@@ -37,7 +37,8 @@
           <div><dt class="font-semibold text-slate-100">Eval</dt><dd>Backed by <code class="text-cyan-300">Session.default().tryEval(...)</code></dd></div>
           <div><dt class="font-semibold text-slate-100">Reflection</dt><dd>Use <code class="text-cyan-300">value.methods()</code> for symbol names and <code class="text-cyan-300">value.method(:name)</code> for the callable method object.</dd></div>
           <div><dt class="font-semibold text-slate-100">Data</dt><dd>Use <code class="text-cyan-300">Data.model(...)</code> to build model-shaped contracts on top of <code class="text-cyan-300">Schema</code>.</dd></div>
-          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">cosm.ai.status()</code> is config discovery, <code class="text-cyan-300">cosm.ai.health()</code> is the explicit backend probe, and <code class="text-cyan-300">require("support/chat.cosm")</code> plus the assistant page keep the support loop explicit while Slack stays the thin adapter.</dd></div>
+          <div><dt class="font-semibold text-slate-100">AI</dt><dd><code class="text-cyan-300">cosm.ai.config()</code> is the preferred config view, <code class="text-cyan-300">cosm.ai.status()</code> stays as compatibility discovery, <code class="text-cyan-300">cosm.ai.health()</code> is the explicit backend probe, and <code class="text-cyan-300">require("support/chat.cosm")</code> plus the assistant page keep the support loop explicit while Slack stays the thin adapter.</dd></div>
+          <div><dt class="font-semibold text-slate-100">Collections</dt><dd><code class="text-cyan-300">map</code>, <code class="text-cyan-300">select</code>, <code class="text-cyan-300">filter</code>, <code class="text-cyan-300">reduce</code>, and <code class="text-cyan-300">take</code> now cover the small functional transform story used by support code and specs.</dd></div>
           <div><dt class="font-semibold text-slate-100">Dispatch</dt><dd><code class="text-cyan-300">receiver.send(...)</code> is the ordinary message-send path; <code class="text-cyan-300">Kernel.dispatch(...)</code> is the explicit helper form.</dd></div>
         </dl>
       </div>

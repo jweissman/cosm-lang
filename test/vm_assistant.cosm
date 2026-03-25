@@ -1,0 +1,22 @@
+let page = {
+  key: "page-1",
+  transcriptLines: ["user: hello", "assistant: hi"],
+  reply: { text: "Use the Reset Session button." },
+  ai: { ok: false, configured: false }
+}
+
+let preview = page.transcriptLines.take(1)
+let baseTranscript = if preview.length == 1 then
+  preview.first()
+else
+  "bad-state"
+end
+
+let statusLabel = if page.ai.ok then
+  "healthy"
+else
+  "offline"
+end
+
+let renderedReply = Kernel.dispatch(page.reply.text, :plus, " [" + statusLabel + "]")
+Kernel.dispatch(Kernel.dispatch(baseTranscript, :plus, "\nassistant: "), :plus, renderedReply)

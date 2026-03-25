@@ -13,6 +13,7 @@ import { InterpreterRoots } from './runtime/InterpreterRoots';
 import { InterpreterInvoke } from './runtime/InterpreterInvoke';
 import { InterpreterLookup } from './runtime/InterpreterLookup';
 import { InterpreterMessage } from './runtime/InterpreterMessage';
+import { InterpreterOperators } from './runtime/InterpreterOperators';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -94,45 +95,45 @@ namespace Cosm {
         case 'yield':
           return this.evalYield(ast, env);
         case 'add':
-          return this.evalAdd(ast, env);
+          return InterpreterOperators.evalAdd(ast, env, this.operatorHooks());
         case 'subtract': {
-          return this.evalArithmeticSend(ast, 'subtract', env, 'subtract expects numeric operands');
+          return InterpreterOperators.evalArithmeticSend(ast, 'subtract', env, 'subtract expects numeric operands', this.operatorHooks());
         }
         case 'multiply': {
-          return this.evalArithmeticSend(ast, 'multiply', env, 'multiply expects numeric operands');
+          return InterpreterOperators.evalArithmeticSend(ast, 'multiply', env, 'multiply expects numeric operands', this.operatorHooks());
         }
         case 'divide': {
-          return this.evalArithmeticSend(ast, 'divide', env, 'divide expects numeric operands');
+          return InterpreterOperators.evalArithmeticSend(ast, 'divide', env, 'divide expects numeric operands', this.operatorHooks());
         }
         case 'pow': {
-          return this.evalArithmeticSend(ast, 'pow', env, 'pow expects numeric operands');
+          return InterpreterOperators.evalArithmeticSend(ast, 'pow', env, 'pow expects numeric operands', this.operatorHooks());
         }
         case 'pos':
-          return this.evalUnarySend(ast, 'pos', env, 'pos expects a numeric operand');
+          return InterpreterOperators.evalUnarySend(ast, 'pos', env, 'pos expects a numeric operand', this.operatorHooks());
         case 'neg':
-          return this.evalUnarySend(ast, 'neg', env, 'neg expects a numeric operand');
+          return InterpreterOperators.evalUnarySend(ast, 'neg', env, 'neg expects a numeric operand', this.operatorHooks());
         case 'not':
-          return this.evalUnarySend(ast, 'not', env, 'not expects a boolean operand');
+          return InterpreterOperators.evalUnarySend(ast, 'not', env, 'not expects a boolean operand', this.operatorHooks());
         case 'or': {
-          return this.evalLogicSend(ast, 'or', env);
+          return InterpreterOperators.evalLogicSend(ast, 'or', env, this.operatorHooks());
         }
         case 'and': {
-          return this.evalLogicSend(ast, 'and', env);
+          return InterpreterOperators.evalLogicSend(ast, 'and', env, this.operatorHooks());
         }
         case 'eq':
-          return Construct.bool(this.evalEquality(ast, true, env));
+          return Construct.bool(InterpreterOperators.evalEquality(ast, true, env, this.operatorHooks()));
         case 'semantic_eq':
-          return this.evalSemanticEquality(ast, env);
+          return InterpreterOperators.evalSemanticEquality(ast, env, this.operatorHooks());
         case 'neq':
-          return Construct.bool(this.evalEquality(ast, false, env));
+          return Construct.bool(InterpreterOperators.evalEquality(ast, false, env, this.operatorHooks()));
         case 'lt':
-          return Construct.bool(this.evalComparison(ast, 'lt', env));
+          return Construct.bool(InterpreterOperators.evalComparison(ast, 'lt', env, this.operatorHooks()));
         case 'lte':
-          return Construct.bool(this.evalComparison(ast, 'lte', env));
+          return Construct.bool(InterpreterOperators.evalComparison(ast, 'lte', env, this.operatorHooks()));
         case 'gt':
-          return Construct.bool(this.evalComparison(ast, 'gt', env));
+          return Construct.bool(InterpreterOperators.evalComparison(ast, 'gt', env, this.operatorHooks()));
         case 'gte':
-          return Construct.bool(this.evalComparison(ast, 'gte', env));
+          return Construct.bool(InterpreterOperators.evalComparison(ast, 'gte', env, this.operatorHooks()));
         default:
           never(ast);
       }
@@ -281,104 +282,8 @@ namespace Cosm {
       return ast.left;
     }
 
-    private static evalAdd(ast: CoreNode, env: Env): CosmValue {
-      const [leftAst, rightAst] = this.expectChildren(ast, 'add');
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      try {
-        return this.send(left, 'plus', [right]);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("has no property 'plus'")) {
-          throw new Error('Type error: add expects numeric operands or string concatenation');
-        }
-        throw error;
-      }
-    }
-
-    private static evalArithmeticSend(ast: CoreNode, message: 'subtract' | 'multiply' | 'divide' | 'pow', env: Env, fallbackMessage: string): CosmValue {
-      const [leftAst, rightAst] = this.expectChildren(ast, message);
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      try {
-        return this.send(left, message, [right]);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes(`'${message}'`)) {
-          throw new Error(`Type error: ${fallbackMessage}`);
-        }
-        throw error;
-      }
-    }
-
-    private static evalLogicSend(ast: CoreNode, message: 'and' | 'or', env: Env): CosmValue {
-      const [leftAst, rightAst] = this.expectChildren(ast, message);
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      try {
-        return this.send(left, message, [right]);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes(`'${message}'`)) {
-          throw new Error(`Type error: ${message} expects boolean operands`);
-        }
-        throw error;
-      }
-    }
-
-    private static evalUnarySend(ast: CoreNode, message: 'pos' | 'neg' | 'not', env: Env, fallbackMessage: string): CosmValue {
-      const child = this.evalNode(this.expectChild(ast, message), env);
-      try {
-        return this.send(child, message, []);
-      } catch (error) {
-        if (error instanceof Error && error.message.includes(`'${message}'`)) {
-          throw new Error(`Type error: ${fallbackMessage}`);
-        }
-        throw error;
-      }
-    }
-
-    private static evalEquality(ast: CoreNode, shouldEqual: boolean, env: Env): boolean {
-      const [leftAst, rightAst] = this.expectChildren(ast, shouldEqual ? 'eq' : 'neq');
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      const result = this.send(left, 'eq', [right]);
-      if (result.type !== 'bool') {
-        throw new Error('Type error: method eq must return a boolean');
-      }
-      const equal = result.value;
-      return shouldEqual ? equal : !equal;
-    }
-
-    private static evalComparison(ast: CoreNode, op: 'lt' | 'lte' | 'gt' | 'gte', env: Env): boolean {
-      const [leftAst, rightAst] = this.expectChildren(ast, op);
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      const result = this.tryNativePredicate(left, op, right);
-      if (result === null) {
-        throw new Error(`Type error: ${op} expects numeric operands`);
-      }
-      return result;
-    }
-
-    private static evalSemanticEquality(ast: CoreNode, env: Env): CosmValue {
-      const [leftAst, rightAst] = this.expectChildren(ast, 'semantic_eq');
-      const left = this.evalNode(leftAst, env);
-      const right = this.evalNode(rightAst, env);
-      return this.send(left, 'semanticEq', [right]);
-    }
-
     private static coerceToString(value: CosmValue, context: 'concatenate' | 'interpolate'): string {
       return value.toCosmString(context);
-    }
-
-    private static tryNativePredicate(left: CosmValue, message: 'eq' | 'lt' | 'lte' | 'gt' | 'gte', right: CosmValue): boolean | null {
-      const nativeMethod = left.nativeMethod(message);
-      if (!nativeMethod) {
-        return null;
-      }
-      const result = this.invokeFunction(nativeMethod, [right], left);
-      if (result.type !== 'bool') {
-        throw new Error(`Type error: method ${message} must return a boolean`);
-      }
-      return result.value;
     }
 
     private static lookupName(name: string, env: Env): CosmValue {
@@ -547,6 +452,17 @@ namespace Cosm {
       });
     }
 
+    private static operatorHooks() {
+      return {
+        evalNode: (node: CoreNode, scope: Env) => this.evalNode(node, scope),
+        expectChild: (node: CoreNode, op: string) => this.expectChild(node, op),
+        expectChildren: (node: CoreNode, op: string) => this.expectChildren(node, op),
+        send: (receiver: CosmValue, message: string, args: CosmValue[], scope?: Env) => this.send(receiver, message, args, scope),
+        invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, scope?: Env, currentBlock?: CosmValue) =>
+          this.invokeFunction(callee, args, selfValue, scope, currentBlock),
+      };
+    }
+
     private static withFrame<T>(frame: string, fn: () => T): T {
       try {
         return fn();
@@ -574,6 +490,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.12.3";
+    export const version = "0.3.12.4";
 }
 export default Cosm;

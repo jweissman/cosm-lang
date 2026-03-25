@@ -16,44 +16,27 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.12.3`**: it is using the shared support-assistant core to pressure the language/runtime itself, especially message-passing seams, interpreter cleanup, AI config-vs-health semantics, a tiny page-backed conversation wedge, and a more Cosm-owned spec/harness surface:
+The current tree is best read as **`0.3.12.4`**. The main job of this patch line is still language/runtime hardening:
 
-- reflective classes, metaclasses, and method lookup
-- a tiny router/service story through `HttpRouter`
-- router-level middleware through `HttpRouter.use(...)`
-- trailing `do ... end` block passing with block params on calls
-- real narrow `yield(...)` for invoking the current implicit trailing block
-- `Kernel.blockGiven()` for the current trailing-block context
-- HTML-friendly responses through `HttpResponse.html(...)`
-- first-class `inspect()` and `to_s()` behavior across the runtime
-- `.ecosm` templates for real app views under `app/views/...`, now aligned with narrow `yield()`-based layout composition without smuggling body content through ordinary context keys
-- the first readonly reflective primitive through `Mirror.reflect(...)`
-- a clearer class-side authoring path through `class << self`
-- split view modules for app rendering
+- keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
+- keep a small send-first VM subset alive through `--trace-ir` and `--vm`
+- keep the support assistant explicit and small through a shared Cosm-authored core reused by the CLI chat, `/assistant`, and Slack
+- keep the AI boundary explicit through `Prompt`, `Schema`, `Data`, `cosm.ai`, config-vs-health semantics, and callback-based streaming events
+- keep the notebook as a server-side workbench that teaches the current runtime surface rather than trying to become a product layer
+
+What already feels real:
+
+- reflective classes, metaclasses, module-backed `include(...)`, and message send
+- `Kernel`, `classes`, `cosm`, `Schema`, `Data`, and `cosm.ai` as explicit runtime roots
+- object-first services through `HttpRouter`, `HttpRequest`, and `HttpResponse`
+- a narrow but real block story through trailing `do ... end` plus `yield(...)`
+- small functional collection helpers like `map`, `select`, `filter`, `find`, `take`, and `reduce`
 - explicit `Session` runtime objects for notebook/server eval
-- explicit `Prompt`, `Schema`, and `cosm.ai` surfaces, with LM Studio as the default local backend path
-- a library-first `Data` module and `Data.Model` runtime layer on top of `Schema`
-- a first Cosm-authored stdlib wrapper through `require("cosm/ai.cosm")`
-- universal receiver-side `methods()` reflection as a symbol-list surface, with `method(:name)` for concrete lookup
-- `Kernel.dispatch(receiver, message, ...)` as the explicit helper-form dispatch API alongside `receiver.send(...)`
-- small tie-your-shoes helpers like `Kernel.uuid()`, `Kernel.tryValidate(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
-- local schema/model work taught as validation-only, while `cast(...)` stays the AI-shaped term through `cosm.ai.cast(...)`
-- preferred `<%= ... %>` interpolation for `.ecosm`, while keeping `#{...}` working for compatibility
-- a cleaner notebook workbench with Cosm-inspected output, debounced live eval, a secondary examples section, and browser-local recent snippets
-- a small Cosm-authored examples module for the notebook through `require("app/examples.cosm")`
-- a narrow VM-oriented IR plus `--trace-ir` / `--vm` CLI surfaces for a supported subset
-- a tiny DM-first Slack support path through `/slack/events`, `slack.events(req)`, and Cosm-authored `support/` modules
-- a pure Cosm support-chat core through `require("support/chat.cosm")` and a CLI entrypoint at `support/chat_cli.cosm`, with that CLI loop now acting as the canonical proving surface and Slack reusing the same support modules as a thin adapter
-- a first runtime-backed `include(...)` surface on classes through reflective module objects
-- an explicit `cosm.ai.stream(...)` / `require("cosm/ai.cosm").stream(...)` API for callback-based AI output
-- `cosm.ai.health()` as an explicit backend probe, with `status()` kept as config discovery
-- a streamed chat CLI path with a small wait-state message before the first chunk arrives
-- an incremental Cosm-owned harness layer through `require("cosm/spec.cosm")`
-- a tiny page-backed support conversation wedge at `/assistant` reusing the same shared support/controller core as the CLI chat and Slack adapter
+- a pure Cosm support-chat core through `require("support/chat.cosm")` and `support/chat_cli.cosm`
+- a tiny page-backed assistant wedge at `/assistant`
 
-This is intentionally still below a full notebook product or framework layer. `0.3.12.3` is a PL-core hardening slice: clearer ownership between `Schema` / `Data` / `cosm.ai`, a smaller interpreter semantic surface, more useful `Enumerable`-style authoring helpers, a more credible send-first VM path, a support-assistant core written in Cosm, and a notebook/app surface that teaches those layers without pretending to be the next product yet.
+What is still deliberately narrow or deferred:
 
-Explicitly not in `0.3.11`:
 - ampersand block capture or forwarding
 - browser-side Cosm runtime
 - MCP, broad tool ecosystems, or generalized persistent multi-agent runtime surfaces
@@ -65,16 +48,13 @@ Explicitly not in `0.3.11`:
 - JS interop mirrors/holograms
 - full VM execution
 
-In `0.3.11`, `yield(...)` remains a real but narrow language/runtime feature. It only invokes the current implicit trailing block; there is still no `&block`, block forwarding, or broader Ruby-style block object model.
+`yield(...)` remains intentionally narrow: it invokes the current trailing block and does not imply a fuller Ruby-style block-object system.
 
-The current dev-loop step is a small `--watch` mode for long-running entry files. It restarts a file from scratch when that file changes; it is not in-process hot reload. The CLI now also treats `--help`, unknown switches, and trailing `--watch` more deliberately.
+Small services are still meant to look like:
 
-Small services in `0.3.11` should now be organized as:
-
-- a boot entry like `app/server.cosm`
-- an app/service module like `app/app.cosm`
-- one or more view modules like `app/views/index.cosm`
-- page/layout/fragment templates under `app/views/...`
+- a boot entry such as `app/server.cosm`
+- an app/service module such as `app/app.cosm`
+- one or more view modules under `app/views/...`
 - object-first service classes that still own `handle(req)` and router setup
 
 ## Current Examples
@@ -149,7 +129,7 @@ class App
 end
 ```
 
-Trailing `do ... end` on calls is still intentionally narrow in `0.3.11`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
+Trailing `do ... end` on calls is still intentionally narrow in `0.3.12.x`: it is block/lambda sugar, not a full Ruby block system. The useful current step is block params on trailing blocks plus real `yield(...)`, so service code can now use:
 
 ```cosm
 router.draw do
@@ -169,9 +149,9 @@ around(41) do |number|
 end
 ```
 
-The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.11`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, and a tiny support-agent prompt path through `require("support/agent.cosm")`.
+The demo app now also exposes a small `/notebook` page plus a live-ish `/notebook/eval` endpoint with handwritten fetch-based updates, debounced live evaluation, one-click examples, browser-local recent snippets, server-side evaluation, and one explicit default session per running process. In `0.3.12.x`, that session still evaluates through a worker-backed isolation boundary with timeout/error wrapping, and the notebook now actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, and the shared support/controller core.
 
-The canonical app also now exposes a narrow Slack ingress at `/slack/events`. Verification, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`.
+The canonical app also exposes a narrow Slack ingress at `/slack/events`. Verification, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`.
 
 You can also talk to the pure Cosm support loop directly:
 
@@ -183,7 +163,9 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `COSM_AI_BACKEND=lmstudio` if unset
 - `COSM_AI_BASE_URL=http://127.0.0.1:1234/v1` if unset
 - `COSM_AI_MODEL` is optional when LM Studio exposes a model through `/v1/models`; set it explicitly to force a particular model
-- inspect current config with `cosm.ai.status()`
+- inspect discovered config with `cosm.ai.config()` or `cosm.ai.status()`
+- probe backend reachability with `cosm.ai.health()`
+- `cosm.ai.stream(...)` is explicit, but the local transport may still buffer before the first chunk arrives
 - optional session timeout override: `COSM_SESSION_TIMEOUT_MS=1500` by default
 
 ## Dev Commands
@@ -214,23 +196,11 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - [Roadmap](./doc/roadmap.md)
 - [Vision](./doc/vision.md)
 
-## After 0.3.11
+## Near-Term Direction
 
-The immediate next milestones are:
+The next useful milestones are:
 
-1. finish `0.3.11` around the pure Cosm support chatbot, Slack-as-adapter, runtime consolidation, and harness-first specs
-2. `0.4.0`: deepen the Slack support agent, session policy, and tool-light orchestration
-3. post-`0.4.0`: broader persistent agent/runtime work, richer tool adapters, and later notebook/doc experiments
-
-The immediate next track is:
-
-1. finish and prove `0.3.11`
-2. then deepen that Slack-facing support agent around sessions, data contracts, and tool-light orchestration
-3. only after that broaden toward a more explicit persistent agent/runtime surface and richer notebook/doc models
-
-The intended sequencing is:
-
-- finish and prove `0.3.11`
-- then pressure the platform further through the shipped Slack-facing app wedge
-- then deepen Cosm-authored orchestration, tool contracts, and session policy from that proving app
-- only after that reach for broader persistent agent work, richer notebook docs, or a fuller VM
+1. keep pushing interpreter/runtime cleanup so message-passing seams, block forwarding, and invocation feel more MPI-shaped
+2. keep widening the tiny VM subset only where it overlaps with real support/controller/app logic
+3. make the support-chat transport more honest, and only add true streaming where the backend boundary can really support it
+4. keep lifting small policy/workflow layers into Cosm without pretending the low-level runtime is ready to move

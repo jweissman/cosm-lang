@@ -26,6 +26,7 @@ export type AiStreamEvent = {
   text?: string;
   first?: boolean;
   index?: number;
+  buffered?: boolean;
 };
 
 export function normalizeSemanticPair(left: string, right: string): [string, string] {
@@ -94,7 +95,7 @@ export class AiRuntime {
   }
 
   static stream(prompt: string, onEvent: (event: AiStreamEvent) => void) {
-    onEvent({ kind: "waiting", first: false, index: 0 });
+    onEvent({ kind: "waiting", first: false, index: 0, buffered: true });
     const content = this.chat([
       { role: "user", content: prompt },
     ]);
@@ -105,6 +106,7 @@ export class AiRuntime {
         text: chunk,
         first: index === 0,
         index,
+        buffered: true,
       });
     });
     onEvent({
@@ -112,6 +114,7 @@ export class AiRuntime {
       text: content,
       first: false,
       index: chunks.length,
+      buffered: true,
     });
     return new CosmStringValue(content);
   }
