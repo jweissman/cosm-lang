@@ -3,7 +3,7 @@ import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { Construct } from "../src/Construct";
 import { CosmAiValue } from "../src/values/CosmAiValue";
-import { AiRuntime, normalizeSemanticPair, parseOpenAiStreamBlock } from "../src/runtime/AiRuntime";
+import { AiRuntime, normalizeSemanticPair, parseOpenAiStreamBlock, parseSemanticCompareText, parseStructuredCompletionText } from "../src/runtime/AiRuntime";
 import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
@@ -161,4 +161,17 @@ test("AiRuntime stream adapter parses OpenAI-compatible SSE blocks incrementally
     "the session.",
   ]);
   expect(() => parseOpenAiStreamBlock('data: {"error":{"message":"boom"}}\n\n')).toThrow("AI backend error: boom");
+});
+
+test("AiRuntime structured-output parsing fails clearly on invalid JSON and schema mismatch", () => {
+  const schema = Cosm.Interpreter.eval('Schema.object({ answer: Schema.string() })') as CosmSchemaValue;
+  expect(() => parseStructuredCompletionText('{"answer":"ok"}', schema)).not.toThrow();
+  expect(() => parseStructuredCompletionText('{"answer":', schema)).toThrow("AI cast returned invalid JSON");
+  expect(() => parseStructuredCompletionText('{"answer": 42}', schema)).toThrow("AI cast schema mismatch");
+});
+
+test("AiRuntime semantic comparison payload parsing stays strict", () => {
+  expect(parseSemanticCompareText('{"equal":true}')).toBe(true);
+  expect(() => parseSemanticCompareText('{"equal":"yes"}')).toThrow("AI semantic comparison returned an invalid payload");
+  expect(() => parseSemanticCompareText('{')).toThrow("AI semantic comparison returned invalid JSON");
 });

@@ -3,9 +3,34 @@ let conversation = Data.model("conversation", { agent: Data.optional(Data.string
 let inbound_message = Data.model("inbound_message", { channel: Data.string(), thread: Data.string(), user: Data.string(), text: Data.string(), ts: Data.string() })
 let tool_call = Data.model("tool_call", { name: Data.string(), input_summary: Data.optional(Data.string()) })
 let tool_result = Data.model("tool_result", { ok: Data.boolean(), summary: Data.string() })
-let agent_reply = Data.model("agent_reply", { should_reply: Data.boolean(), text: Data.string(), rationale: Data.optional(Data.string()), tool_calls: Data.optional(Data.array(tool_call)), tool_results: Data.optional(Data.array(tool_result)) })
+let agent_turn_plan = Data.model("agent_turn_plan", {
+  should_reply: Data.boolean(),
+  text: Data.string(),
+  rationale: Data.optional(Data.string()),
+  internal_summary: Data.optional(Data.string()),
+  next_mode: Data.optional(Data.string())
+})
+let agent_reply = Data.model("agent_reply", {
+  should_reply: Data.boolean(),
+  text: Data.string(),
+  rationale: Data.optional(Data.string()),
+  internal_summary: Data.optional(Data.string()),
+  next_mode: Data.optional(Data.string()),
+  degraded: Data.optional(Data.boolean()),
+  failure_reason: Data.optional(Data.string()),
+  tool_calls: Data.optional(Data.array(tool_call)),
+  tool_results: Data.optional(Data.array(tool_result))
+})
 let chat_step = Data.model("chat_step", { transcript: Data.string(), reply: agent_reply })
-let controller_turn = Data.model("controller_turn", { conversation: conversation, inbound: inbound_message, reply: agent_reply })
+let agent_turn_result = Data.model("agent_turn_result", {
+  conversation: conversation,
+  inbound: inbound_message,
+  plan: Data.optional(agent_turn_plan),
+  reply: agent_reply,
+  command: Data.optional(Data.string()),
+  outcome: Data.enum("reply", "command", "fallback")
+})
+let controller_turn = agent_turn_result
 
 let notebook_block = Data.model("notebook_block", { kind: Data.enum("markdown", "cosm"), content: Data.string() })
 let notebook_page = Data.model("notebook_page", {

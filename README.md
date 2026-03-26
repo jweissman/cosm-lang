@@ -106,6 +106,7 @@ Iapetus workflow:
 
 - `just agent-server` starts the DM-first Slack-facing service at the canonical `lib/agent/server.cosm` entrypoint
 - `just chat` starts the local terminal loop against the same `Agent::Runtime` and file-backed store
+- inside local chat, `prompt`, `preview`, and `runtime` expose the current system prompt, a sample structured reply prompt, and local runtime/session status
 - `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM it
 
 Slack smoke testing:
@@ -132,6 +133,7 @@ Cosm is intentionally still narrow in a few places:
 - no browser-side runtime
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
+- `Mirror` is readonly reflection only, and `Cosm::Hologram` is still just a placeholder for future host-value translation
 - no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

@@ -4,13 +4,6 @@ require "lib/agent/store"
 require "lib/agent/config"
 require "cosm/ai"
 
-let agent_turn = Data.model("agent_turn", {
-  conversation: Support::Models.conversation,
-  inbound: Support::Models.inbound_message,
-  reply: Support::Models.agent_reply,
-  command: Data.optional(Data.string())
-})
-
 def identity = {
   name: "iapetus",
   mode: "single-turn",
@@ -105,14 +98,14 @@ def from_command(conversation, inbound, command)
     let fresh = conversation_for_target(target(inbound.channel, inbound.thread, conversation.transport, inbound.user), conversation.transcript, conversation.context)
     Session.named(fresh.session_name).reset()
     let reply = Support::Controller.command_reply(fresh, command)
-    let value = { conversation: fresh, inbound: inbound, reply: reply, command: command }
-    agent_turn.validate(value)
+    let value = { conversation: fresh, inbound: inbound, plan: false, reply: reply, command: command, outcome: "command" }
+    Support::Models.agent_turn_result.validate(value)
     value
   else
     let reply = Support::Controller.command_reply(conversation, command)
     let updated = Support::Controller.next_conversation(conversation, inbound, reply)
-    let value = { conversation: updated, inbound: inbound, reply: reply, command: command }
-    agent_turn.validate(value)
+    let value = { conversation: updated, inbound: inbound, plan: false, reply: reply, command: command, outcome: "command" }
+    Support::Models.agent_turn_result.validate(value)
     value
   end
 end
@@ -124,10 +117,20 @@ def from_controller_turn(conversation, inbound)
   let turn = outcome.ok ? outcome.value : {
     conversation: Support::Controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
     inbound: inbound,
-    reply: fallback_reply(conversation, inbound, outcome.error.message)
+    plan: false,
+    reply: fallback_reply(conversation, inbound, outcome.error.message),
+    command: false,
+    outcome: "fallback"
   }
-  let value = { conversation: turn.conversation, inbound: inbound, reply: turn.reply, command: false }
-  agent_turn.validate(value)
+  let value = {
+    conversation: turn.conversation,
+    inbound: turn.inbound,
+    plan: turn.plan,
+    reply: turn.reply,
+    command: turn.command,
+    outcome: turn.outcome
+  }
+  Support::Models.agent_turn_result.validate(value)
   value
 end
 
@@ -140,8 +143,8 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   let conversation = load_conversation(inbound, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
-  let value = { conversation: saved, inbound: turn.inbound, reply: turn.reply, command: turn.command }
-  agent_turn.validate(value)
+  let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
+  Support::Models.agent_turn_result.validate(value)
   value
 end
 
@@ -150,8 +153,8 @@ def execute_stored_turn_for_target(target, text, transcript = false, context = f
   let conversation = load_conversation_for_target(target, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
-  let value = { conversation: saved, inbound: turn.inbound, reply: turn.reply, command: turn.command }
-  agent_turn.validate(value)
+  let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
+  Support::Models.agent_turn_result.validate(value)
   value
 end
 

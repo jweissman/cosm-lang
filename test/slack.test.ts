@@ -137,18 +137,14 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply 
     cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
       prompt.includes("Reset the session with the Reset Session button")
         ? {
-            shouldReply: true,
+            should_reply: true,
             text: "You can also call Session.default().reset() from Cosm if you need to reset it in code.",
             rationale: "mocked follow-up",
-            toolCalls: false,
-            toolResults: false,
           }
         : {
-            shouldReply: true,
+            should_reply: true,
             text: "Reset the session with the Reset Session button in the notebook UI.",
             rationale: "mocked",
-            toolCalls: false,
-            toolResults: false,
           },
     )),
   });
@@ -250,11 +246,9 @@ test("slack service dedupes duplicate deliveries persistently", async () => {
 
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "First reply in a durable DM thread.",
       rationale: "mocked initial",
-      toolCalls: false,
-      toolResults: false,
     })),
   });
 
@@ -323,11 +317,9 @@ test("slack service reset clears only the current thread state", async () => {
 
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "Fresh AI reply after reset.",
       rationale: "mocked",
-      toolCalls: false,
-      toolResults: false,
     })),
   });
 
@@ -420,11 +412,9 @@ test("slack service still accepts legacy COSM_* env aliases", async () => {
 
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "legacy alias reply",
       rationale: "mocked",
-      toolCalls: false,
-      toolResults: false,
     })),
   });
 

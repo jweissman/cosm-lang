@@ -86,6 +86,37 @@ export function parseOpenAiStreamBlock(block: string): string[] {
   return texts;
 }
 
+export function parseStructuredCompletionText(content: string, schema: CosmSchemaValue) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "invalid JSON";
+    throw new Error(`AI cast returned invalid JSON: ${message}`);
+  }
+  try {
+    return schema.validateAndReturn(ValueAdapter.jsToCosm(parsed as Record<string, unknown>));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "schema validation failed";
+    throw new Error(`AI cast schema mismatch: ${message}`);
+  }
+}
+
+export function parseSemanticCompareText(content: string): boolean {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "invalid JSON";
+    throw new Error(`AI semantic comparison returned invalid JSON: ${message}`);
+  }
+  const equal = (parsed as { equal?: unknown }).equal;
+  if (typeof equal !== "boolean") {
+    throw new Error("AI semantic comparison returned an invalid payload");
+  }
+  return equal;
+}
+
 function contentFromStreamPayload(delta: unknown): string {
   if (typeof delta === "string") {
     return delta;
@@ -167,8 +198,7 @@ export class AiRuntime {
     ], {
       responseFormat: this.jsonSchemaResponseFormat("cosm_cast", schemaObject as Record<string, unknown>),
     });
-    const parsed = JSON.parse(content);
-    return schema.validateAndReturn(ValueAdapter.jsToCosm(parsed));
+    return parseStructuredCompletionText(content, schema);
   }
 
   static stream(prompt: string, onEvent: (event: AiStreamEvent) => void) {
@@ -214,11 +244,7 @@ export class AiRuntime {
         required: ["equal"],
       }),
     });
-    const parsed = JSON.parse(content) as { equal?: boolean };
-    if (typeof parsed.equal !== "boolean") {
-      throw new Error("AI backend returned an invalid semantic comparison payload");
-    }
-    return parsed.equal;
+    return parseSemanticCompareText(content);
   }
 
   private static chat(messages: ChatMessage[], options?: ChatOptions): string {

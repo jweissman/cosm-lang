@@ -78,6 +78,37 @@ test("cli passes trailing args through to Process.argv for script entry files", 
   expect(result.stdout).toContain(`${sourcePath}|alpha|beta`);
 });
 
+test("cli prints Cosm backtraces for raised runtime errors", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-backtrace-"));
+  const sourcePath = join(tempDir, "boom.cosm");
+  writeFileSync(sourcePath, 'class Demo\n  def boom()\n    missing_call()\n  end\nend\nDemo.new().boom()\n');
+
+  const result = runCli([sourcePath]);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("object of class Demo has no property 'missing_call'");
+  expect(result.stderr).toContain("Backtrace");
+  expect(result.stderr).toContain("invoke Demo.boom");
+});
+
+test("cli can run the local chat entrypoint with an explicit conversation name", () => {
+  const proc = Bun.spawnSync(["bun", "bin/cosm", "lib/agent/chat_cli.cosm", "demo-chat"], {
+    cwd: process.cwd(),
+    stdin: new TextEncoder().encode("\n"),
+    stdout: "pipe",
+    stderr: "pipe",
+    env: {
+      ...process.env,
+      COSM_AI_AUTO_DISCOVER_MODEL: process.env.COSM_AI_AUTO_DISCOVER_MODEL ?? "0",
+    },
+  });
+
+  const stdout = decode(proc.stdout);
+  const stderr = decode(proc.stderr);
+  expect(proc.exitCode).toBe(0);
+  expect(stderr).toBe("");
+  expect(stdout).toContain("demo-chat");
+});
+
 test("cli can write output through Kernel.puts", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "puts.cosm");

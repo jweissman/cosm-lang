@@ -1,9 +1,54 @@
 require "lib/support/models"
 
-def text(text, rationale)
-  let value = { should_reply: true, text: text, rationale: rationale, tool_calls: false, tool_results: false }
+def maybe_field(value, field)
+  let result = Kernel.try(->() { value.send(field) })
+  result.ok ? result.value : false
+end
+
+def text(text, rationale, internal_summary = false, next_mode = false)
+  let value = {
+    should_reply: true,
+    text: text,
+    rationale: rationale,
+    internal_summary: internal_summary,
+    next_mode: next_mode,
+    degraded: false,
+    failure_reason: false,
+    tool_calls: false,
+    tool_results: false
+  }
   Support::Models.agent_reply.validate(value)
   value
 end
 
-def unavailable(error_message) = text("I hit a support-agent hiccup while handling that DM. Please try again in a bit.", error_message);
+def from_plan(plan)
+  let value = {
+    should_reply: plan.should_reply,
+    text: plan.text,
+    rationale: plan.rationale,
+    internal_summary: maybe_field(plan, :internal_summary),
+    next_mode: maybe_field(plan, :next_mode),
+    degraded: false,
+    failure_reason: false,
+    tool_calls: false,
+    tool_results: false
+  }
+  Support::Models.agent_reply.validate(value)
+  value
+end
+
+def unavailable(error_message)
+  let value = {
+    should_reply: true,
+    text: "I hit a support-agent hiccup while handling that DM. Please try again in a bit.",
+    rationale: "fallback",
+    internal_summary: false,
+    next_mode: "reply",
+    degraded: true,
+    failure_reason: error_message,
+    tool_calls: false,
+    tool_results: false
+  }
+  Support::Models.agent_reply.validate(value)
+  value
+end

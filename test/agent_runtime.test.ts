@@ -157,6 +157,19 @@ test("local Iapetus chat routes help, status, and reset through the shared runti
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("local Iapetus chat exposes prompt-focused inspection helpers", () => {
+  expect(cosmEval(`
+    require "lib/agent/chat"
+    {
+      prompt_loaded: Agent::Chat.system_prompt().length > 10,
+      preview_kind: Agent::Chat.reply_prompt_preview("How should I continue?").class.name
+    }
+  `)).toEqual({
+    prompt_loaded: true,
+    preview_kind: "Prompt",
+  });
+});
+
 test("slack dm smoke helper sends one outbound message through the shared slack client", () => {
   process.env.SLACK_BOT_TOKEN = "xoxb-smoke";
   process.env.SLACK_API_URL = "https://slack.test/api/chat.postMessage";

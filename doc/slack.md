@@ -73,7 +73,7 @@ For DMs, this is usually a `D...` id.
 2. Start the separate service with `./script/bunx bin/cosm lib/agent/server.cosm` or `just agent-server`.
 3. Check `GET /health` for process liveness.
 4. Check `GET /ready` and confirm Slack env, storage, AI config, and AI health all report ready.
-5. Optionally run `just chat` to verify the same runtime/store loop locally before touching Slack.
+5. Optionally run `just chat` to verify the same runtime/store loop locally before touching Slack. Inside local chat, `prompt`, `preview`, and `runtime` are local-only inspection helpers for prompt iteration.
 6. Run `./script/bunx bin/cosm lib/agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
 7. Complete Slack URL verification against `POST /slack/events`.
 8. Send a first DM and confirm exactly one reply appears.

@@ -4,7 +4,7 @@ require "lib/support/prompt_data"
 def reply_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
 #{Support::PromptData.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(Support::Models.agent_reply.jsonSchema())}
+#{Kernel.inspect(Support::Models.agent_turn_plan.jsonSchema())}
 
 Transcript so far:
 #{transcript}
@@ -16,7 +16,7 @@ Latest user message:
 def reply_prompt_from_context(transcript, latest_text, context) = Prompt.text("""
 #{Support::PromptData.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(Support::Models.agent_reply.jsonSchema())}
+#{Kernel.inspect(Support::Models.agent_turn_plan.jsonSchema())}
 
 Attached page context:
 #{context}

@@ -5,14 +5,26 @@ require "lib/support/replies"
 
 def append_transcript(transcript, role, text) = transcript == "" ? role + ": " + text : transcript + "\n" + role + ": " + text;
 
+def plan_for_transcript(transcript, latest_text)
+  let plan = Cosm::AI.reply(Support::Prompts.reply_prompt_from_transcript(transcript, latest_text), Support::Models.agent_turn_plan)
+  Support::Models.agent_turn_plan.validate(plan)
+  plan
+end
+
+def plan_for_context(transcript, latest_text, context)
+  let plan = Cosm::AI.reply(Support::Prompts.reply_prompt_from_context(transcript, latest_text, context), Support::Models.agent_turn_plan)
+  Support::Models.agent_turn_plan.validate(plan)
+  plan
+end
+
 def reply_for_transcript(transcript, latest_text)
-  let reply = Cosm::AI.reply(Support::Prompts.reply_prompt_from_transcript(transcript, latest_text), Support::Models.agent_reply)
+  let reply = Support::Replies.from_plan(plan_for_transcript(transcript, latest_text))
   Support::Models.agent_reply.validate(reply)
   reply
 end
 
 def reply_for_context(transcript, latest_text, context)
-  let reply = Cosm::AI.reply(Support::Prompts.reply_prompt_from_context(transcript, latest_text, context), Support::Models.agent_reply)
+  let reply = Support::Replies.from_plan(plan_for_context(transcript, latest_text, context))
   Support::Models.agent_reply.validate(reply)
   reply
 end

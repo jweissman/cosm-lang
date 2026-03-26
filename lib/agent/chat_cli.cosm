@@ -1,4 +1,5 @@
 require "lib/agent/chat"
 
-let name = Process.argv().length > 1 ? Process.argv().get(1) : "iapetus"
+let argv = Process.argv()
+let name = argv.length > 3 ? argv.reduce(false, ->(_acc, value) { value }) : "iapetus"
 Agent::Chat.run(name)

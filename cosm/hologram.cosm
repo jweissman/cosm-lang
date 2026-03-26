@@ -1,0 +1,18 @@
+def status()
+  {
+    ready: false,
+    mode: "placeholder",
+    translation: false,
+    note: "Hologram is reserved for future host-value translation beyond readonly Mirror reflection."
+  }
+end
+
+def wrap(value)
+  {
+    ready: false,
+    mode: "placeholder",
+    translation: false,
+    target_class: value.class.name,
+    note: "Use Mirror.reflect(...) for readonly inspection in 0.3.13.19."
+  }
+end

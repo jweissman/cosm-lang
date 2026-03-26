@@ -7,6 +7,7 @@ import { Parser } from "../src/ast/parser";
 import { Lowerer } from "../src/ast/lowerer";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { RuntimeDispatch } from "../src/runtime/RuntimeDispatch";
+import { CosmRaisedError } from "../src/runtime/CosmRaisedError";
 
 const HISTORY_PATH = join(process.cwd(), ".cosm_history");
 
@@ -46,6 +47,16 @@ function usage(): string {
     "  cosm --watch <file.cosm>",
     "  cosm watch <file.cosm>",
   ].join("\n");
+}
+
+function formatCliError(error: unknown): string {
+  if (error instanceof CosmRaisedError) {
+    return error.cosmError.toDisplayString();
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 type CliMode =
@@ -348,7 +359,7 @@ function repl() {
       const result = Cosm.Interpreter.evalInEnv(line, sessionEnv);
       console.log(Cosm.Interpreter.inspect(result, sessionEnv));
     } catch (e) {
-      console.error("Error:", e.message);
+      console.error("Error:", formatCliError(e));
     }
     rl.prompt();
   }).on('close', () => {
@@ -474,7 +485,7 @@ if (require.main === module) {
   try {
     mode = parseArgs(process.argv.slice(2));
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = formatCliError(error);
     console.error(`Error: ${message}`);
     console.error(usage());
     process.exit(1);
@@ -524,7 +535,7 @@ if (require.main === module) {
       // console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {
       process.argv = originalArgv;
-      console.error("Error:", e.message);
+      console.error("Error:", formatCliError(e));
       process.exit(1);
     }
   }

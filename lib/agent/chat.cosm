@@ -1,10 +1,19 @@
 require "lib/agent/runtime"
+require "lib/support/prompt_data"
+require "lib/support/prompts"
 
-def banner(name = "iapetus") = "Iapetus local chat is using the durable `" + Agent::Runtime.local_target(name).thread + "` conversation. Press enter on an empty line to exit. Use help, status, or reset.";
+def banner(name = "iapetus") = "Iapetus local chat is using the durable `" + Agent::Runtime.local_target(name).thread + "` conversation. Press enter on an empty line to exit. Use help, status, reset, prompt, preview, or runtime.";
 
 def target(name = "iapetus") = Agent::Runtime.local_target(name);
 
 def step(text, name = "iapetus") = Agent::Runtime.execute_stored_turn_for_target(target(name), text);
+
+def system_prompt() = Support::PromptData.iapetus_system();
+
+def reply_prompt_preview(text = "How should I continue?", name = "iapetus")
+  let conversation = Agent::Runtime.load_conversation_for_target(target(name))
+  Support::Prompts.reply_prompt(conversation, Agent::Runtime.inbound_for_target(target(name), text))
+end
 
 def status(name = "iapetus")
   let conversation = Agent::Runtime.load_conversation_for_target(target(name))
@@ -21,13 +30,40 @@ def run(name = "iapetus")
   loop(name)
 end
 
+def local_command(input)
+  input == "prompt" || input == "/prompt" ? "prompt" : (input == "preview" || input == "/preview" ? "preview" : (input == "runtime" || input == "/runtime" ? "runtime" : false))
+end
+
+def handle_local_command(input, name = "iapetus")
+  let command = local_command(input)
+  if command == "prompt" then
+    Kernel.puts(system_prompt())
+  else
+    if command == "preview" then
+      Kernel.puts(reply_prompt_preview("How should I continue?", name).source)
+    else
+      if command == "runtime" then
+        Kernel.puts(Kernel.inspect(status(name)))
+      else
+        true
+      end
+    end
+  end
+end
+
 def loop(name = "iapetus")
   let input = Kernel.readline("you> ")
   if input == "" then
     Kernel.puts("iapetus> Goodbye for now.")
   else
-    let turn = step(input, name)
-    Kernel.puts("iapetus> " + turn.reply.text)
-    loop(name)
+    let command = local_command(input)
+    if command == false then
+      let turn = step(input, name)
+      Kernel.puts("iapetus> " + turn.reply.text)
+      loop(name)
+    else
+      handle_local_command(input, name)
+      loop(name)
+    end
   end
 end
