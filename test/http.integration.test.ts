@@ -156,8 +156,8 @@ httpTest("http runtime can serve a router-backed app object", async () => {
   const originalNotebookDir = process.env.COSM_NOTEBOOK_DIR;
   process.env.COSM_NOTEBOOK_DIR = mkdtempSync(join(tmpdir(), "cosm-http-notebook-"));
   const { env } = startHttpServer((port) => `
-    require("app/app.cosm")
-    let server = http.serve(${port}, app.App.build())
+    require "app/app"
+    let server = http.serve(${port}, App::App.build())
   `);
   const url = ValueAdapter.cosmToJS(Cosm.Interpreter.evalInEnv("server.url", env));
 
