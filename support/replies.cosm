@@ -1,8 +1,8 @@
-let models = require("support/models.cosm")
+require "support/models"
 
 def text(text, rationale)
   let value = { should_reply: true, text: text, rationale: rationale, tool_calls: false, tool_results: false }
-  models.agent_reply.validate(value)
+  Support::Models.agent_reply.validate(value)
   value
 end
 

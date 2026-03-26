@@ -8,7 +8,7 @@ import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
 
-test("cosm.ai.status reports LM Studio defaults clearly", () => {
+test("Cosm::AI status reports LM Studio defaults clearly", () => {
   const previousBackend = process.env.COSM_AI_BACKEND;
   const previousBaseUrl = process.env.COSM_AI_BASE_URL;
   const previousModel = process.env.COSM_AI_MODEL;
@@ -18,13 +18,13 @@ test("cosm.ai.status reports LM Studio defaults clearly", () => {
   delete process.env.COSM_AI_MODEL;
 
   try {
-    const status = cosmEval("cosm.ai.status()") as {
+    const status = cosmEval('require "cosm/ai"; Cosm::AI.status()') as {
       backend: string;
       baseUrl: string;
       model: boolean;
       configured: boolean;
     };
-    const config = cosmEval('require("cosm/ai.cosm"); ai.config()') as {
+    const config = cosmEval('require "cosm/ai"; Cosm::AI.config()') as {
       backend: string;
       baseUrl: string;
       model: boolean;
@@ -35,7 +35,7 @@ test("cosm.ai.status reports LM Studio defaults clearly", () => {
     expect(status.model).toBe(false);
     expect(status.configured).toBe(false);
     expect(config).toEqual(status);
-    const health = cosmEval("cosm.ai.health()") as {
+    const health = cosmEval('require "cosm/ai"; Cosm::AI.health()') as {
       ok: boolean;
       error: string | boolean;
     };
@@ -77,7 +77,7 @@ test("Schema.jsonSchema exports stable reflective shapes", () => {
   });
 });
 
-test("cosm.ai complete, cast, and compare can be driven through a mocked adapter", () => {
+test("Cosm::AI complete, cast, and compare can be driven through a mocked adapter", () => {
   CosmAiValue.installRuntimeHooks({
     status: () => Construct.namespace({
       backend: Construct.string("mock"),
@@ -105,10 +105,10 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
   });
 
   try {
-    expect(cosmEval('cosm.ai.config().model')).toBe("mock-model");
-    expect(cosmEval('cosm.ai.health().ok')).toBe(true);
-    expect(cosmEval('cosm.ai.complete("hello")')).toBe("complete:hello");
-    expect(cosmEval('cosm.ai.cast("hello", Schema.string())')).toBe("cast:hello");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.config().model')).toBe("mock-model");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.health().ok')).toBe(true);
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
     let stdout = "";
     const originalWrite = process.stdout.write;
@@ -118,7 +118,8 @@ test("cosm.ai complete, cast, and compare can be driven through a mocked adapter
     }) as typeof process.stdout.write;
     try {
       expect(cosmEval(`
-        let final = cosm.ai.stream("hello") do |event|
+        require "cosm/ai"
+        let final = Cosm::AI.stream("hello") do |event|
           if event.kind == "waiting" then
             Kernel.print("[waiting]")
           else

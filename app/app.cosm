@@ -1,7 +1,12 @@
-let views = require("app/views/index.cosm")
-let notebook_store = require("app/notebook_store.cosm")
-let notebook_runtime = require("app/notebook_runtime.cosm")
-let controller = require("support/controller.cosm")
+require "app/views/index"
+require "app/notebook_store"
+require "app/notebook_runtime"
+require "support/controller"
+
+let views = App::Views
+let notebook_store = App::NotebookStore
+let notebook_runtime = App::NotebookRuntime
+let controller = Support::Controller
 
 class App
   def init(router)

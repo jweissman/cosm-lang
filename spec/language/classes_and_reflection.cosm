@@ -44,9 +44,9 @@ class LoudPair < Pair
 end;
 assert(LoudPair.new(1, 2).label() == "1:2!", "instance methods can call super with explicit args");
 
-require("support/label_mixin.cosm");
+require "support/label_mixin";
 class MixinGreeter do end;
-MixinGreeter.include(label_mixin);
+MixinGreeter.include(Support::LabelMixin);
 assert(MixinGreeter.new().label() == "label-from-mixin", "classes can include module-backed instance behavior");
 assert(MixinGreeter.new().method(:label).name == "label", "receiver reflection includes mixed-in methods");
 assert(MixinGreeter.methods.get(:label).name == "label", "class-table reflection includes mixed-in methods");
@@ -62,7 +62,7 @@ class ChildMixer < BaseMixer
     super() + "!"
   end
 end;
-ChildMixer.include(label_mixin);
+ChildMixer.include(Support::LabelMixin);
 assert(ChildMixer.new().label() == "label-from-mixin!", "super follows local then mixin then superclass lookup order");
 
 class Checked do

@@ -11,18 +11,17 @@ process.env.COSM_AI_AUTO_DISCOVER_MODEL ??= "0";
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
 
 test("Data exposes a module-backed ergonomic model layer over Schema", () => {
-  expect(cosmEval("Data.class.name")).toBe("Module");
-  expect(cosmEval("Data.Model.name")).toBe("DataModel");
-  expect(cosmEval("cosm.Data.class.name")).toBe("Module");
-  expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
-  expect(cosmEval("Data.string().describe()")).toBe("Schema.string()");
-  expect(cosmEval('Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no") }).class.name')).toBe("DataModel");
+  expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
+  expect(cosmEval("Cosm::Data::Model.name")).toBe("DataModel");
+  expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
+  expect(cosmEval("Cosm::Data.string().describe()")).toBe("Schema.string()");
+  expect(cosmEval('Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") }).class.name')).toBe("DataModel");
 });
 
 test("Data models support nested casts and reflective schema export", () => {
-  expect(cosmEval('let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no"), nested: Data.optional(Data.array(Data.number())) }); Reason.validate({ answer: "hi", choice: "yes", nested: [1, 2] })')).toBe(true);
+  expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no"), nested: Cosm::Data.optional(Cosm::Data.array(Cosm::Data.number())) }); Reason.validate({ answer: "hi", choice: "yes", nested: [1, 2] })')).toBe(true);
 
-  expect(cosmEval('let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no") }); Reason.schema().jsonSchema()')).toMatchObject({
+  expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") }); Reason.schema().jsonSchema()')).toMatchObject({
     type: "object",
     required: ["answer", "choice"],
     properties: {
@@ -50,7 +49,7 @@ test("cosm/ai.cosm can cast into a Data model through the runtime AI boundary", 
   });
 
   try {
-    expect(cosmEval('require("cosm/ai.cosm"); let Reason = Data.model("Reason", { answer: Data.string(), choice: Data.enum("yes", "no"), nested: Data.optional(Data.array(Data.number())) }); ai.cast("Return a Reason object.", Reason).nested.length')).toBe(2);
+    expect(cosmEval('require "cosm/ai"; let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no"), nested: Cosm::Data.optional(Cosm::Data.array(Cosm::Data.number())) }); Cosm::AI.cast("Return a Reason object.", Reason.schema()).nested.length')).toBe(2);
   } finally {
     CosmAiValue.installRuntimeHooks({
       status: () => AiRuntime.status(),

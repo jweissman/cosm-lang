@@ -1,4 +1,4 @@
 ## Compatibility shim for the split spec tree
 
-require("spec/core.cosm");
+require "spec/core.cosm";
 classes.String.name

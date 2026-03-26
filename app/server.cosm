@@ -1,2 +1,2 @@
-let app_module = require("app/app.cosm")
-let server = http.serve(12345, app_module.App.build())
+require "app/app"
+let server = http.serve(12345, App::App.build())

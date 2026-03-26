@@ -15,7 +15,7 @@ def method_lookup()
 end
 
 def mixin_include()
-  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "let label_mixin = require(\"support/label_mixin.cosm\"); class Mixed do end; Mixed.include(label_mixin); Mixed.new().label()")
+  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require \"support/label_mixin\"; class Mixed do end; Mixed.include(Support::LabelMixin); Mixed.new().label()")
 end
 
 def dispatch_helper()
@@ -23,7 +23,7 @@ def dispatch_helper()
 end
 
 def data_model()
-  example("Data", "Data model", "Define a model on top of Schema and validate a structured value through it.", "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.validate({ answer: \"hi\", choice: \"yes\" })")
+  example("Data", "Data model", "Define a model on top of Schema and validate a structured value through it.", "let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }); Reason.validate({ answer: \"hi\", choice: \"yes\" })")
 end
 
 def schema_export()
@@ -47,43 +47,43 @@ def prompt_object()
 end
 
 def ai_status()
-  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "cosm.ai.config()")
+  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "require \"cosm/ai\"; Cosm::AI.config()")
 end
 
 def ai_health()
-  example("AI", "AI health", "Probe whether the local backend is actually reachable.", "cosm.ai.health()")
+  example("AI", "AI health", "Probe whether the local backend is actually reachable.", "require \"cosm/ai\"; Cosm::AI.health()")
 end
 
 def ai_cast_helper()
-  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "let ai = require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
+  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "require \"cosm/ai\"; let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }); Cosm::AI.cast(\"Return a Reason object.\", Reason)")
 end
 
 def support_agent_preview()
-  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "let agent = require(\"support/agent.cosm\"); agent.preview()")
+  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "require \"support/agent\"; Support::Agent.preview()")
 end
 
 def prompt_data()
-  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "let prompt_data = require(\"support/prompt_data.cosm\"); prompt_data.iapetus_system()")
+  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require \"support/prompt_data\"; Support::PromptData.iapetus_system()")
 end
 
 def support_chat_step()
-  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "let chat = require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require \"support/chat\"; Support::Chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
 
 def support_step_model()
-  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "let models = require(\"support/models.cosm\"); models.chat_step.jsonSchema()")
+  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require \"support/models\"; Support::Models.chat_step.json_schema()")
 end
 
 def support_page()
-  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "let controller = require(\"support/controller.cosm\"); controller.page_conversation(\"demo\", \"user: hello\")")
+  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require \"support/controller\"; Support::Controller.page_conversation(\"demo\", \"user: hello\")")
 end
 
 def notebook_page()
-  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "let notebook_store = require(\"app/notebook_store.cosm\"); notebook_store.create_page(\"Demo page\").title")
+  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require \"app/notebook_store\"; App::NotebookStore.create_page(\"Demo page\").title")
 end
 
 def workflow_run()
-  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "let workflow = require(\"cosm/workflow.cosm\"); workflow.run([workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), workflow.step(\"status\", ->() { cosm.ai.config() })])")
+  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "require \"cosm/workflow\"; require \"cosm/ai\"; Cosm::Workflow.run([Cosm::Workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), Cosm::Workflow.step(\"status\", ->() { Cosm::AI.config() })])")
 end
 
 def named_session()

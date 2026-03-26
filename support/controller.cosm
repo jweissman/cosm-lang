@@ -1,8 +1,8 @@
-let agent = require("support/agent.cosm")
-let models = require("support/models.cosm")
+require "support/agent"
+require "support/models"
 
 def append_message(conversation, role, text)
-  models.conversation.validate(conversation)
+  Support::Models.conversation.validate(conversation)
   let entry = { role: role, text: text }
   let messages = conversation.messages.append(entry)
   let value = {
@@ -17,13 +17,13 @@ def append_message(conversation, role, text)
     created_at: conversation.created_at,
     updated_at: Time.isoNow()
   }
-  models.conversation.validate(value)
+  Support::Models.conversation.validate(value)
   value
 end
 
 def append_user_message(conversation, inbound)
-  models.conversation.validate(conversation)
-  models.inbound_message.validate(inbound)
+  Support::Models.conversation.validate(conversation)
+  Support::Models.inbound_message.validate(inbound)
   let entry = { role: "user", user: inbound.user, text: inbound.text, ts: inbound.ts }
   let messages = conversation.messages.append(entry)
   let value = {
@@ -38,7 +38,7 @@ def append_user_message(conversation, inbound)
     created_at: conversation.created_at,
     updated_at: Time.isoNow()
   }
-  models.conversation.validate(value)
+  Support::Models.conversation.validate(value)
   value
 end
 
@@ -56,7 +56,7 @@ def cli_conversation(messages)
     created_at: now,
     updated_at: now
   }
-  models.conversation.validate(value)
+  Support::Models.conversation.validate(value)
   value
 end
 
@@ -74,39 +74,39 @@ def page_conversation(key, transcript, context = false)
     created_at: now,
     updated_at: now
   }
-  models.conversation.validate(value)
+  Support::Models.conversation.validate(value)
   value
 end
 
 def cli_inbound(text)
   let value = { channel: "cli", thread: "cli", user: "you", text: text, ts: "cli" }
-  models.inbound_message.validate(value)
+  Support::Models.inbound_message.validate(value)
   value
 end
 
 def page_inbound(key, text)
   let value = { channel: "web", thread: key, user: "visitor", text: text, ts: key }
-  models.inbound_message.validate(value)
+  Support::Models.inbound_message.validate(value)
   value
 end
 
-def current_transcript(conversation) = conversation.transcript == false ? agent.transcript_from_conversation(conversation) : conversation.transcript;
+def current_transcript(conversation) = conversation.transcript == false ? Support::Agent.transcript_from_conversation(conversation) : conversation.transcript;
 
 def reply(conversation, inbound)
-  models.conversation.validate(conversation)
-  models.inbound_message.validate(inbound)
-  conversation.context == false ? agent.reply_for_transcript(current_transcript(conversation), inbound.text) : agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context)
+  Support::Models.conversation.validate(conversation)
+  Support::Models.inbound_message.validate(inbound)
+  conversation.context == false ? Support::Agent.reply_for_transcript(current_transcript(conversation), inbound.text) : Support::Agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context)
 end
 
 def stream_reply(conversation, inbound)
-  models.conversation.validate(conversation)
-  models.inbound_message.validate(inbound)
+  Support::Models.conversation.validate(conversation)
+  Support::Models.inbound_message.validate(inbound)
   if conversation.context == false then
-    agent.stream_reply_for_transcript(current_transcript(conversation), inbound.text) do |event|
+    Support::Agent.stream_reply_for_transcript(current_transcript(conversation), inbound.text) do |event|
       yield(event)
     end
   else
-    agent.stream_reply_for_context(current_transcript(conversation), inbound.text, conversation.context) do |event|
+    Support::Agent.stream_reply_for_context(current_transcript(conversation), inbound.text, conversation.context) do |event|
       yield(event)
     end
   end
@@ -117,7 +117,7 @@ def next_conversation(conversation, inbound, reply)
     let with_user = append_user_message(conversation, inbound)
     append_message(with_user, "assistant", reply.text)
   else
-    let next_transcript = agent.append_transcript(agent.append_transcript(current_transcript(conversation), "user", inbound.text), "assistant", reply.text)
+    let next_transcript = Support::Agent.append_transcript(Support::Agent.append_transcript(current_transcript(conversation), "user", inbound.text), "assistant", reply.text)
     page_conversation(conversation.key, next_transcript, conversation.context)
   end
 end
@@ -125,17 +125,17 @@ end
 def display_transcript(conversation) = current_transcript(conversation);
 
 def command_reply(conversation, command)
-  models.conversation.validate(conversation)
+  Support::Models.conversation.validate(conversation)
   let text = command == "help" ? "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory." : (command == "reset" ? "Thread memory cleared. The next DM starts from a clean transcript and named session." : (command == "status" ? "This DM thread is using `" + conversation.session_name + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread." : "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."))
   let value = { should_reply: true, text: text, rationale: "meta", tool_calls: false, tool_results: false }
-  models.agent_reply.validate(value)
+  Support::Models.agent_reply.validate(value)
   value
 end
 
 def turn(conversation, inbound)
   let next_reply = reply(conversation, inbound)
   let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
-  models.controller_turn.validate(value)
+  Support::Models.controller_turn.validate(value)
   value
 end
 
@@ -144,10 +144,10 @@ def stream_turn(conversation, inbound)
     yield(event)
   end
   let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
-  models.controller_turn.validate(value)
+  Support::Models.controller_turn.validate(value)
   value
 end
 
 def handle(conversation, inbound) = turn(conversation, inbound).reply;
 
-def fallback(conversation, inbound, error_message) = agent.fallback(conversation, inbound, error_message);
+def fallback(conversation, inbound, error_message) = Support::Agent.fallback(conversation, inbound, error_message);

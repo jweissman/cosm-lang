@@ -129,7 +129,7 @@ export class Parser {
       if (!trimmed) {
         return false;
       }
-      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(trimmed)) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:(?!:)/.test(trimmed)) {
         return false;
       }
       if (trimmed.endsWith(';')) {
@@ -245,6 +245,12 @@ export class Parser {
         BareCalleeTail: (_dot, name) => ({
           kind: 'access',
           value: name.sourceString,
+        }),
+        PostExp_const_access: (left, _sep, property) => ({
+          kind: 'access',
+          value: property.sourceString,
+          left: left.ast(),
+          target: 'const',
         }),
         ClassStmt: (_class, name, superclass, _do, body, _end) => {
           const superclassNode = superclass.ast();
@@ -378,6 +384,11 @@ export class Parser {
           value: name.sourceString,
           left: expr.ast(),
         }),
+        RequireStmt_bare: (_require, target) => ({
+          kind: 'require_stmt',
+          value: '',
+          left: target.ast(),
+        }),
         RequireStmt_paren: (_require, _open, target, _close) => ({
           kind: 'require_stmt',
           value: '',
@@ -406,6 +417,11 @@ export class Parser {
           kind: 'block_expr',
           value: '',
           children: Parser.listChildren(body.ast()),
+        }),
+        PriExp_require_bare: (_require, target) => ({
+          kind: 'require_stmt',
+          value: '',
+          left: target.ast(),
         }),
         PriExp_require: (_require, _open, target, _close) => ({
           kind: 'require_stmt',

@@ -1,7 +1,7 @@
-let notebook_store = require("app/notebook_store.cosm")
-let controller = require("support/controller.cosm")
-let workflow = require("cosm/workflow.cosm")
-let agent_runtime = require("agent/runtime.cosm")
+require "app/notebook_store"
+require "support/controller"
+require "cosm/workflow"
+require "agent/runtime"
 
 def session_name(page)
   "notebook-page:" + page.id
@@ -60,9 +60,9 @@ end
 def run_page(page)
   let session = session_for(page)
   let steps = page.blocks.map(->(block) {
-    workflow.step(block.kind, ->() { run_block(session, block) })
+    Cosm::Workflow.step(block.kind, ->() { run_block(session, block) })
   })
-  let step_results = workflow.run(steps)
+  let step_results = Cosm::Workflow.run(steps)
   let results = step_results.map(->(entry) {
     if entry.ok then
       entry.value
@@ -78,7 +78,7 @@ def run_page(page)
     end
   })
   let summary = execution_summary(results)
-  let saved_page = notebook_store.save_execution(page, summary)
+  let saved_page = App::NotebookStore.save_execution(page, summary)
   {
     page: saved_page,
     session: session,
@@ -90,7 +90,7 @@ end
 
 def reset_page_session(page)
   session_for(page).reset()
-  notebook_store.save_execution(page, false)
+  App::NotebookStore.save_execution(page, false)
 end
 
 def agent_context(page)
@@ -102,14 +102,14 @@ def agent_context(page)
 end
 
 def attached_conversation(page)
-  controller.page_conversation(page.agent_key, if page.agent_transcript == false then "" else page.agent_transcript end, agent_context(page))
+  Support::Controller.page_conversation(page.agent_key, if page.agent_transcript == false then "" else page.agent_transcript end, agent_context(page))
 end
 
 def agent_turn(page, message)
-  let inbound = controller.page_inbound(page.agent_key, message)
-  let turn = agent_runtime.execute_turn(attached_conversation(page), inbound)
-  let saved_page = notebook_store.save_transcript(page, turn.conversation.transcript)
+  let inbound = Support::Controller.page_inbound(page.agent_key, message)
+  let turn = Agent::Runtime.execute_turn(attached_conversation(page), inbound)
+  let saved_page = App::NotebookStore.save_transcript(page, turn.conversation.transcript)
   { page: saved_page, reply: turn.reply }
 end
 
-def reset_agent(page) = notebook_store.save_transcript(page, "");
+def reset_agent(page) = App::NotebookStore.save_transcript(page, "");

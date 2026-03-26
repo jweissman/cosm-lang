@@ -1,15 +1,15 @@
-let agent = require("support/agent.cosm")
+require "support/agent"
 
 def banner() = "Iapetus is a tiny local-model Cosm support assistant. Press enter on an empty line to exit. Use /help for commands.";
 
 def help() = "Commands: /help shows this message. /reset clears the current conversation transcript. Responses now stream incrementally when the local backend supports it. Press enter on an empty line to exit.";
 
-def append_transcript(transcript, role, text) = agent.append_transcript(transcript, role, text);
+def append_transcript(transcript, role, text) = Support::Agent.append_transcript(transcript, role, text);
 
-def step(transcript, input) = agent.step_transcript(transcript, input);
+def step(transcript, input) = Support::Agent.step_transcript(transcript, input);
 
 def stream_step(transcript, input)
-  agent.stream_step_transcript(transcript, input) do |event|
+  Support::Agent.stream_step_transcript(transcript, input) do |event|
     yield(event)
   end
 end

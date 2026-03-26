@@ -58,40 +58,40 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     Child.new().method(:greet).name
   `)).toBe("greet");
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class Mixed
     end
-    Mixed.include(label_mixin)
+    Mixed.include(Support::LabelMixin)
     Mixed.new().methods()
   `)).toEqual(expect.arrayContaining([{ kind: "symbol", name: "label" }, { kind: "symbol", name: "emphasize" }]));
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class Mixed
       def label()
         "local"
       end
     end
-    Mixed.include(label_mixin)
+    Mixed.include(Support::LabelMixin)
     Mixed.new().label()
   `)).toBe("local");
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class BaseMixed
     end
-    BaseMixed.include(label_mixin)
+    BaseMixed.include(Support::LabelMixin)
     class ChildMixed < BaseMixed
     end
     ChildMixed.new().method(:label).name
   `)).toBe("label");
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class Mixed
     end
-    Mixed.include(label_mixin)
+    Mixed.include(Support::LabelMixin)
     Mixed.new().method(:label).name
   `)).toBe("label");
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class BaseMixed
       def label()
         "base"
@@ -102,20 +102,21 @@ test("receiver-side methods() includes inherited methods and agrees with method(
         super() + "!"
       end
     end
-    ChildMixed.include(label_mixin)
+    ChildMixed.include(Support::LabelMixin)
     ChildMixed.new().label()
   `)).toBe("label-from-mixin!");
   expect(cosmEval(`
-    require("support/label_mixin.cosm")
+    require "support/label_mixin"
     class Ordered
       def label()
         "base"
       end
     end
-    Ordered.include(label_mixin)
-    Ordered.include(label_mixin)
+    Ordered.include(Support::LabelMixin)
+    Ordered.include(Support::LabelMixin)
     Ordered.includedModules.length
   `)).toBe(1);
+  expect(cosmEval('require "support/label_mixin"; Support::LabelMixin.class.name')).toBe("Module");
 });
 
 test("Mirror inspect remains wrapper-visible", () => {

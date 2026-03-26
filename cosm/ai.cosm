@@ -1,12 +1,12 @@
-def status = cosm.ai.status();
+def status = ai.status();
 
-def config = cosm.ai.config();
+def config = ai.config();
 
-def health = cosm.ai.health();
+def health = ai.health();
 
-def complete(prompt) = cosm.ai.complete(prompt);
+def complete(prompt) = ai.complete(prompt);
 
-def compare(left, right) = cosm.ai.compare(left, right);
+def compare(left, right) = ai.compare(left, right);
 
 def schema_for(target)
   let maybe_schema = Kernel.try(->() { target.schema() })
@@ -17,12 +17,12 @@ def schema_for(target)
   end
 end
 
-def cast(prompt, target) = cosm.ai.cast(prompt, schema_for(target));
+def cast(prompt, target) = ai.cast(prompt, schema_for(target));
 
 def reply(prompt, target) = cast(prompt, target);
 
 def stream(prompt)
-  cosm.ai.stream(prompt) do |event|
+  ai.stream(prompt) do |event|
     yield(event)
   end
 end

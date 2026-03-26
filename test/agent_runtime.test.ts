@@ -50,14 +50,14 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
   });
 
   expect(cosmEval(`
-    let agent_runtime = require("agent/runtime.cosm")
+    require "agent/runtime"
     let inbound = { channel: "D100", thread: "1710000100.000001", user: "U100", text: "How do I reset it?", ts: "1710000100.000001" }
-    let turn = agent_runtime.execute_stored_turn(inbound)
+    let turn = Agent::Runtime.execute_stored_turn(inbound)
     {
       reply: turn.reply.text,
       session_name: turn.conversation.session_name,
       messages: turn.conversation.messages.length,
-      persisted: agent_runtime.load_conversation(inbound).messages.length
+      persisted: Agent::Runtime.load_conversation(inbound).messages.length
     }
   `)).toEqual({
     reply: "Reset it from the notebook session controls.",
@@ -71,10 +71,10 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
 
 test("agent runtime handles commands transport-agnostically", () => {
   expect(cosmEval(`
-    let agent_runtime = require("agent/runtime.cosm")
+    require "agent/runtime"
     let inbound = { channel: "D200", thread: "1710000200.000001", user: "U200", text: "status", ts: "1710000200.000001" }
-    let conversation = agent_runtime.conversation_for_inbound(inbound)
-    let turn = agent_runtime.execute_turn(conversation, inbound)
+    let conversation = Agent::Runtime.conversation_for_inbound(inbound)
+    let turn = Agent::Runtime.execute_turn(conversation, inbound)
     {
       command: turn.command,
       should_reply: turn.reply.should_reply,
@@ -102,8 +102,8 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
   });
 
   expect(cosmEval(`
-    let slack_dm = require("agent/slack_dm.cosm")
-    let result = slack_dm.send("DCLI", "smoke test")
+    require "agent/slack_dm"
+    let result = Agent::SlackDM.post_message("DCLI", "smoke test")
     {
       ok: result.ok,
       channel_id: result.channel_id,
@@ -120,11 +120,11 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
 
 test("slack dm smoke helper usage describes channel ids clearly", () => {
   expect(cosmEval(`
-    let slack_dm = require("agent/slack_dm.cosm")
-    slack_dm.usage()
+    require "agent/slack_dm"
+    Agent::SlackDM.usage()
   `)).toContain("<channel_id>");
   expect(cosmEval(`
-    let slack_dm = require("agent/slack_dm.cosm")
-    slack_dm.usage()
+    require "agent/slack_dm"
+    Agent::SlackDM.usage()
   `)).toContain("usually starting with D");
 });

@@ -1,10 +1,10 @@
-let models = require("support/models.cosm")
-let prompt_data = require("support/prompt_data.cosm")
+require "support/models"
+require "support/prompt_data"
 
 def reply_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
-#{prompt_data.iapetus_system()}
+#{Support::PromptData.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(models.agent_reply.jsonSchema())}
+#{Kernel.inspect(Support::Models.agent_reply.jsonSchema())}
 
 Transcript so far:
 #{transcript}
@@ -14,9 +14,9 @@ Latest user message:
 """);
 
 def reply_prompt_from_context(transcript, latest_text, context) = Prompt.text("""
-#{prompt_data.iapetus_system()}
+#{Support::PromptData.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(models.agent_reply.jsonSchema())}
+#{Kernel.inspect(Support::Models.agent_reply.jsonSchema())}
 
 Attached page context:
 #{context}
@@ -29,7 +29,7 @@ Latest user message:
 """);
 
 def stream_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
-#{prompt_data.iapetus_system()}
+#{Support::PromptData.iapetus_system()}
 Do not describe hidden tools or hidden runtime capabilities.
 Return only the user-facing reply text, with no JSON wrapper.
 
@@ -41,7 +41,7 @@ Latest user message:
 """);
 
 def stream_prompt_from_context(transcript, latest_text, context) = Prompt.text("""
-#{prompt_data.iapetus_system()}
+#{Support::PromptData.iapetus_system()}
 Do not describe hidden tools or hidden runtime capabilities.
 Return only the user-facing reply text, with no JSON wrapper.
 

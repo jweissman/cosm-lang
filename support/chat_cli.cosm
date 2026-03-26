@@ -1,3 +1,3 @@
-let chat = require("support/chat.cosm")
+require "support/chat"
 
-chat.run()
+Support::Chat.run()

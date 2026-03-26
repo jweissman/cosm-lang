@@ -29,7 +29,6 @@ import { CosmSessionValue } from "../values/CosmSessionValue";
 import { CosmDataModelValue } from "../values/CosmDataModelValue";
 import { RuntimeDispatch } from "./RuntimeDispatch";
 import { RuntimeEquality } from "./RuntimeEquality";
-import { basename } from "node:path";
 import { AiRuntime } from "./AiRuntime";
 import { SessionRuntime } from "./SessionRuntime";
 
@@ -334,6 +333,12 @@ export class Bootstrap {
       HttpResponse: classes.HttpResponse,
       HttpServer: classes.HttpServer,
       HttpRouter: classes.HttpRouter,
+      Cosm: Construct.module("Cosm", {}, classes.Module),
+      Agent: Construct.module("Agent", {}, classes.Module),
+      Support: Construct.module("Support", {}, classes.Module),
+      App: Construct.module("App", {}, classes.Module),
+      Spec: Construct.module("Spec", {}, classes.Module),
+      Test: Construct.module("Test", {}, classes.Module),
     };
   }
 
@@ -375,7 +380,8 @@ export class Bootstrap {
     globals.expectEqual = kernelMethods.expectEqual;
     globals.resetTests = kernelMethods.resetTests;
     globals.testSummary = kernelMethods.testSummary;
-    globals.require = this.createRequireFunction(modules, runtime);
+    this.installConstantRootFields(globals, modules);
+    globals.require = this.createRequireFunction(globals, modules, classes, runtime);
   }
 
   private static createCoreModules(classes: Record<string, CosmClass>): Record<string, CosmObject> {
@@ -469,7 +475,12 @@ export class Bootstrap {
     );
   }
 
-  private static createRequireFunction(modules: Record<string, CosmObject>, runtime: BootstrapRuntime): CosmFunction {
+  private static createRequireFunction(
+    globals: Record<string, CosmValue>,
+    modules: Record<string, CosmObject>,
+    classes: Record<string, CosmClass>,
+    runtime: BootstrapRuntime,
+  ): CosmFunction {
     return Construct.nativeFunc('require', (args, _selfValue, env) => {
       if (args.length !== 1) {
         throw new Error(`Arity error: require expects 1 arguments, got ${args.length}`);
@@ -481,36 +492,138 @@ export class Bootstrap {
       if (target.type !== 'string') {
         throw new Error('Type error: require expects a string argument');
       }
-      const loadedModule = modules[target.value];
+      const moduleName = this.resolveModuleName(target.value, modules, runtime, env);
+      const loadedModule = modules[moduleName];
       if (loadedModule instanceof CosmModuleValue) {
-        if (target.value === 'cosm/test') {
+        this.installModuleConstant(globals, classes, moduleName, loadedModule);
+        if (moduleName === "cosm/test" || moduleName === "cosm/test.cosm") {
           env.bindings.test = loadedModule.fields.test;
           env.bindings.describe = loadedModule.fields.describe;
           env.bindings.expectEqual = loadedModule.fields.expectEqual;
           env.bindings.resetTests = loadedModule.fields.resetTests;
           env.bindings.testSummary = loadedModule.fields.testSummary;
-        } else {
-          env.bindings[this.moduleBindingName(target.value)] = loadedModule;
         }
         return loadedModule;
       }
-      const dynamicModule = runtime.loadModule(target.value, env);
+      const dynamicModule = runtime.loadModule(moduleName, env);
       if (dynamicModule) {
-        modules[target.value] = dynamicModule;
-        env.bindings[this.moduleBindingName(target.value)] = dynamicModule;
+        modules[moduleName] = dynamicModule;
+        modules[moduleName.replace(/\.(cosm|ecosm)$/u, '')] = dynamicModule;
+        this.installModuleConstant(globals, classes, moduleName, dynamicModule);
         return dynamicModule;
       }
       throw new Error(`Require error: unknown module '${target.value}'`);
     });
   }
 
-  private static moduleBindingName(moduleName: string): string {
-    const normalized = moduleName.replace(/\\/g, "/");
-    const stripped = basename(moduleName).replace(/\.(cosm|ecosm)$/u, '');
-    const parts = normalized.split("/");
-    const parent = parts.length > 1 ? parts[parts.length - 2] : stripped;
-    const binding = stripped === "index" ? parent : stripped;
-    return binding.replace(/[^A-Za-z0-9_]/g, '_');
+  private static installConstantRootFields(globals: Record<string, CosmValue>, modules: Record<string, CosmObject>): void {
+    const cosmRoot = globals.Cosm as CosmModuleValue;
+    cosmRoot.fields.Kernel = globals.Kernel;
+    cosmRoot.fields.Process = globals.Process;
+    cosmRoot.fields.Time = globals.Time;
+    cosmRoot.fields.Random = globals.Random;
+    cosmRoot.fields.Mirror = globals.Mirror;
+    cosmRoot.fields.Error = globals.Error;
+    cosmRoot.fields.Schema = globals.Schema;
+    cosmRoot.fields.Prompt = globals.Prompt;
+    cosmRoot.fields.Session = globals.Session;
+    cosmRoot.fields.Http = globals.http;
+    cosmRoot.fields.Data = modules["cosm/data"];
+  }
+
+  private static resolveModuleName(
+    requestedName: string,
+    modules: Record<string, CosmObject>,
+    runtime: BootstrapRuntime,
+    env: CosmEnv,
+  ): string {
+    const candidates = [requestedName];
+    if (!/\.(cosm|ecosm)$/u.test(requestedName)) {
+      candidates.push(`${requestedName}.cosm`, `${requestedName}.ecosm`);
+    }
+    for (const candidate of candidates) {
+      if (modules[candidate] instanceof CosmModuleValue) {
+        return candidate;
+      }
+      const dynamicModule = runtime.loadModule(candidate, env);
+      if (dynamicModule) {
+        modules[candidate] = dynamicModule;
+        modules[candidate.replace(/\.(cosm|ecosm)$/u, '')] = dynamicModule;
+        return candidate;
+      }
+    }
+    return requestedName;
+  }
+
+  private static installModuleConstant(
+    globals: Record<string, CosmValue>,
+    classes: Record<string, CosmClass>,
+    moduleName: string,
+    moduleValue: CosmObject,
+  ): void {
+    if (!(moduleValue instanceof CosmModuleValue)) {
+      return;
+    }
+    const path = this.moduleConstantPath(moduleName);
+    if (path.length === 0) {
+      return;
+    }
+    const [rootName, ...rest] = path;
+    let current = globals[rootName];
+    if (!(current instanceof CosmModuleValue)) {
+      current = Construct.module(rootName, {}, classes.Module);
+      globals[rootName] = current;
+    }
+    if (rest.length === 0) {
+      Object.assign(current.fields, moduleValue.fields);
+      return;
+    }
+    for (let index = 0; index < rest.length - 1; index += 1) {
+      const segment = rest[index];
+      const existing = current.fields[segment];
+      if (existing instanceof CosmModuleValue) {
+        current = existing;
+        continue;
+      }
+      const next = Construct.module(`${current.moduleName}::${segment}`, {}, classes.Module);
+      current.fields[segment] = next;
+      current = next;
+    }
+    current.fields[rest.at(-1) as string] = moduleValue;
+  }
+
+  private static moduleConstantPath(moduleName: string): string[] {
+    const normalized = moduleName.replace(/\\/g, "/").replace(/\.(cosm|ecosm)$/u, "");
+    const parts = normalized.split("/").filter(Boolean);
+    if (parts.length === 0) {
+      return [];
+    }
+    const mapped = parts.map((part) => this.constantSegment(part));
+    if (mapped.length === 2 && mapped[0] === mapped[1]) {
+      return [mapped[0]];
+    }
+    if (mapped.at(-1) === "Index") {
+      return mapped.slice(0, -1);
+    }
+    return mapped;
+  }
+
+  private static constantSegment(segment: string): string {
+    const lower = segment.toLowerCase();
+    if (lower === "ai") return "AI";
+    if (lower === "http") return "HTTP";
+    if (lower === "dm") return "DM";
+    return segment
+      .split("_")
+      .filter(Boolean)
+      .map((part) => {
+        const key = part.toLowerCase();
+        if (key === "ai") return "AI";
+        if (key === "http") return "HTTP";
+        if (key === "dm") return "DM";
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join("");
   }
 
   private static createBootClass(name: string, superclass: CosmClass, classClass: CosmClass): CosmClass {

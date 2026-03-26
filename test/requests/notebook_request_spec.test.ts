@@ -7,10 +7,7 @@ import { CosmAiValue } from "../../src/values/CosmAiValue";
 import { ValueAdapter as Adapter } from "../../src/ValueAdapter";
 import { dispatchService } from "../support/request_spec";
 
-const appSource = `
-  let app = require("app/app.cosm")
-  app.App.build()
-`;
+const appSource = 'require "app/app"; App::App.build()';
 
 const withNotebookDir = <T>(callback: () => T) => {
   const previous = process.env.COSM_NOTEBOOK_DIR;

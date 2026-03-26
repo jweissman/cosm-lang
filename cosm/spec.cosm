@@ -1,10 +1,10 @@
-require("cosm/test")
+require "cosm/test"
 
-def suite(name, body) = describe(name, body);
+def suite(name, body) = Cosm::Test.describe(name, body);
 
-def it(name, body) = test(name, body);
+def it(name, body) = Cosm::Test.test(name, body);
 
-def assert_equal(actual, expected) = expectEqual(actual, expected);
+def assert_equal(actual, expected) = Cosm::Test.expectEqual(actual, expected);
 
 def refute(value) = assert(value == false);
 
@@ -14,4 +14,4 @@ def expect_raises(body)
   result.error
 end
 
-def finish() = testSummary();
+def finish() = Cosm::Test.summary();

@@ -1,20 +1,21 @@
-let rendering = require("app/rendering.cosm")
-let notebook = require("app/notebook.cosm")
-let assistant = require("app/assistant.cosm")
+require "app/rendering"
+require "app/notebook"
+require "app/assistant"
 
-let html_view = rendering.HtmlView
-let notebook_view = notebook.NotebookView
-let notebook_examples = notebook.NotebookExamples
-let assistant_view = assistant.AssistantView
+let html_view = App::Rendering::HtmlView
+let notebook_view = App::Notebook::NotebookView
+let notebook_examples = App::Notebook::NotebookExamples
+let assistant_view = App::Assistant::AssistantView
 
 class HomeView
   class << self
     def template()
-      require("app/views/home/page.ecosm")
+      require "app/views/home/page.ecosm"
+      App::Views::Home::Page
     end
 
     def page(req)
-      html_view.render_layout("Cosm " + cosm.version, template(), { version: cosm.version, method: html_view.escape(req.method), path: html_view.escape(req.path), pid: Process.pid(), platform: html_view.escape(Process.platform()), arch: html_view.escape(Process.arch()) }, html_view.head(), "")
+      html_view.render_layout("Cosm " + Cosm.version, template(), { version: Cosm.version, method: html_view.escape(req.method), path: html_view.escape(req.path), pid: Process.pid(), platform: html_view.escape(Process.platform()), arch: html_view.escape(Process.arch()) }, html_view.head(), "")
     end
   end
 end

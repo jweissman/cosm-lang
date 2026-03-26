@@ -1,23 +1,25 @@
-let rendering = require("app/rendering.cosm")
-let controller = require("support/controller.cosm")
+require "app/rendering"
+require "support/controller"
+require "cosm/ai"
 
 class AssistantView
   class << self
     def page_template()
-      require("app/views/assistant/page.ecosm")
+      require "app/views/assistant/page.ecosm"
+      App::Views::Assistant::Page
     end
 
     def page(conversation, reply)
-      let transcript = controller.display_transcript(conversation)
+      let transcript = Support::Controller.display_transcript(conversation)
       let reply_text = if reply == false then false else reply.text end
-      rendering.HtmlView.render_layout("Iapetus Assistant", page_template(), {
-        key: rendering.HtmlView.escape(conversation.key),
-        transcript: rendering.HtmlView.escape(transcript),
-        reply: if reply_text == false then false else rendering.HtmlView.escape(reply_text) end,
+      App::Rendering::HtmlView.render_layout("Iapetus Assistant", page_template(), {
+        key: App::Rendering::HtmlView.escape(conversation.key),
+        transcript: App::Rendering::HtmlView.escape(transcript),
+        reply: if reply_text == false then false else App::Rendering::HtmlView.escape(reply_text) end,
         transcript_size: transcript.length,
-        ai_config: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.config())),
-        ai_health: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.health()))
-      }, rendering.HtmlView.head(), "")
+        ai_config: App::Rendering::HtmlView.escape(Kernel.inspect(Cosm::AI.config())),
+        ai_health: App::Rendering::HtmlView.escape(Kernel.inspect(Cosm::AI.health()))
+      }, App::Rendering::HtmlView.head(), "")
     end
   end
 end

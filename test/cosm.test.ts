@@ -107,13 +107,12 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.HttpRouter.methods.get.name")).toBe("get");
   expect(cosmEval("classes.HttpRouter.methods.draw.name")).toBe("draw");
   expect(cosmEval("classes.Mirror.classMethods.reflect.name")).toBe("reflect");
-  expect(cosmEval("cosm.classes.Number.name")).toBe("Number");
   expect(cosmEval("Number.name")).toBe("Number");
 });
 
-test("Kernel and cosm expose ambient reflective services", () => {
+test("Kernel and Cosm expose reflective services", () => {
   expect(cosmEval("Kernel.assert(true)")).toBe(true);
-  expect(cosmEval("cosm.Kernel.assert(true)")).toBe(true);
+  expect(cosmEval("Cosm::Kernel.assert(true)")).toBe(true);
   expect(cosmEval("Kernel.method(:print).name")).toBe("print");
   expect(cosmEval("Kernel.method(:puts).name")).toBe("puts");
   expect(cosmEval("Kernel.method(:warn).name")).toBe("warn");
@@ -123,14 +122,13 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.method(:expectEqual).name")).toBe("expectEqual");
   expect(cosmEval("Kernel.method(:resetTests).name")).toBe("resetTests");
   expect(cosmEval("Kernel.method(:testSummary).name")).toBe("testSummary");
-  expect(cosmEval("cosm.test.class.name")).toBe("Module");
-  expect(cosmEval('cosm.test.name')).toBe("cosm/test");
-  expect(cosmEval("cosm.modules.test.class.name")).toBe("Module");
-  expect(cosmEval("cosm.test.has(:test)")).toBe(true);
-  expect(cosmEval("cosm.test.has(:describe)")).toBe(true);
-  expect(cosmEval("cosm.test.has(:expectEqual)")).toBe(true);
+  expect(cosmEval('require "cosm/test"; Cosm::Test.class.name')).toBe("Module");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.name')).toBe("cosm/test");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.has(:test)')).toBe(true);
+  expect(cosmEval('require "cosm/test"; Cosm::Test.has(:describe)')).toBe(true);
+  expect(cosmEval('require "cosm/test"; Cosm::Test.has(:expectEqual)')).toBe(true);
   expect(cosmEval("Process.class.name")).toBe("Process");
-  expect(cosmEval("cosm.Process.class.name")).toBe("Process");
+  expect(cosmEval("Cosm::Process.class.name")).toBe("Process");
   expect(cosmEval("Mirror.class.name")).toBe("Mirror class");
   expect(cosmEval("HttpRouter.class.name")).toBe("HttpRouter class");
   expect(cosmEval("Time.class.name")).toBe("Time");
@@ -138,45 +136,43 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Data.class.name")).toBe("Module");
   expect(cosmEval("Data.Model.name")).toBe("DataModel");
   expect(cosmEval("http.class.name")).toBe("Http");
-  expect(cosmEval("cosm.http.class.name")).toBe("Http");
+  expect(cosmEval("Cosm::Http.class.name")).toBe("Http");
 });
 
 test("modules, views, and runtime roots expose predictable reflective surfaces", () => {
-  expect(cosmEval('require("cosm/test"); cosm.test.class.name')).toBe("Module");
-  expect(cosmEval('require("cosm/test")')).toMatchObject({ kind: "module", name: "cosm/test" });
-  expect(cosmEval('require("cosm/data")')).toMatchObject({ kind: "module", name: "cosm/data" });
-  expect(cosmEval('require("cosm/ai.cosm")')).toMatchObject({ kind: "module", name: "cosm/ai.cosm" });
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.class.name')).toBe("Module");
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.receiver_reflection().code')).toBe("Object.new().methods()");
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.dispatch_helper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.catalog().length')).toBe(23);
-  expect(cosmEval('let app = require("app/app.cosm"); app.class.name')).toBe("Module");
-  expect(cosmEval('let views = require("app/views/index.cosm"); views.class.name')).toBe("Module");
-  expect(cosmEval('let app = require("app/app.cosm"); app.App.class.name')).toBe("App class");
-  expect(cosmEval('let app = require("app/app.cosm"); app.App.build().class.name')).toBe("App");
-  expect(cosmEval('require("cosm/test"); test.class.name')).toBe("Function");
-  expect(cosmEval('require("cosm/test"); describe.class.name')).toBe("Function");
-  expect(cosmEval('require("cosm/test"); expectEqual.class.name')).toBe("Function");
-  expect(cosmEval("cosm.length >= 3")).toBe(true);
-  expect(cosmEval("cosm.has(:version)")).toBe(true);
-  expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.12");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.class.name')).toBe("Module");
+  expect(cosmEval('require "cosm/test"')).toMatchObject({ kind: "module", name: "cosm/test" });
+  expect(cosmEval('require "cosm/data"')).toMatchObject({ kind: "module", name: "cosm/data" });
+  expect(cosmEval('require "cosm/ai"')).toMatchObject({ kind: "module", name: "cosm/ai.cosm" });
+  expect(cosmEval('require "app/examples"; App::Examples.class.name')).toBe("Module");
+  expect(cosmEval('require "app/examples"; App::Examples.receiver_reflection().code')).toBe("Object.new().methods()");
+  expect(cosmEval('require "app/examples"; App::Examples.dispatch_helper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
+  expect(cosmEval('require "app/examples"; App::Examples.catalog().length')).toBe(23);
+  expect(cosmEval('require "app/app"; App.class.name')).toBe("Module");
+  expect(cosmEval('require "app/views/index"; App::Views.class.name')).toBe("Module");
+  expect(cosmEval('require "app/app"; App::App.class.name')).toBe("App class");
+  expect(cosmEval('require "app/app"; App::App.build().class.name')).toBe("App");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.test.class.name')).toBe("Function");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.describe.class.name')).toBe("Function");
+  expect(cosmEval('require "cosm/test"; Cosm::Test.expectEqual.class.name')).toBe("Function");
+  expect(cosmEval("Cosm.length >= 3")).toBe(true);
+  expect(cosmEval("Cosm.has(:version)")).toBe(true);
+  expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.12.1");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
-  expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
+  expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.13.12");
-  expect(cosmEval("cosm.Data.class.name")).toBe("Module");
-  expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
-  expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
+  expect(cosmEval("Cosm.class.name")).toBe("Module");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.12.1");
+  expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
 }, 15000);
 
-test("require can be used explicitly as an expression while compatibility injection still exists for one patch line", () => {
-  expect(cosmEval('let support_chat = require("support/chat.cosm"); support_chat.class.name')).toBe("Module");
-  expect(cosmEval('let support_chat = require("support/chat.cosm"); support_chat.help().length > 10')).toBe(true);
-  expect(cosmEval('require("support/chat.cosm"); chat.class.name')).toBe("Module");
+test("require defines constant modules directly", () => {
+  expect(cosmEval('require "support/chat"; Support::Chat.class.name')).toBe("Module");
+  expect(cosmEval('require "support/chat"; Support::Chat.help().length > 10')).toBe(true);
 });
 
 test("ternary is a compact expression form", () => {
@@ -223,8 +219,8 @@ test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", 
 });
 
 test("reflective inspect and method surfaces remain available on representative runtime objects", () => {
-  expect(cosmEval('Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
-  expect(cosmEval('require("cosm/test"); Kernel.inspect(cosm.test)')).toContain('#<Module "cosm/test"');
+  expect(cosmEval('require "cosm/test"; Kernel.inspect(Cosm::Test)')).toContain('#<Module "cosm/test"');
+  expect(cosmEval('require "cosm/test"; Kernel.inspect(Cosm::Test)')).toContain('#<Module "cosm/test"');
   expect(cosmEval('Kernel.inspect(HttpResponse.text("ok", 201))')).toBe('#<HttpResponse 201 "ok">');
   expect(cosmEval('Kernel.inspect(HttpRouter.new())')).toBe('#<HttpRouter routes: 0>');
   expect(cosmEval('Kernel.inspect(Mirror.reflect([1, 2]))')).toBe('#<Mirror [1, 2]>');
@@ -242,7 +238,7 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval("Schema.class.name")).toBe("Schema class");
   expect(cosmEval("Prompt.class.name")).toBe("Prompt class");
   expect(cosmEval("ai.class.name")).toBe("Ai");
-  expect(cosmEval("cosm.ai.class.name")).toBe("Ai");
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval('Prompt.text("hi").source')).toBe("hi");
   expect(cosmEval('Error.new("boom").message')).toBe("boom");
   expect(cosmEval('Error.new("boom").inspect()')).toBe('#<Error "boom">');
@@ -261,8 +257,8 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).error.message')).toBe("boom");
   expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.message')).toContain("Schema validation failed");
   expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.details.path')).toBe("$");
-  expect(cosmEval('Kernel.try(->() { cosm.ai.complete("hi") }).error.message')).toContain("AI backend is not configured");
-  expect(cosmEval('Kernel.try(->() { cosm.ai.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEval('Kernel.try(->() { require "cosm/ai"; Cosm::AI.complete("hi") }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEval('Kernel.try(->() { require "cosm/ai"; Cosm::AI.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).inspect()')).toBe('#<Data::Model "Reason">');
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).schema().inspect()')).toBe('Schema.object({ answer: Schema.string() })');
@@ -273,9 +269,9 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval("Mirror.reflect(Kernel).get(:assert).name")).toBe("assert");
   expect(cosmEval("Mirror.reflect(Kernel).methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "assert" }, { kind: "symbol", name: "dispatch" }]));
   expect(cosmEval("Mirror.reflect(Object.new()).methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
-  expect(cosmEval('Mirror.reflect(cosm.test).targetClass.name')).toBe("Module");
+  expect(cosmEval('require "cosm/test"; Mirror.reflect(Cosm::Test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
-  expect(cosmEval("class Tool do end; cosm.classes.Tool.name")).toBe("Tool");
+  expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
 });
 
 test("receiver-side methods() reflects inherited visible methods consistently", () => {

@@ -1,4 +1,4 @@
-let slack_client = require("agent/slack_client.cosm")
+require "agent/slack_client"
 
 def usage()
   """Usage: bun bin/cosm agent/send_dm.cosm <channel_id> <text>
@@ -8,8 +8,8 @@ Example: bun bin/cosm agent/send_dm.cosm D01234567 "hello from Cosm"
 """
 end
 
-def send(channel_id, text)
-  slack_client.post_message(channel_id, text)
+def post_message(channel_id, text)
+  Agent::SlackClient.post_message(channel_id, text)
 end
 
 def args_from(argv)
@@ -29,7 +29,7 @@ def run(argv = false)
     warn(usage())
     Process.exit(1)
   else
-    let result = send(parsed.channel_id, parsed.text)
+    let result = post_message(parsed.channel_id, parsed.text)
     if result.ok then
       let ts_text = result.ts == false ? "(none)" : result.ts
       puts("ok")

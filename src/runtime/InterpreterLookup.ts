@@ -4,7 +4,6 @@ import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
 type LookupHooks = {
   lookupProperty: (receiver: CosmValue, property: string) => CosmValue;
   classesObject: (env: CosmEnv) => CosmValue;
-  cosmObject: (env: CosmEnv) => CosmValue;
   evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
   expectChild: (ast: CoreNode, op: string) => CoreNode;
   withFrame: <T>(frame: string, fn: () => T) => T;
@@ -15,9 +14,6 @@ export class InterpreterLookup {
   static lookupName(name: string, env: CosmEnv, hooks: LookupHooks): CosmValue {
     if (name === "classes") {
       return hooks.classesObject(env);
-    }
-    if (name === "cosm") {
-      return hooks.cosmObject(env);
     }
     for (let scope: CosmEnv | undefined = env; scope; scope = scope.parent) {
       const localValue = scope.bindings[name];

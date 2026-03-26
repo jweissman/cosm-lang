@@ -1,12 +1,12 @@
-let models = require("support/models.cosm")
-let config = require("agent/config.cosm")
+require "support/models"
+require "agent/config"
 
 let agent_thread_record = Data.model("agent_thread_record", {
-  conversation: models.conversation,
+  conversation: Support::Models.conversation,
   processed_events: Data.array(Data.string())
 })
 
-def storage_dir = config.slack_storage_dir();
+def storage_dir = Agent::Config.slack_storage_dir();
 
 def ready_probe_path = storage_dir() + "/.ready";
 

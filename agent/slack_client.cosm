@@ -1,13 +1,13 @@
-let config = require("agent/config.cosm")
+require "agent/config"
 
 def post_message(channel_id, text, thread_ts = false)
-  let bot_token = config.slack_bot_token()
+  let bot_token = Agent::Config.slack_bot_token()
   if bot_token == false then
     { ok: false, error: "Slack bot token is not configured" }
   else
     let payload = thread_ts == false ? { channel: channel_id, text: text } : { channel: channel_id, text: text, thread_ts: thread_ts }
     let request = Kernel.try(->() {
-      http.request("POST", config.slack_api_url(), {
+      http.request("POST", Agent::Config.slack_api_url(), {
         headers: Kernel.parseJson("{\"authorization\":\"Bearer " + bot_token + "\",\"content-type\":\"application/json; charset=utf-8\"}"),
         body: Kernel.json(payload)
       })

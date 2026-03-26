@@ -57,11 +57,11 @@ test("parser accepts interpolated triple-quoted strings", () => {
 
 test("parser accepts ternary expressions", () => {
   expect(() => Parser.parse('true ? "yes" : "no"')).not.toThrow();
-  expect(() => Parser.parse('let ai = require("cosm/ai.cosm"); ai.config().configured ? "ready" : "missing"')).not.toThrow();
+  expect(() => Parser.parse('require "cosm/ai"; Cosm::AI.config().configured ? "ready" : "missing"')).not.toThrow();
 });
 
 test("parser accepts one-line defs", () => {
-  expect(() => Parser.parse('def status = cosm.ai.status(); status()')).not.toThrow();
+  expect(() => Parser.parse('def status = ai.status(); status()')).not.toThrow();
   expect(() => Parser.parse('def add(x, y) = x + y; add(1, 2)')).not.toThrow();
   expect(() => Parser.parse('class Greeter do def label = "hi" end; Greeter.new().label()')).not.toThrow();
 });

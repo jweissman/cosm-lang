@@ -1,12 +1,11 @@
-let models = require("support/models.cosm")
-let config = require("agent/config.cosm")
-let runtime = require("agent/runtime.cosm")
-let store = require("agent/store.cosm")
-let slack_client = require("agent/slack_client.cosm")
+require "support/models"
+require "agent/config"
+require "agent/runtime"
+require "agent/store"
+require "agent/slack_client"
+require "cosm/ai"
 
-def slack_config()
-  config.slack_config_status()
-end
+def slack_config() = Agent::Config.slack_config_status();
 
 def health_payload(path)
   {
@@ -22,9 +21,9 @@ def ready_payload(path)
   let cfg = slack_config()
   let signing_secret_ok = cfg.signing_secret != false
   let bot_token_ok = cfg.bot_token != false
-  let storage_ok = store.writable()
-  let ai_config = cosm.ai.config()
-  let ai_health = cosm.ai.health()
+  let storage_ok = Agent::Store.writable()
+  let ai_config = Cosm::AI.config()
+  let ai_health = Cosm::AI.health()
   let ok = signing_secret_ok && bot_token_ok && storage_ok && ai_config.configured && ai_health.ok
   {
     ok: ok,
@@ -43,7 +42,7 @@ def ready_payload(path)
       configured: ai_config.configured,
       health: ai_health.ok
     },
-    agent: runtime.status()
+    agent: Agent::Runtime.status()
   }
 end
 
@@ -55,13 +54,13 @@ def status_payload(path)
       transport: "slack",
       dm_only: true,
       config: slack_config(),
-      storage_writable: store.writable()
+      storage_writable: Agent::Store.writable()
     },
     ai: {
-      config: cosm.ai.config(),
-      health: cosm.ai.health()
+      config: Cosm::AI.config(),
+      health: Cosm::AI.health()
     },
-    agent: runtime.status()
+    agent: Agent::Runtime.status()
   }
 end
 
@@ -100,7 +99,7 @@ def events(req)
           HttpResponse.json({ ok: true, ignored: true }, 200)
         else
           let event_key = event_key(payload, inbound)
-          if runtime.processed(inbound, event_key) then
+          if Agent::Runtime.processed(inbound, event_key) then
             puts("[slack] deduped delivery " + event_key)
             HttpResponse.json({ ok: true, deduped: true }, 200)
           else
@@ -113,10 +112,10 @@ def events(req)
 end
 
 def handle_inbound(inbound, event_key)
-  let turn = runtime.execute_stored_turn(inbound)
+  let turn = Agent::Runtime.execute_stored_turn(inbound)
   let posted = post_reply(turn.conversation, turn.reply.text)
   if posted.ok then
-    runtime.mark_processed(turn.conversation, event_key)
+    Agent::Runtime.mark_processed(turn.conversation, event_key)
     HttpResponse.json({
       ok: true,
       replied: true,
@@ -131,11 +130,11 @@ def handle_inbound(inbound, event_key)
 end
 
 def post_reply(conversation, text)
-  slack_client.post_message(conversation.channel, text, conversation.thread)
+  Agent::SlackClient.post_message(conversation.channel, text, conversation.thread)
 end
 
 def verify_request(req)
-  let signing_secret = config.slack_signing_secret()
+  let signing_secret = Agent::Config.slack_signing_secret()
   if signing_secret == false then
     { ok: false, status: 500, error: "Slack signing secret is not configured" }
   else
@@ -201,7 +200,7 @@ def extract_inbound(payload)
             text: text.value,
             ts: ts.value
           }
-          models.inbound_message.validate(value)
+          Support::Models.inbound_message.validate(value)
           value
         end
       end
@@ -219,5 +218,5 @@ def header(req, name)
 end
 
 def api_url()
-  config.slack_api_url()
+  Agent::Config.slack_api_url()
 end

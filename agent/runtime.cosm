@@ -1,11 +1,11 @@
-let controller = require("support/controller.cosm")
-let models = require("support/models.cosm")
-let store = require("agent/store.cosm")
+require "support/controller"
+require "support/models"
+require "agent/store"
 
 let agent_turn = Data.model("agent_turn", {
-  conversation: models.conversation,
-  inbound: models.inbound_message,
-  reply: models.agent_reply,
+  conversation: Support::Models.conversation,
+  inbound: Support::Models.inbound_message,
+  reply: Support::Models.agent_reply,
   command: Data.optional(Data.string())
 })
 
@@ -36,21 +36,21 @@ def conversation_for_inbound(inbound, transcript = false, context = false)
     created_at: now,
     updated_at: now
   }
-  models.conversation.validate(value)
+  Support::Models.conversation.validate(value)
   value
 end
 
 def load_conversation(inbound, transcript = false, context = false)
   let key = conversation_key(inbound.channel, inbound.thread)
-  let loaded = store.load_record(key)
+  let loaded = Agent::Store.load_record(key)
   loaded == false ? conversation_for_inbound(inbound, transcript, context) : loaded.conversation
 end
 
-def save_conversation(conversation) = store.save_conversation(conversation).conversation;
+def save_conversation(conversation) = Agent::Store.save_conversation(conversation).conversation;
 
-def processed(inbound, event_key) = store.processed(conversation_key(inbound.channel, inbound.thread), event_key);
+def processed(inbound, event_key) = Agent::Store.processed(conversation_key(inbound.channel, inbound.thread), event_key);
 
-def mark_processed(conversation, event_key) = store.mark_processed(conversation, event_key);
+def mark_processed(conversation, event_key) = Agent::Store.mark_processed(conversation, event_key);
 
 def reset_conversation(inbound, transcript = false, context = false)
   let fresh = conversation_for_inbound(inbound, transcript, context)
@@ -63,25 +63,25 @@ def from_command(conversation, inbound, command)
   if command == "reset" then
     let fresh = conversation_for_inbound(inbound, conversation.transcript, conversation.context)
     Session.named(fresh.session_name).reset()
-    let reply = controller.command_reply(fresh, command)
+    let reply = Support::Controller.command_reply(fresh, command)
     let value = { conversation: fresh, inbound: inbound, reply: reply, command: command }
     agent_turn.validate(value)
     value
   else
-    let reply = controller.command_reply(conversation, command)
-    let updated = controller.next_conversation(conversation, inbound, reply)
+    let reply = Support::Controller.command_reply(conversation, command)
+    let updated = Support::Controller.next_conversation(conversation, inbound, reply)
     let value = { conversation: updated, inbound: inbound, reply: reply, command: command }
     agent_turn.validate(value)
     value
   end
 end
 
-def fallback_reply(conversation, inbound, error_message) = controller.fallback(conversation, inbound, error_message);
+def fallback_reply(conversation, inbound, error_message) = Support::Controller.fallback(conversation, inbound, error_message);
 
 def from_controller_turn(conversation, inbound)
-  let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
+  let outcome = Kernel.try(->() { Support::Controller.turn(conversation, inbound) })
   let turn = outcome.ok ? outcome.value : {
-    conversation: controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
+    conversation: Support::Controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
     inbound: inbound,
     reply: fallback_reply(conversation, inbound, outcome.error.message)
   }

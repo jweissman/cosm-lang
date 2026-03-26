@@ -1,4 +1,4 @@
-let models = require("support/models.cosm")
+require "support/models"
 
 def storage_dir()
   let configured = Process.env("COSM_NOTEBOOK_DIR")
@@ -13,7 +13,7 @@ def page_path(id) = storage_dir() + "/" + id;
 
 def block(kind, content)
   let value = { kind: kind, content: content }
-  models.notebook_block.validate(value)
+  Support::Models.notebook_block.validate(value)
   value
 end
 
@@ -32,7 +32,7 @@ def page(id, title, blocks, agent_transcript = false, last_execution_summary = f
     created_at: created_at,
     updated_at: updated_at
   }
-  models.notebook_page.validate(value)
+  Support::Models.notebook_page.validate(value)
   value
 end
 
@@ -42,7 +42,7 @@ def normalize_blocks(blocks)
       kind: entry.kind,
       content: entry.content
     }
-    models.notebook_block.validate(value)
+    Support::Models.notebook_block.validate(value)
     value
   })
 end
@@ -58,7 +58,7 @@ end
 def load_page(id)
   if Kernel.exists(page_path(id)) then
     let value = Kernel.parseJson(Kernel.readText(page_path(id)))
-    models.notebook_page.validate(value)
+    Support::Models.notebook_page.validate(value)
     value
   else
     false
@@ -76,7 +76,7 @@ def save_page(target)
     created_at: target.created_at,
     updated_at: Time.isoNow()
   }
-  models.notebook_page.validate(value)
+  Support::Models.notebook_page.validate(value)
   Kernel.writeText(page_path(value.id), Kernel.json(value))
   value
 end

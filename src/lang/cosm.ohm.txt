@@ -70,7 +70,8 @@ Cosm {
     = kw_let ident "=" Exp
 
   RequireStmt
-    = kw_require "(" string ")"  -- paren
+    = kw_require string          -- bare
+    | kw_require "(" string ")"  -- paren
 
   DoOpt
     = kw_do?
@@ -125,12 +126,14 @@ Cosm {
     | PostExp
 
   PostExp
-    = PostExp "." name  -- access
+    = PostExp "::" const_name  -- const_access
+    | PostExp "." name  -- access
     | PostExp "(" CallArgs? ")" TrailingBlock?  -- call
     | PriExp
 
   PriExp
     = "(" Exp ")"  -- paren
+    | kw_require string          -- require_bare
     | kw_require "(" string ")"  -- require
     | kw_super "(" CallArgs? ")"  -- super
     | kw_yield "(" CallArgs? ")"  -- yield

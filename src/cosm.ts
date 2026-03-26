@@ -164,6 +164,10 @@ namespace Cosm {
       this.bootRepository = repository;
       Bootstrap.setCurrentRepository(repository);
       this.preloadStdlibModules(repository);
+      const cosmRoot = repository.globals.Cosm;
+      if (cosmRoot?.type === "object") {
+        cosmRoot.fields.version = Construct.string("0.3.13.12.1");
+      }
       return repository;
     }
 
@@ -294,7 +298,6 @@ namespace Cosm {
       return InterpreterLookup.lookupName(name, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
         classesObject: (scope) => this.classesObject(scope),
-        cosmObject: (scope) => this.cosmObject(scope),
         evalNode: (ast, scope) => this.evalNode(ast, scope),
         expectChild: (ast, op) => this.expectChild(ast, op),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
@@ -306,7 +309,6 @@ namespace Cosm {
       return InterpreterLookup.lookupClass(name, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
         classesObject: (scope) => this.classesObject(scope),
-        cosmObject: (scope) => this.cosmObject(scope),
         evalNode: (ast, scope) => this.evalNode(ast, scope),
         expectChild: (ast, op) => this.expectChild(ast, op),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
@@ -318,15 +320,10 @@ namespace Cosm {
       return InterpreterRoots.classesObject(env, this.repo());
     }
 
-    private static cosmObject(env: Env): CosmValue {
-      return InterpreterRoots.cosmObject(env, this.repo(), version);
-    }
-
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
       return InterpreterLookup.evalAccess(ast, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
         classesObject: (scope) => this.classesObject(scope),
-        cosmObject: (scope) => this.cosmObject(scope),
         evalNode: (node, scope) => this.evalNode(node, scope),
         expectChild: (node, op) => this.expectChild(node, op),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
@@ -510,6 +507,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.12";
+    export const version = "0.3.13.12.1";
 }
 export default Cosm;

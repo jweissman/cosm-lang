@@ -73,40 +73,6 @@ export class InterpreterRoots {
     return Construct.namespace(classes, repository.classes.Namespace);
   }
 
-  static cosmObject(env: CosmEnv, repository: Repository, version: string): CosmValue {
-    const moduleEntries = Object.fromEntries(
-      Object.entries(repository.modules)
-        .filter(([name]) => name.startsWith("cosm/") && !name.endsWith(".ecosm"))
-        .map(([name, value]) => {
-          const key = name
-            .replace(/^cosm\//u, "")
-            .replace(/\.(cosm)$/u, "")
-            .split("/")
-            .at(-1) as string;
-          return [key, value];
-        }),
-    );
-    return Construct.namespace({
-      Kernel: repository.globals.Kernel,
-      Process: repository.globals.Process,
-      Time: repository.globals.Time,
-      Random: repository.globals.Random,
-      Mirror: repository.globals.Mirror,
-      Error: repository.globals.Error,
-      Schema: repository.globals.Schema,
-      Prompt: repository.globals.Prompt,
-      Session: repository.globals.Session,
-      Data: repository.globals.Data,
-      HttpRouter: repository.globals.HttpRouter,
-      ai: repository.globals.ai,
-      http: repository.globals.http,
-      modules: Construct.namespace(moduleEntries, repository.classes.Namespace),
-      classes: this.classesObject(env, repository),
-      test: repository.modules["cosm/test"],
-      version: Construct.string(version),
-    }, repository.classes.Namespace);
-  }
-
   static renderTemplateSource(source: string, context: CosmValue | undefined, body: CosmValue | undefined, hooks: RootHooks): CosmValue {
     const env = this.createTemplateEnv(context, body, hooks);
     let output = "";
