@@ -1,17 +1,13 @@
 require("support/models.cosm")
+require("agent/config.cosm")
 
-let SlackThreadRecord = Data.model("SlackThreadRecord", {
+let AgentThreadRecord = Data.model("AgentThreadRecord", {
   conversation: models.Conversation,
   processedEvents: Data.array(Data.string())
 })
 
 def storageDir()
-  let configured = Process.env("COSM_SLACK_DIR")
-  if configured == false then
-    "var/slack/threads"
-  else
-    configured
-  end
+  config.slackStorageDir()
 end
 
 def readyProbePath()
@@ -19,34 +15,7 @@ def readyProbePath()
 end
 
 def recordPath(key)
-  storageDir() + "/" + Kernel.hmacSha256("cosm-slack-store", key) + ".json"
-end
-
-def conversationKey(channel, thread)
-  channel + ":" + thread
-end
-
-def sessionName(key)
-  "slack-" + key
-end
-
-def conversationForInbound(inbound)
-  let now = Time.isoNow()
-  let key = conversationKey(inbound.channel, inbound.thread)
-  let value = {
-    key: key,
-    channel: inbound.channel,
-    thread: inbound.thread,
-    messages: [],
-    sessionName: sessionName(key),
-    sessionLength: 0,
-    transcript: false,
-    context: false,
-    createdAt: now,
-    updatedAt: now
-  }
-  models.Conversation.validate(value)
-  value
+  storageDir() + "/" + Kernel.hmacSha256("cosm-agent-store", key) + ".json"
 end
 
 def record(conversation, processedEvents = [])
@@ -54,28 +23,24 @@ def record(conversation, processedEvents = [])
     conversation: conversation,
     processedEvents: processedEvents
   }
-  SlackThreadRecord.validate(value)
+  AgentThreadRecord.validate(value)
   value
 end
 
 def loadRecord(key)
   if Kernel.exists(recordPath(key)) then
     let value = Kernel.parseJson(Kernel.readText(recordPath(key)))
-    SlackThreadRecord.validate(value)
+    AgentThreadRecord.validate(value)
     value
   else
     false
   end
 end
 
-def loadConversation(inbound)
-  let key = conversationKey(inbound.channel, inbound.thread)
-  let loaded = loadRecord(key)
-  if loaded == false then
-    conversationForInbound(inbound)
-  else
-    loaded.conversation
-  end
+def saveRecord(key, value)
+  AgentThreadRecord.validate(value)
+  Kernel.writeText(recordPath(key), Kernel.json(value))
+  value
 end
 
 def saveConversation(conversation)
@@ -83,12 +48,11 @@ def saveConversation(conversation)
   let loaded = loadRecord(key)
   let processed = if loaded == false then [] else loaded.processedEvents end
   let value = record(conversation, processed)
-  Kernel.writeText(recordPath(key), Kernel.json(value))
-  value
+  saveRecord(key, value)
 end
 
-def processed(inbound, eventKey)
-  let loaded = loadRecord(conversationKey(inbound.channel, inbound.thread))
+def processed(key, eventKey)
+  let loaded = loadRecord(key)
   if loaded == false then
     false
   else
@@ -112,13 +76,7 @@ def markProcessed(conversation, eventKey)
   let loaded = loadRecord(conversation.key)
   let processed = nextProcessedEvents(loaded, eventKey)
   let value = record(conversation, processed)
-  Kernel.writeText(recordPath(conversation.key), Kernel.json(value))
-  value
-end
-
-def resetConversation(inbound)
-  let fresh = conversationForInbound(inbound)
-  saveConversation(fresh).conversation
+  saveRecord(conversation.key, value)
 end
 
 def writable()

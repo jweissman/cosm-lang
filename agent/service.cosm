@@ -1,4 +1,5 @@
 require("agent/slack.cosm")
+require("agent/runtime.cosm")
 
 class AgentService
   def init(router)
@@ -29,6 +30,10 @@ class AgentService
 
         get "/status" do |req|
           slack.status(req)
+        end
+
+        get "/agent/status" do |req|
+          HttpResponse.json({ ok: true, path: req.path, agent: runtime.status() }, 200)
         end
 
         post "/slack/events" do |req|

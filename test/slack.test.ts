@@ -9,11 +9,16 @@ import { CosmAiValue } from "../src/values/CosmAiValue";
 import { CosmHttpValue } from "../src/values/CosmHttpValue";
 import { dispatchService } from "./support/request_spec";
 
-const originalSigningSecret = process.env.COSM_SLACK_SIGNING_SECRET;
-const originalBotToken = process.env.COSM_SLACK_BOT_TOKEN;
+const originalSigningSecret = process.env.SLACK_SIGNING_SECRET;
+const originalBotToken = process.env.SLACK_BOT_TOKEN;
+const originalLegacySigningSecret = process.env.COSM_SLACK_SIGNING_SECRET;
+const originalLegacyBotToken = process.env.COSM_SLACK_BOT_TOKEN;
 const originalSlackInline = process.env.COSM_SLACK_INLINE_SESSION;
-const originalSlackDir = process.env.COSM_SLACK_DIR;
-const originalSlackApiUrl = process.env.COSM_SLACK_API_URL;
+const originalAgentInline = process.env.AGENT_INLINE_SESSION;
+const originalSlackDir = process.env.SLACK_STORAGE_DIR;
+const originalLegacySlackDir = process.env.COSM_SLACK_DIR;
+const originalSlackApiUrl = process.env.SLACK_API_URL;
+const originalLegacySlackApiUrl = process.env.COSM_SLACK_API_URL;
 const originalHttpHooks = CosmHttpValue.currentRuntimeHooks();
 
 const serviceSource = `
@@ -64,11 +69,16 @@ function installSlackApiHook(responseFactory?: (call: SlackCall) => { status: nu
 }
 
 afterEach(() => {
-  process.env.COSM_SLACK_SIGNING_SECRET = originalSigningSecret;
-  process.env.COSM_SLACK_BOT_TOKEN = originalBotToken;
+  process.env.SLACK_SIGNING_SECRET = originalSigningSecret;
+  process.env.SLACK_BOT_TOKEN = originalBotToken;
+  process.env.COSM_SLACK_SIGNING_SECRET = originalLegacySigningSecret;
+  process.env.COSM_SLACK_BOT_TOKEN = originalLegacyBotToken;
   process.env.COSM_SLACK_INLINE_SESSION = originalSlackInline;
-  process.env.COSM_SLACK_DIR = originalSlackDir;
-  process.env.COSM_SLACK_API_URL = originalSlackApiUrl;
+  process.env.AGENT_INLINE_SESSION = originalAgentInline;
+  process.env.SLACK_STORAGE_DIR = originalSlackDir;
+  process.env.COSM_SLACK_DIR = originalLegacySlackDir;
+  process.env.SLACK_API_URL = originalSlackApiUrl;
+  process.env.COSM_SLACK_API_URL = originalLegacySlackApiUrl;
   CosmHttpValue.installRuntimeHooks({
     invoke: originalHttpHooks.invoke!,
     lookupMethod: originalHttpHooks.lookupMethod!,
@@ -83,14 +93,26 @@ afterEach(() => {
   });
 });
 
-function withSlackEnv() {
+function withSlackEnv(useLegacyOnly = false) {
+  if (useLegacyOnly) {
+    delete process.env.SLACK_SIGNING_SECRET;
+    delete process.env.SLACK_BOT_TOKEN;
+    delete process.env.SLACK_STORAGE_DIR;
+    delete process.env.SLACK_API_URL;
+  } else {
+    process.env.SLACK_SIGNING_SECRET = "signing-secret";
+    process.env.SLACK_BOT_TOKEN = "xoxb-test";
+  }
   process.env.COSM_SLACK_SIGNING_SECRET = "signing-secret";
   process.env.COSM_SLACK_BOT_TOKEN = "xoxb-test";
   process.env.COSM_SLACK_INLINE_SESSION = "1";
-  process.env.COSM_SLACK_DIR = mkdtempSync(join(tmpdir(), "cosm-slack-"));
+  process.env.AGENT_INLINE_SESSION = "1";
+  const dir = mkdtempSync(join(tmpdir(), "cosm-slack-"));
+  process.env.SLACK_STORAGE_DIR = dir;
+  process.env.COSM_SLACK_DIR = dir;
   return () => {
-    if (process.env.COSM_SLACK_DIR) {
-      rmSync(process.env.COSM_SLACK_DIR, { recursive: true, force: true });
+    if (dir) {
+      rmSync(dir, { recursive: true, force: true });
     }
   };
 }
@@ -100,7 +122,7 @@ function dispatchSlack(body: string, timestamp: string) {
     body,
     headers: {
       "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signBody(body, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
+      "x-slack-signature": signBody(body, process.env.SLACK_SIGNING_SECRET ?? process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
     },
   });
 }
@@ -108,6 +130,7 @@ function dispatchSlack(body: string, timestamp: string) {
 test("slack dm ingress verifies, reuses a session, and posts a structured reply through the separate agent service", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
@@ -184,6 +207,7 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply 
 test("slack service shapes AI failures into a human-readable fallback reply", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
@@ -221,6 +245,7 @@ test("slack service shapes AI failures into a human-readable fallback reply", as
 test("slack service dedupes duplicate deliveries persistently", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
@@ -263,6 +288,7 @@ test("slack service dedupes duplicate deliveries persistently", async () => {
 test("slack service ignores bot and non-dm events", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   const timestamp = String(Math.floor(Date.now() / 1000));
@@ -292,6 +318,7 @@ test("slack service ignores bot and non-dm events", async () => {
 test("slack service reset clears only the current thread state", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
@@ -355,6 +382,7 @@ test("slack service reset clears only the current thread state", async () => {
 test("slack service exposes readiness and status surfaces", async () => {
   const cleanup = withSlackEnv();
   const slackApi = installSlackApiHook();
+  process.env.SLACK_API_URL = slackApi.url;
   process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
@@ -369,6 +397,7 @@ test("slack service exposes readiness and status surfaces", async () => {
     path: "/ready",
     slack: { signingSecret: true, botToken: true, storageWritable: true },
     ai: { configured: true, health: true },
+    agent: { name: "iapetus", mode: "single-turn" },
   });
 
   const status = dispatchService(serviceSource, "GET", "/status");
@@ -376,7 +405,46 @@ test("slack service exposes readiness and status surfaces", async () => {
   expect(JSON.parse(String(ValueAdapter.cosmToJS(status.nativeProperty?.("body"))))).toMatchObject({
     ok: true,
     path: "/status",
+    slack: { transport: "slack", dmOnly: true },
+    agent: { name: "iapetus", mode: "single-turn" },
   });
+
+  slackApi.stop();
+  cleanup();
+});
+
+test("slack service still accepts legacy COSM_* env aliases", async () => {
+  const cleanup = withSlackEnv(true);
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
+
+  CosmAiValue.installRuntimeHooks({
+    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+      shouldReply: true,
+      text: "legacy alias reply",
+      rationale: "mocked",
+      toolCalls: false,
+      toolResults: false,
+    })),
+  });
+
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const body = JSON.stringify({
+    type: "event_callback",
+    event_id: "Ev-legacy",
+    event: {
+      type: "message",
+      channel_type: "im",
+      channel: "D321",
+      user: "U321",
+      text: "hello from legacy",
+      ts: "1710000030.000001",
+    },
+  });
+
+  const response = dispatchSlack(body, timestamp);
+  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
+  expect(slackApi.calls).toHaveLength(1);
 
   slackApi.stop();
   cleanup();

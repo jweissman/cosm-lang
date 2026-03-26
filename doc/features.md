@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.9
+## Current Release Target: 0.3.13.10
 
-`0.3.13.9` is now best read as a PL-core hardening slice with a separate durable Slack DM service on top of the persistent notebook and OO cleanup work:
+`0.3.13.10` is now best read as a PL-core hardening slice with a separate durable Slack DM service on top of the persistent notebook and OO cleanup work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -36,6 +36,8 @@
 - ship a tiny DM-first Slack service with durable local per-thread memory while keeping broader agent/runtime ambitions narrow
 - keep a pure Cosm CLI chatbot as the canonical proving surface, with the Slack service reusing the same support core
 - remove the Slack-specific runtime root in favor of generic host primitives like `http.request(...)` and `Kernel.hmacSha256(...)`
+- add a real Cosm-owned agent runtime so Slack stays a transport adapter instead of the control plane
+- add a one-shot DM smoke command for install and outbound-path testing
 - add small CLI ergonomics through `cosm --version` and `cosm -e '<source>'`
 
 For `0.3.12.x`, the callable boundary still stays intentionally narrow:
@@ -110,7 +112,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.13.9 Definition Of Done
+## v0.3.13.10 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
@@ -118,6 +120,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - `Session` is an explicit runtime object instead of hidden notebook eval state.
 - `Session.default()` runs through a worker-backed isolation boundary with timeout/error wrapping for notebook/service eval.
 - `cosm.ai.config()` / `status()` plus LM Studio defaults make the explicit AI surface locally usable.
+- the agent runtime is explicit and transport-agnostic enough that Slack no longer owns conversation/session mutation logic
 - `Data` and `Data.Model` make schema-backed data contracts ergonomic enough to use directly in notebook/app code.
 - `cosm/ai.cosm` proves that a real helper layer can now live in Cosm on top of the TS host boundary.
 - `methods()` works on ordinary receivers as a symbol-list view of the same visible callable surface that runtime dispatch can actually invoke.
@@ -130,6 +133,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
 - The separate Slack service entrypoint (`agent/service.cosm` plus `agent/server.cosm`) stays narrow, DM-only, and durable before reaching for tools or staged agent behavior.
+- A tiny one-shot DM smoke command exists so install testing is faster than replaying whole Slack deliveries by hand.
 
 ## Explicitly Not In v0.3.12.x
 

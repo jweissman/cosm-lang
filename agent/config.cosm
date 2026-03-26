@@ -1,0 +1,56 @@
+def env(primary, legacy = false)
+  let current = Process.env(primary)
+  if current != false then
+    current
+  else
+    if legacy == false then
+      false
+    else
+      Process.env(legacy)
+    end
+  end
+end
+
+def slackSigningSecret()
+  env("SLACK_SIGNING_SECRET", "COSM_SLACK_SIGNING_SECRET")
+end
+
+def slackBotToken()
+  env("SLACK_BOT_TOKEN", "COSM_SLACK_BOT_TOKEN")
+end
+
+def slackApiUrl()
+  let configured = env("SLACK_API_URL", "COSM_SLACK_API_URL")
+  if configured == false then
+    "https://slack.com/api/chat.postMessage"
+  else
+    configured
+  end
+end
+
+def slackStorageDir()
+  let configured = env("SLACK_STORAGE_DIR", "COSM_SLACK_DIR")
+  if configured == false then
+    "var/slack/threads"
+  else
+    configured
+  end
+end
+
+def agentPort()
+  let configured = env("AGENT_PORT", "COSM_AGENT_PORT")
+  if configured == false then
+    12456
+  else
+    configured.to_i()
+  end
+end
+
+def slackConfigStatus()
+  {
+    signingSecret: slackSigningSecret() != false,
+    botToken: slackBotToken() != false,
+    apiUrl: slackApiUrl(),
+    storageDir: slackStorageDir()
+  }
+end

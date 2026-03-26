@@ -1,0 +1,166 @@
+require("support/controller.cosm")
+require("support/models.cosm")
+require("agent/store.cosm")
+
+let AgentTurn = Data.model("AgentTurn", {
+  conversation: models.Conversation,
+  inbound: models.InboundMessage,
+  reply: models.AgentReply,
+  command: Data.optional(Data.string())
+})
+
+def identity()
+  {
+    name: "iapetus",
+    mode: "single-turn",
+    control: "cosm",
+    sessionPrefix: "agent:",
+    persistence: "file-backed-thread"
+  }
+end
+
+def conversationKey(channel, thread)
+  channel + ":" + thread
+end
+
+def sessionName(key)
+  identity().sessionPrefix + key
+end
+
+def conversationForInbound(inbound, transcript = false, context = false)
+  let now = Time.isoNow()
+  let key = conversationKey(inbound.channel, inbound.thread)
+  let value = {
+    key: key,
+    channel: inbound.channel,
+    thread: inbound.thread,
+    messages: [],
+    sessionName: sessionName(key),
+    sessionLength: 0,
+    transcript: transcript,
+    context: context,
+    createdAt: now,
+    updatedAt: now
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def loadConversation(inbound, transcript = false, context = false)
+  let key = conversationKey(inbound.channel, inbound.thread)
+  let loaded = store.loadRecord(key)
+  if loaded == false then
+    conversationForInbound(inbound, transcript, context)
+  else
+    loaded.conversation
+  end
+end
+
+def saveConversation(conversation)
+  store.saveConversation(conversation).conversation
+end
+
+def processed(inbound, eventKey)
+  store.processed(conversationKey(inbound.channel, inbound.thread), eventKey)
+end
+
+def markProcessed(conversation, eventKey)
+  store.markProcessed(conversation, eventKey)
+end
+
+def resetConversation(inbound, transcript = false, context = false)
+  let fresh = conversationForInbound(inbound, transcript, context)
+  saveConversation(fresh)
+end
+
+def commandName(text)
+  if text == "help" || text == "/help" then
+    "help"
+  else
+    if text == "reset" || text == "/reset" then
+      "reset"
+    else
+      if text == "status" || text == "/status" then
+        "status"
+      else
+        false
+      end
+    end
+  end
+end
+
+def fromCommand(conversation, inbound, command)
+  if command == "reset" then
+    let fresh = conversationForInbound(inbound, conversation.transcript, conversation.context)
+    Session.named(fresh.sessionName).reset()
+    let reply = controller.commandReply(fresh, command)
+    let value = {
+      conversation: fresh,
+      inbound: inbound,
+      reply: reply,
+      command: command
+    }
+    AgentTurn.validate(value)
+    value
+  else
+    let reply = controller.commandReply(conversation, command)
+    let updated = controller.nextConversation(conversation, inbound, reply)
+    let value = {
+      conversation: updated,
+      inbound: inbound,
+      reply: reply,
+      command: command
+    }
+    AgentTurn.validate(value)
+    value
+  end
+end
+
+def fromControllerTurn(conversation, inbound)
+  let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
+  let turn = if outcome.ok then
+    outcome.value
+  else
+    let fallback = controller.fallback(conversation, inbound, outcome.error.message)
+    {
+      conversation: controller.nextConversation(conversation, inbound, fallback),
+      inbound: inbound,
+      reply: fallback
+    }
+  end
+  let value = {
+    conversation: turn.conversation,
+    inbound: inbound,
+    reply: turn.reply,
+    command: false
+  }
+  AgentTurn.validate(value)
+  value
+end
+
+def executeTurn(conversation, inbound)
+  let command = commandName(inbound.text)
+  if command == false then
+    fromControllerTurn(conversation, inbound)
+  else
+    fromCommand(conversation, inbound, command)
+  end
+end
+
+def executeStoredTurn(inbound, transcript = false, context = false)
+  let conversation = loadConversation(inbound, transcript, context)
+  let turn = executeTurn(conversation, inbound)
+  let saved = saveConversation(turn.conversation)
+  let value = {
+    conversation: saved,
+    inbound: turn.inbound,
+    reply: turn.reply,
+    command: turn.command
+  }
+  AgentTurn.validate(value)
+  value
+end
+
+def status()
+  identity()
+end

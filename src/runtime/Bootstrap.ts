@@ -134,7 +134,9 @@ export class Bootstrap {
         evalInEnv: (source, env) => runtime.evalInEnv(source, env),
         inspectValue: (value, env) => runtime.inspectValue(value, env),
         createEnv: () => runtime.createSessionEnv(),
-        inline: name === "example" || (name.startsWith("slack-") && process.env.COSM_SLACK_INLINE_SESSION === "1"),
+        inline: name === "example"
+          || ((name.startsWith("slack-") || name.startsWith("agent:"))
+            && (process.env.AGENT_INLINE_SESSION === "1" || process.env.COSM_SLACK_INLINE_SESSION === "1")),
       }),
       defaultSession: () => runtime.defaultSession() as CosmSessionValue,
       namedSession: (name) => {

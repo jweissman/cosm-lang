@@ -1,0 +1,50 @@
+require("agent/config.cosm")
+
+def postMessage(target, text, thread = false)
+  let botToken = config.slackBotToken()
+  if botToken == false then
+    { ok: false, error: "Slack bot token is not configured" }
+  else
+    let payload = if thread == false then
+      {
+        channel: target,
+        text: text
+      }
+    else
+      {
+        channel: target,
+        text: text,
+        thread_ts: thread
+      }
+    end
+    let request = Kernel.try(->() {
+      http.request("POST", config.slackApiUrl(), {
+        headers: Kernel.parseJson("{\"authorization\":\"Bearer " + botToken + "\",\"content-type\":\"application/json; charset=utf-8\"}"),
+        body: Kernel.json(payload)
+      })
+    })
+    if request.ok == false then
+      { ok: false, error: request.error.message }
+    else
+      let parsed = Kernel.try(->() { Kernel.parseJson(request.value.body) })
+      if parsed.ok == false then
+        { ok: false, error: "Slack API returned invalid JSON" }
+      else
+        if parsed.value.ok == true then
+          let channelValue = Kernel.try(->() { parsed.value.channel })
+          let tsValue = Kernel.try(->() { parsed.value.ts })
+          {
+            ok: true,
+            status: request.value.status,
+            channel: if channelValue.ok then channelValue.value else target end,
+            ts: if tsValue.ok then tsValue.value else false end,
+            body: parsed.value
+          }
+        else
+          let errorValue = Kernel.try(->() { parsed.value.error })
+          { ok: false, error: if errorValue.ok then errorValue.value else "unknown_error" end }
+        end
+      end
+    end
+  end
+end

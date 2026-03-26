@@ -74,6 +74,7 @@ This patch line is about hardening, not breadth:
 - a slightly richer Enumerable-style authoring surface
 - a tiny page-backed assistant wedge
 - a durable DM-first Slack assistant service with explicit per-thread local memory
+- a small transport-agnostic agent runtime so future tools and transports do not start life inside the Slack transport layer
 - more Cosm-authored support and harness code
 
 Explicitly not the goal of `0.3.13.x`:

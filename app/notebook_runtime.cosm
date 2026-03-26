@@ -1,6 +1,7 @@
 require("app/notebook_store.cosm")
 require("support/controller.cosm")
 require("cosm/workflow.cosm")
+require("agent/runtime.cosm")
 
 def sessionName(page)
   "notebook-page:" + page.id
@@ -108,16 +109,9 @@ end
 
 def agentTurn(page, message)
   let inbound = controller.pageInbound(page.agentKey, message)
-  let outcome = Kernel.try(->() { controller.turn(attachedConversation(page), inbound) })
-  if outcome.ok then
-    let savedPage = notebook_store.saveTranscript(page, outcome.value.conversation.transcript)
-    { page: savedPage, reply: outcome.value.reply }
-  else
-    let fallback = controller.fallback(attachedConversation(page), inbound, outcome.error.message)
-    let recovered = controller.nextConversation(attachedConversation(page), inbound, fallback)
-    let savedPage = notebook_store.saveTranscript(page, recovered.transcript)
-    { page: savedPage, reply: fallback }
-  end
+  let turn = runtime.executeTurn(attachedConversation(page), inbound)
+  let savedPage = notebook_store.saveTranscript(page, turn.conversation.transcript)
+  { page: savedPage, reply: turn.reply }
 end
 
 def resetAgent(page)

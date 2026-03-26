@@ -1,0 +1,43 @@
+require("agent/slack_client.cosm")
+
+def usage()
+  "Usage: bun bin/cosm agent/send_dm.cosm <target> <text>"
+end
+
+def send(target, text)
+  slack_client.postMessage(target, text)
+end
+
+def argsFrom(argv)
+  let text = argv.reduce(false, ->(_acc, entry) { entry })
+  let target = argv.take(argv.length - 1).reduce(false, ->(_acc, entry) { entry })
+  if target == false || text == false || target == text then
+    false
+  else
+    {
+      target: target,
+      text: text
+    }
+  end
+end
+
+def run(argv = false)
+  let args = if argv == false then Process.argv() else argv end
+  let parsed = argsFrom(args)
+  if parsed == false then
+    warn(usage())
+    Process.exit(1)
+  else
+    let result = send(parsed.target, parsed.text)
+    if result.ok then
+      let tsText = if result.ts == false then "(none)" else result.ts end
+      puts("ok")
+      puts("channel: " + result.channel)
+      puts("ts: " + tsText)
+      result
+    else
+      warn("slack dm failed: " + result.error)
+      Process.exit(1)
+    end
+  end
+end
