@@ -35,6 +35,14 @@ export class InterpreterClassRuntime {
     const slots = this.collectClassSlots(ast.value, methods, superclass);
     const metaclass = Bootstrap.createMetaclass(ast.value, superclass.classRef ?? hooks.repository.classes.Class, classMethods, hooks.repository.classes.Class);
     const classValue = Construct.class(ast.value, superclass.name, slots, methods, classMethods, superclass, metaclass);
+    for (const method of Object.values(classValue.methods)) {
+      method.declaringOwner = classValue;
+      method.declaringOwnerToken = `class:${classValue.name}`;
+    }
+    for (const method of Object.values(classValue.classMethods)) {
+      method.declaringOwner = metaclass;
+      method.declaringOwnerToken = `class:${metaclass.name}`;
+    }
     env.bindings[ast.value] = classValue;
     return classValue;
   }
@@ -101,7 +109,7 @@ export class InterpreterClassRuntime {
     }
 
     const ownArgs = args.slice(inheritedSlotCount);
-    hooks.invokeFunction(initMethod, ownArgs, instance);
+    hooks.invokeFunction(Construct.method("init", instance, initMethod, initMethod.declaringOwnerToken), ownArgs, instance);
   }
 
   private static resolveInitializerArgs(classValue: CosmClass, args: CosmValue[]): CosmValue[] {

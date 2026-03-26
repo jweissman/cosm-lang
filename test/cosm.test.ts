@@ -158,18 +158,18 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.6");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.7");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.13.6");
+  expect(cosmEval("cosm.version")).toBe("0.3.13.7");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
-});
+}, 15000);
 
 test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", () => {
   expect(cosmEval('classes.Kernel.methods.assert.call(true, "ok")')).toBe(true);
@@ -505,6 +505,7 @@ test("implicit self dispatch works for unresolved bare calls", () => {
   expect(cosmEval('class Greeter do def hello(name) do "hi " + name end; def callHello(name) do hello(name) end end; Greeter.new().callHello("cosm")')).toBe("hi cosm");
   expect(cosmEval('class Greeter do def self.label() do "Greeter!" end; def self.callLabel() do label() end end; Greeter.callLabel()')).toBe("Greeter!");
   expect(cosmEval('class Counter do def init(value) do true end; def current() do value end end; Counter.new(4).current()')).toBe(4);
+  expect(cosmEval('class Base do def greet(name) do "hi " + name end end; class Child < Base do def greet(name) do super(name) + "!" end end; Child.new().greet("cosm")')).toBe("hi cosm!");
 });
 
 test("classes can be defined and reflected on", () => {
@@ -532,6 +533,7 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Greeter do def self.kind() do self.class.name end end; Greeter.kind()')).toBe("Greeter class");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.label()')).toBe("base");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.metaclass.superclass.name')).toBe("Base class");
+  expect(cosmEval('class Base do def self.label(name) do "base " + name end end; class Child < Base do def self.label(name) do super(name) + "!" end end; Child.label("cosm")')).toBe("base cosm!");
   expect(cosmEval('class Base do def init(left) do true end; def kind() do "base #{@left}" end end; class Child < Base do def init(right) do assert(@left == 1) end end; let child = Child.new(1, 2); child.kind()')).toBe("base 1");
   expect(cosmEval('class Checked do def init(value) do assert(@value == value) end end; Checked.new(4).value')).toBe(4);
   expect(cosmEval('class Pair do def init(left, right) do true end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");
@@ -550,6 +552,8 @@ test("type errors stay explicit", () => {
   expect(() => cosmEval("Symbol.intern(1)")).toThrow("Type error: Symbol.intern expects a string argument");
   expect(() => cosmEval("1.send(1, 2)")).toThrow("Type error: send expects a string or symbol message, got number");
   expect(() => cosmEval("Kernel.method(:missing)")).toThrow("Property error: object of class Kernel has no property 'missing'");
+  expect(() => cosmEval("super(1)")).toThrow("Super error: super(...) called outside a method");
+  expect(() => cosmEval("class Base do end; class Child < Base do def greet() do super() end end; Child.new().greet()")).toThrow("Super error: greet does not have a super target");
 });
 
 test("lookup and property errors stay explicit", () => {

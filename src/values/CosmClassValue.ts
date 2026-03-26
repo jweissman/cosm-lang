@@ -88,6 +88,38 @@ export class CosmClassValue extends CosmValueBase {
 
   readonly includedModules: CosmModuleValue[] = [];
 
+  private moduleToken(moduleValue: CosmModuleValue, index: number): string {
+    return `include:${this.name}:${index}:${moduleValue.moduleName}`;
+  }
+
+  private localMethodEntries(): Array<{ owner: CosmClassValue; token: string; method: CosmFunctionValue }> {
+    return Object.values(this.methods).map((method) => ({
+      owner: this,
+      token: `class:${this.name}`,
+      method,
+    }));
+  }
+
+  private includedMethodEntries(): Array<{ owner: CosmModuleValue; token: string; method: CosmFunctionValue }> {
+    const entries: Array<{ owner: CosmModuleValue; token: string; method: CosmFunctionValue }> = [];
+    for (let index = this.includedModules.length - 1; index >= 0; index -= 1) {
+      const moduleValue = this.includedModules[index];
+      const token = this.moduleToken(moduleValue, index);
+      for (const method of Object.values(this.moduleFunctionEntries(moduleValue))) {
+        entries.push({ owner: moduleValue, token, method });
+      }
+    }
+    return entries;
+  }
+
+  instanceMethodEntries(): Array<{ owner: CosmClassValue | CosmModuleValue; token: string; method: CosmFunctionValue }> {
+    return [
+      ...this.localMethodEntries(),
+      ...this.includedMethodEntries(),
+      ...(this.superclass instanceof CosmClassValue ? this.superclass.instanceMethodEntries() : []),
+    ];
+  }
+
   includeModule(moduleValue: CosmModuleValue): void {
     const existingIndex = this.includedModules.findIndex((candidate) => candidate.moduleName === moduleValue.moduleName);
     if (existingIndex >= 0) {
@@ -97,22 +129,32 @@ export class CosmClassValue extends CosmValueBase {
   }
 
   visibleInstanceMethods(): Record<string, CosmFunctionValue> {
-    const visible = this.superclass ? this.superclass.visibleInstanceMethods() : {};
-    for (const moduleValue of this.includedModules) {
-      Object.assign(visible, this.moduleFunctionEntries(moduleValue));
+    const visible: Record<string, CosmFunctionValue> = {};
+    for (const entry of this.instanceMethodEntries()) {
+      if (!Object.hasOwn(visible, entry.method.name)) {
+        visible[entry.method.name] = entry.method;
+      }
     }
-    return {
-      ...visible,
-      ...this.methods,
-    };
+    return visible;
   }
 
-  private lookupIncludedMethod(name: string): CosmFunctionValue | undefined {
-    for (let index = this.includedModules.length - 1; index >= 0; index -= 1) {
-      const candidate = this.moduleFunctionEntries(this.includedModules[index])[name];
-      if (candidate) {
-        return candidate;
+  lookupInstanceMethodEntry(name: string): { owner: CosmClassValue | CosmModuleValue; token: string; method: CosmFunctionValue } | undefined {
+    return this.instanceMethodEntries().find((entry) => entry.method.name === name);
+  }
+
+  lookupNextInstanceMethodEntry(afterOwnerToken: string, name: string): { owner: CosmClassValue | CosmModuleValue; token: string; method: CosmFunctionValue } | undefined {
+    let foundCurrent = false;
+    for (const entry of this.instanceMethodEntries()) {
+      if (entry.method.name !== name) {
+        continue;
       }
+      if (!foundCurrent) {
+        if (entry.token === afterOwnerToken) {
+          foundCurrent = true;
+        }
+        continue;
+      }
+      return entry;
     }
     return undefined;
   }
@@ -124,19 +166,15 @@ export class CosmClassValue extends CosmValueBase {
   }
 
   lookupInstanceMethod(name: string): CosmFunctionValue | undefined {
-    const method = this.methods[name];
-    if (method) {
-      return method;
-    }
-    const includedMethod = this.lookupIncludedMethod(name);
-    if (includedMethod) {
-      return includedMethod;
-    }
-    return this.superclass?.lookupInstanceMethod(name);
+    return this.lookupInstanceMethodEntry(name)?.method;
+  }
+
+  lookupClassSideMethodEntry(name: string): { owner: CosmClassValue | CosmModuleValue; token: string; method: CosmFunctionValue } | undefined {
+    return this.classRef instanceof CosmClassValue ? this.classRef.lookupInstanceMethodEntry(name) : undefined;
   }
 
   lookupClassSideMethod(name: string): CosmFunctionValue | undefined {
-    return this.classRef?.lookupInstanceMethod(name);
+    return this.lookupClassSideMethodEntry(name)?.method;
   }
 
   override nativeProperty(name: string): CosmValue | undefined {

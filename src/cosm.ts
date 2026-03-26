@@ -94,6 +94,8 @@ namespace Cosm {
           return this.evalCall(ast, env);
         case 'yield':
           return this.evalYield(ast, env);
+        case 'super':
+          return this.evalSuper(ast, env);
         case 'add':
           return InterpreterOperators.evalAdd(ast, env, this.operatorHooks());
         case 'subtract': {
@@ -337,6 +339,7 @@ namespace Cosm {
         lookupName: (name, scope) => this.lookupName(name, scope),
         createEnv: (parent, options) => this.createEnv(parent, options),
         send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+        classOf: (value) => this.classOf(value),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
         repository: this.repo(),
       });
@@ -349,6 +352,20 @@ namespace Cosm {
         lookupName: (name, scope) => this.lookupName(name, scope),
         createEnv: (parent, options) => this.createEnv(parent, options),
         send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+        classOf: (value) => this.classOf(value),
+        withFrame: (frame, fn) => this.withFrame(frame, fn),
+        repository: this.repo(),
+      });
+    }
+
+    private static evalSuper(ast: CoreNode, env: Env): CosmValue {
+      return InterpreterInvoke.evalSuper(ast, env, {
+        evalNode: (node, scope) => this.evalNode(node, scope),
+        expectChild: (node, op) => this.expectChild(node, op),
+        lookupName: (name, scope) => this.lookupName(name, scope),
+        createEnv: (parent, options) => this.createEnv(parent, options),
+        send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
+        classOf: (value) => this.classOf(value),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
         repository: this.repo(),
       });
@@ -365,6 +382,7 @@ namespace Cosm {
         lookupName: (name, scope) => this.lookupName(name, scope),
         createEnv: (parent, options) => this.createEnv(parent, options),
         send: (receiver, message, invokeArgs, scope) => this.send(receiver, message, invokeArgs, scope),
+        classOf: (value) => this.classOf(value),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
         repository: this.repo(),
       });
@@ -490,6 +508,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.6";
+    export const version = "0.3.13.7";
 }
 export default Cosm;

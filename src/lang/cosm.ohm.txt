@@ -119,6 +119,7 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
+    | kw_super "(" CallArgs? ")"  -- super
     | kw_yield "(" CallArgs? ")"  -- yield
     | kw_do StatementList kw_end  -- block
     | "->" "(" ParamList? ")" "{" StatementList "}"  -- lambda
@@ -251,6 +252,7 @@ Cosm {
   kw_let = "let" ~alnum
   kw_require = "require" ~alnum
   kw_self = "self" ~alnum
+  kw_super = "super" ~alnum
   kw_then = "then" ~alnum
   kw_true = "true" ~alnum
   kw_yield = "yield" ~alnum
@@ -269,6 +271,7 @@ Cosm {
     | kw_let
     | kw_require
     | kw_self
+    | kw_super
     | kw_then
     | kw_true
     | kw_yield

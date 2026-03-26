@@ -37,7 +37,8 @@ export class CosmMethodValue extends CosmValueBase {
   constructor(
     public readonly name: string,
     public readonly receiver: CosmValue,
-    public readonly target: CosmFunctionValue
+    public readonly target: CosmFunctionValue,
+    public readonly ownerToken?: string,
   ) {
     super();
   }

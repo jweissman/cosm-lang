@@ -56,7 +56,8 @@ export type CoreNodeKind =
   | 'gte'
   | 'access'
   | 'call'
-  | 'yield';
+  | 'yield'
+  | 'super';
 
 export type CoreNode = {
   kind: CoreNodeKind;
@@ -74,6 +75,10 @@ export type CosmEnv = {
   parent?: CosmEnv,
   allowTopLevelRebinds?: boolean,
   currentBlock?: CosmValue,
+  currentMethodContext?: {
+    name: string,
+    ownerToken: string,
+  },
 };
 
 export type IrInstruction =
@@ -176,7 +181,8 @@ export type SurfaceNodeKind =
   | 'gte'
   | 'access'
   | 'call'
-  | 'yield';
+  | 'yield'
+  | 'super';
 
 export type SurfaceNode = {
   kind: SurfaceNodeKind;

@@ -37,12 +37,33 @@ class InheritedPair < Pair
 end;
 assert(InheritedPair.new(1, 2).method(:label).name == "label", "receiver-side reflection can still look up inherited methods directly");
 
+class LoudPair < Pair
+  def label() do
+    super() + "!"
+  end
+end;
+assert(LoudPair.new(1, 2).label() == "1:2!", "instance methods can call super with explicit args");
+
 require("support/label_mixin.cosm");
 class MixinGreeter do end;
 MixinGreeter.include(label_mixin);
 assert(MixinGreeter.new().label() == "label-from-mixin", "classes can include module-backed instance behavior");
 assert(MixinGreeter.new().method(:label).name == "label", "receiver reflection includes mixed-in methods");
 assert(MixinGreeter.methods.get(:label).name == "label", "class-table reflection includes mixed-in methods");
+
+class BaseMixer do
+  def label() do
+    "base"
+  end
+end;
+
+class ChildMixer < BaseMixer
+  def label() do
+    super() + "!"
+  end
+end;
+ChildMixer.include(label_mixin);
+assert(ChildMixer.new().label() == "label-from-mixin!", "super follows local then mixin then superclass lookup order");
 
 class Checked do
   def init(value) do
@@ -83,6 +104,13 @@ assert(Greeter.label() == "Greeter!", "class objects can participate in method s
 assert(Greeter.kind() == "Greeter class", "class-side self.class now reflects through the owning metaclass");
 assert(ChildLabel.metaclass.superclass.name == "BaseLabel class", "user metaclasses inherit through the class hierarchy");
 assert(ChildLabel.label() == "base", "class-side lookup follows the metaclass inheritance chain");
+
+class LoudLabel < BaseLabel
+  def self.label() do
+    super() + "!"
+  end
+end;
+assert(LoudLabel.label() == "base!", "class-side methods can call super through the metaclass chain");
 
 assert({ greeting: "hello" }.greeting == "hello", "hash access works");
 

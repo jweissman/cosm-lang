@@ -2,6 +2,8 @@ import { CosmValue, CoreNode, CosmEnv } from "../types";
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
+import { CosmClassValue } from "./CosmClassValue";
+import { CosmModuleValue } from "./CosmModuleValue";
 
 
 export class CosmFunctionValue extends CosmValueBase {
@@ -38,7 +40,9 @@ export class CosmFunctionValue extends CosmValueBase {
     public readonly params?: string[],
     public readonly defaults?: Record<string, CoreNode>,
     public readonly body?: CoreNode,
-    public readonly env?: CosmEnv
+    public readonly env?: CosmEnv,
+    public declaringOwner?: CosmClassValue | CosmModuleValue,
+    public declaringOwnerToken?: string,
   ) {
     super();
   }

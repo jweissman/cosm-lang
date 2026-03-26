@@ -67,6 +67,7 @@ Current priorities:
 This patch line is about hardening, not breadth:
 
 - interpreter/runtime cleanup
+- stronger OO semantics around inheritance, `super(...)`, mixins, and metaclass chains
 - better message-passing seams
 - explicit AI config vs health semantics
 - honest streaming semantics

@@ -1,4 +1,4 @@
-import { CoreNode, CosmEnv, CosmValue } from "../types";
+import { CoreNode, CosmClass, CosmEnv, CosmValue } from "../types";
 import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
 
 type InvokeHooks = {
@@ -7,6 +7,7 @@ type InvokeHooks = {
   lookupName: (name: string, env: CosmEnv) => CosmValue;
   createEnv: (parent?: CosmEnv, options?: { allowTopLevelRebinds?: boolean }) => CosmEnv;
   send: (receiver: CosmValue, message: string, args: CosmValue[], env?: CosmEnv) => CosmValue;
+  classOf: (value: CosmValue) => CosmClass;
   withFrame: <T>(frame: string, fn: () => T) => T;
   repository: RuntimeRepository;
 };
@@ -29,6 +30,27 @@ export class InterpreterInvoke {
     return hooks.withFrame("yield", () => this.invokeFunction(currentBlock, args, undefined, env, undefined, hooks));
   }
 
+  static evalSuper(ast: CoreNode, env: CosmEnv, hooks: InvokeHooks): CosmValue {
+    const currentMethod = this.findCurrentMethodContext(env);
+    if (!currentMethod) {
+      throw new Error("Super error: super(...) called outside a method");
+    }
+    const selfValue = this.findSelfBinding(env);
+    if (!selfValue) {
+      throw new Error("Super error: super(...) called without self");
+    }
+    const args = (ast.children ?? []).map((child) => hooks.evalNode(child, env));
+    return hooks.withFrame(`super ${currentMethod.name}`, () => {
+      const target = RuntimeDispatch.resolveSuperTarget(
+        selfValue,
+        currentMethod.name,
+        currentMethod.ownerToken,
+        hooks.repository,
+      );
+      return this.invokeFunction(target, args, selfValue, env, undefined, hooks, currentMethod);
+    });
+  }
+
   static invokeFunction(
     callee: CosmValue,
     args: CosmValue[],
@@ -36,11 +58,20 @@ export class InterpreterInvoke {
     env: CosmEnv | undefined,
     currentBlock: CosmValue | undefined,
     hooks: InvokeHooks,
+    methodContext?: { name: string; ownerToken: string },
   ): CosmValue {
     return hooks.withFrame(`invoke ${this.describeCallable(callee, selfValue)}`, () => {
       const activeBlock = currentBlock ?? (env ? this.findCurrentBlock(env) : undefined);
       if (callee.type === "method") {
-        return this.invokeFunction(callee.target, args, callee.receiver, env, activeBlock, hooks);
+        return this.invokeFunction(
+          callee.target,
+          args,
+          callee.receiver,
+          env,
+          activeBlock,
+          hooks,
+          callee.ownerToken ? { name: callee.name, ownerToken: callee.ownerToken } : undefined,
+        );
       }
       if (callee.type !== "function") {
         throw new Error(`Type error: attempted to call a non-function value of type ${callee.type}`);
@@ -53,6 +84,8 @@ export class InterpreterInvoke {
       }
       const callEnv = hooks.createEnv(callee.env);
       callEnv.currentBlock = activeBlock === callee ? this.findOuterBlock(env, activeBlock) : activeBlock;
+      callEnv.currentMethodContext = methodContext
+        ?? (callee.declaringOwnerToken ? { name: callee.name, ownerToken: callee.declaringOwnerToken } : undefined);
       if (selfValue) {
         callEnv.bindings.self = selfValue;
       }
@@ -110,6 +143,15 @@ export class InterpreterInvoke {
     for (let scope: CosmEnv | undefined = env; scope; scope = scope.parent) {
       if (scope.currentBlock) {
         return scope.currentBlock;
+      }
+    }
+    return undefined;
+  }
+
+  static findCurrentMethodContext(env: CosmEnv): { name: string; ownerToken: string } | undefined {
+    for (let scope: CosmEnv | undefined = env; scope; scope = scope.parent) {
+      if (scope.currentMethodContext) {
+        return scope.currentMethodContext;
       }
     }
     return undefined;

@@ -6,15 +6,15 @@ const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(
 
 test("access-call on a class receiver can fall back to the shared send surface", () => {
   expect(cosmEval("Object.methods()")).toEqual([
+    { kind: "symbol", name: "new" },
+    { kind: "symbol", name: "classMethod" },
+    { kind: "symbol", name: "include" },
     { kind: "symbol", name: "eq" },
     { kind: "symbol", name: "method" },
     { kind: "symbol", name: "methods" },
     { kind: "symbol", name: "send" },
     { kind: "symbol", name: "inspect" },
     { kind: "symbol", name: "to_s" },
-    { kind: "symbol", name: "new" },
-    { kind: "symbol", name: "classMethod" },
-    { kind: "symbol", name: "include" },
   ]);
 });
 

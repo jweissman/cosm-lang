@@ -2,6 +2,7 @@ import { Construct } from "../Construct";
 import { CosmClass, CosmFunction, CosmValue, CosmEnv } from "../types";
 import { CosmClassValue } from "../values/CosmClassValue";
 import { CosmFunctionValue } from "../values/CosmFunctionValue";
+import { CosmModuleValue } from "../values/CosmModuleValue";
 import { CosmValueBase } from "../values/CosmValueBase";
 import { RuntimeInspect } from "./RuntimeInspect";
 
@@ -23,9 +24,9 @@ export class RuntimeDispatch {
       return nativeProperty;
     }
 
-    const classMethod = this.lookupMethod(this.classOf(receiver, repository.classes), property);
-    if (classMethod) {
-      return this.bindMethod(receiver, classMethod);
+    const classEntry = this.lookupMethodEntry(this.classOf(receiver, repository.classes), property);
+    if (classEntry) {
+      return this.bindMethod(receiver, classEntry.method, classEntry.token);
     }
 
     const nativeMethod = receiver.nativeMethod(property);
@@ -80,6 +81,10 @@ export class RuntimeDispatch {
     return classValue.lookupInstanceMethod(name);
   }
 
+  static lookupMethodEntry(classValue: CosmClass, name: string): { owner: CosmClassValue | CosmModuleValue; token: string; method: CosmFunctionValue } | undefined {
+    return classValue instanceof CosmClassValue ? classValue.lookupInstanceMethodEntry(name) : undefined;
+  }
+
   static visibleMethodSymbols(receiver: CosmValue, repository: RuntimeRepository): CosmValue {
     return Construct.array(
       this.visibleMethodNames(receiver, repository).map((name) => Construct.symbol(name)),
@@ -104,8 +109,8 @@ export class RuntimeDispatch {
     return { ...inherited, ...classValue.methods };
   }
 
-  static bindMethod(receiver: CosmValue, method: CosmFunction): CosmValue {
-    return Construct.method(method.name, receiver, method);
+  static bindMethod(receiver: CosmValue, method: CosmFunction, ownerToken?: string): CosmValue {
+    return Construct.method(method.name, receiver, method, ownerToken);
   }
 
   static reflectMethod(receiver: CosmValue, messageValue: CosmValue, repository: RuntimeRepository): CosmValue {
@@ -130,11 +135,24 @@ export class RuntimeDispatch {
 
   static reflectClassMethod(classValue: CosmClass, messageValue: CosmValue, _repository: RuntimeRepository): CosmValue {
     const message = this.messageName(messageValue);
-    const method = classValue.lookupClassSideMethod(message);
+    const entry = classValue instanceof CosmClassValue ? classValue.lookupClassSideMethodEntry(message) : undefined;
+    const method = entry?.method ?? classValue.lookupClassSideMethod(message);
     if (!method) {
       throw new Error(`Property error: class ${classValue.name} has no class method '${message}'`);
     }
-    return this.bindMethod(classValue, method);
+    return this.bindMethod(classValue, method, entry?.token);
+  }
+
+  static resolveSuperTarget(receiver: CosmValue, methodName: string, ownerToken: string, repository: RuntimeRepository): CosmValue {
+    const receiverClass = this.classOf(receiver, repository.classes);
+    if (!(receiverClass instanceof CosmClassValue)) {
+      throw new Error(`Super error: ${methodName} does not have a super target`);
+    }
+    const entry = receiverClass.lookupNextInstanceMethodEntry(ownerToken, methodName);
+    if (!entry) {
+      throw new Error(`Super error: ${methodName} does not have a super target`);
+    }
+    return this.bindMethod(receiver, entry.method, entry.token);
   }
 
   static send(
@@ -202,9 +220,9 @@ export class RuntimeDispatch {
         && error instanceof Error
         && error.message === `Property error: class ${receiver.name} has no property '${message}'`
       ) {
-        const instanceMethod = receiver.lookupInstanceMethod(message);
-        if (instanceMethod) {
-          return this.bindMethod(receiver, instanceMethod);
+        const instanceEntry = receiver.lookupInstanceMethodEntry(message);
+        if (instanceEntry) {
+          return this.bindMethod(receiver, instanceEntry.method, instanceEntry.token);
         }
       }
       throw error;
@@ -216,11 +234,12 @@ export class RuntimeDispatch {
     if (nativeFallback) {
       return this.bindMethod(receiver, nativeFallback);
     }
-    const fallback = this.lookupMethod(this.classOf(receiver, repository.classes), 'does_not_understand');
+    const fallbackEntry = this.lookupMethodEntry(this.classOf(receiver, repository.classes), 'does_not_understand');
+    const fallback = fallbackEntry?.method ?? this.lookupMethod(this.classOf(receiver, repository.classes), 'does_not_understand');
     if (!fallback) {
       return undefined;
     }
-    return this.bindMethod(receiver, fallback);
+    return this.bindMethod(receiver, fallback, fallbackEntry?.token);
   }
 
   private static resolveAccessCallTarget(

@@ -16,7 +16,7 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.13.6`**. The main job of this patch line is still language/runtime hardening, but the main proving wedge is now a persistent notebook:
+The current tree is best read as **`0.3.13.7`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on making inheritance, `super(...)`, mixins, and metaclass chains feel more coherent while the persistent notebook remains the main proving wedge:
 
 - keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
 - keep a small send-first VM subset alive through `--trace-ir` and `--vm`

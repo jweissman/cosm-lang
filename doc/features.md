@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.6
+## Current Release Target: 0.3.13.7
 
-`0.3.13.6` is now best read as a PL-core hardening slice with a persistent notebook wedge on top of the earlier chatbot-and-runtime consolidation work:
+`0.3.13.7` is now best read as a PL-core hardening slice with a stronger OO semantics center on top of the persistent notebook wedge:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -108,7 +108,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.13.6 Definition Of Done
+## v0.3.13.7 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.

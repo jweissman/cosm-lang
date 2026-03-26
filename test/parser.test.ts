@@ -42,7 +42,9 @@ test("parser accepts interpolated triple-quoted strings", () => {
   expect(() => Parser.parse('let name = "cosm"\n"""\n<h1>Hello #{name}</h1>\n"""')).not.toThrow();
   expect(() => Parser.parse("yield()")).not.toThrow();
   expect(() => Parser.parse("yield(1, 2)")).not.toThrow();
+  expect(() => Parser.parse("super(1, 2)")).not.toThrow();
   expect(() => Parser.parse("let yield = 1; yield + 1")).toThrow("Parse error:");
+  expect(() => Parser.parse("let super = 1; super")).toThrow("Parse error:");
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {

@@ -336,6 +336,11 @@ export class Parser {
           value: '',
           children: Parser.listChildren(body.ast()),
         }),
+        PriExp_super: (_super, _open, args, _close) => ({
+          kind: 'super',
+          value: '',
+          children: Parser.listChildren(args.ast()),
+        }),
         PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => ({
           kind: 'lambda_expr',
           value: '<lambda>',

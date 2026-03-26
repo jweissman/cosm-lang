@@ -84,6 +84,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         case 'ident':
         case 'ivar':
         case 'yield':
+        case 'super':
         case 'add':
         case 'subtract':
         case 'multiply':
