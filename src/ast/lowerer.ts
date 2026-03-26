@@ -28,6 +28,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'def',
             value: node.value,
             params: node.params ?? [],
+            restParam: node.restParam,
             defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
@@ -36,6 +37,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'class_def',
             value: node.value,
             params: node.params ?? [],
+            restParam: node.restParam,
             defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
@@ -44,6 +46,12 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'let',
             value: node.value,
             left: this.lowerRequired(node.left, 'let_stmt'),
+          };
+        case 'assign_stmt':
+          return {
+            kind: 'assign',
+            value: node.value,
+            left: this.lowerRequired(node.left, 'assign_stmt'),
           };
         case 'require_stmt':
           return {
@@ -75,6 +83,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: 'lambda',
             value: '<lambda>',
             params: node.params ?? [],
+            restParam: node.restParam,
             defaults: this.lowerDefaultMap(node.defaults),
             children: this.lowerChildren(node),
           };
@@ -112,6 +121,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             kind: node.kind as CoreNodeKind,
             value: node.value,
             params: node.params,
+            restParam: node.restParam,
             target: node.target,
             left: node.left ? this.lower(node.left) : undefined,
             right: node.right ? this.lower(node.right) : undefined,

@@ -42,11 +42,23 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.cosm",
-				"match": "\\b(class|def|do|else|end|if|let|then)\\b"
+				"match": "\\b(class|def|do|else|end|if|let|require|then|yield|super)\\b"
 			},
 			{
 				"name": "storage.type.function.cosm",
 				"match": "->"
+			},
+			{
+				"name": "keyword.operator.assignment.cosm",
+				"match": "="
+			},
+			{
+				"name": "keyword.operator.namespace.cosm",
+				"match": "::"
+			},
+			{
+				"name": "keyword.operator.rest.cosm",
+				"match": "\\*"
 			}]
 		},
 		"self": {

@@ -38,6 +38,7 @@ export class CosmFunctionValue extends CosmValueBase {
     public readonly name: string,
     public readonly nativeCall?: (args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue,
     public readonly params?: string[],
+    public readonly restParam?: string,
     public readonly defaults?: Record<string, CoreNode>,
     public readonly body?: CoreNode,
     public readonly env?: CosmEnv,

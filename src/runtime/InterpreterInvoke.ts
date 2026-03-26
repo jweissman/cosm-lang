@@ -1,4 +1,5 @@
 import { CoreNode, CosmClass, CosmEnv, CosmValue } from "../types";
+import { Construct } from "../Construct";
 import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
 
 type InvokeHooks = {
@@ -96,6 +97,12 @@ export class InterpreterInvoke {
         }
         callEnv.bindings[param] = resolvedArgs[index];
       }
+      if (callee.restParam) {
+        if (Object.hasOwn(callEnv.bindings, callee.restParam)) {
+          throw new Error(`Name error: duplicate parameter '${callee.restParam}'`);
+        }
+        callEnv.bindings[callee.restParam] = Construct.array(resolvedArgs.slice(callee.params.length));
+      }
       return hooks.evalNode(callee.body, callEnv);
     });
   }
@@ -112,11 +119,13 @@ export class InterpreterInvoke {
       ? args.slice(0, -1)
       : args;
     const params = callee.params ?? [];
-    if (effectiveArgs.length > params.length) {
+    if (!callee.restParam && effectiveArgs.length > params.length) {
       throw new Error(`Arity error: function expects ${params.length} arguments, got ${effectiveArgs.length}`);
     }
-    const resolvedArgs = [...effectiveArgs];
-    for (let index = effectiveArgs.length; index < params.length; index += 1) {
+    const leadingArgs = callee.restParam ? effectiveArgs.slice(0, params.length) : effectiveArgs;
+    const restArgs = callee.restParam ? effectiveArgs.slice(params.length) : [];
+    const resolvedArgs = [...leadingArgs];
+    for (let index = leadingArgs.length; index < params.length; index += 1) {
       const param = params[index];
       const defaultExpr = callee.defaults?.[param];
       if (!defaultExpr) {
@@ -136,7 +145,7 @@ export class InterpreterInvoke {
       }
       resolvedArgs.push(defaultValue);
     }
-    return resolvedArgs;
+    return [...resolvedArgs, ...restArgs];
   }
 
   static findCurrentBlock(env: CosmEnv): CosmValue | undefined {

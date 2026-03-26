@@ -78,6 +78,21 @@ export class RuntimeIr {
           currentEnv.bindings[instruction.name] = value;
           break;
         }
+        case "assign_name": {
+          const value = popValue();
+          let targetEnv: CosmEnv | undefined = currentEnv;
+          while (targetEnv) {
+            if (Object.hasOwn(targetEnv.bindings, instruction.name)) {
+              targetEnv.bindings[instruction.name] = value;
+              break;
+            }
+            targetEnv = targetEnv.parent;
+          }
+          if (!targetEnv) {
+            currentEnv.bindings[instruction.name] = value;
+          }
+          break;
+        }
         case "load_property": {
           const receiver = popValue();
           stack.push(hooks.lookupProperty(receiver, instruction.name));
@@ -150,10 +165,18 @@ export class RuntimeIr {
         return;
       case "let":
         if (!ast.left) {
-          throw new Error("IR compile error: let is missing a value");
+          throw new Error(`IR compile error: ${ast.kind} is missing a value`);
         }
         this.compileNode(ast.left, instructions);
         instructions.push({ op: "store_name", name: ast.value });
+        instructions.push({ op: "load_name", name: ast.value });
+        return;
+      case "assign":
+        if (!ast.left) {
+          throw new Error(`IR compile error: ${ast.kind} is missing a value`);
+        }
+        this.compileNode(ast.left, instructions);
+        instructions.push({ op: "assign_name", name: ast.value });
         instructions.push({ op: "load_name", name: ast.value });
         return;
       case "number":

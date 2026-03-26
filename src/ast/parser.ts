@@ -170,7 +170,7 @@ export class Parser {
       return children;
     }
 
-    private static paramSignature(node: SurfaceNode): { params: string[]; defaults: Record<string, SurfaceNode> } {
+    private static paramSignature(node: SurfaceNode): { params: string[]; defaults: Record<string, SurfaceNode>; restParam?: string } {
       if (node.kind === 'ident') {
         return { params: [node.value], defaults: {} };
       }
@@ -180,11 +180,22 @@ export class Parser {
           defaults: node.left ? { [node.value]: node.left } : {},
         };
       }
-      return (node.children ?? []).reduce<{ params: string[]; defaults: Record<string, SurfaceNode> }>((acc, child) => {
+      if (node.kind === 'string' && node.target === 'rest_param') {
+        return { params: [], defaults: {}, restParam: node.value };
+      }
+      const children = node.children ?? [];
+      return children.reduce<{ params: string[]; defaults: Record<string, SurfaceNode>; restParam?: string }>((acc, child, index) => {
         const signature = this.paramSignature(child);
+        if (signature.restParam && index !== children.length - 1) {
+          throw new Error('Invalid surface AST: rest parameter must be trailing');
+        }
+        if (acc.restParam && (signature.restParam || signature.params.length > 0)) {
+          throw new Error('Invalid surface AST: rest parameter must be trailing');
+        }
         return {
           params: [...acc.params, ...signature.params],
           defaults: { ...acc.defaults, ...signature.defaults },
+          restParam: acc.restParam ?? signature.restParam,
         };
       }, { params: [], defaults: {} });
     }
@@ -214,6 +225,11 @@ export class Parser {
           kind: 'statement',
           value: '',
           left: statement.ast(),
+        }),
+        AssignStmt: (name, _eq, expr) => ({
+          kind: 'assign_stmt',
+          value: name.sourceString,
+          left: expr.ast(),
         }),
         BareCallStmt_args: (callee, args, trailingBlock) => {
           const callNode: SurfaceNode = {
@@ -287,12 +303,18 @@ export class Parser {
         }),
         ClassMetaMember: (member, _semi) => member.ast(),
         ClassMetaDefStmt_inline_params: (_def, name, _open, params, _close, _eq, body) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+            };
+          })(),
         }),
         ClassMetaDefStmt_inline: (_def, name, _eq, body) => ({
           kind: 'class_def_stmt',
@@ -303,20 +325,32 @@ export class Parser {
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
         }),
         ClassMetaDefStmt_block: (_def, name, _open, params, _close, _do, body, _end) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+            };
+          })(),
         }),
         ClassDefStmt_class_inline_params: (_def, _self, _dot, name, _open, params, _close, _eq, body) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+            };
+          })(),
         }),
         ClassDefStmt_class_inline: (_def, _self, _dot, name, _eq, body) => ({
           kind: 'class_def_stmt',
@@ -327,20 +361,32 @@ export class Parser {
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
         }),
         ClassDefStmt_class: (_def, _self, _dot, name, _open, params, _close, _do, body, _end) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'class_def_stmt',
           value: name.sourceString,
           target: 'class',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+            };
+          })(),
         }),
         ClassDefStmt_instance_inline_params: (_def, name, _open, params, _close, _eq, body) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'def_stmt',
           value: name.sourceString,
           target: 'instance',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+            };
+          })(),
         }),
         ClassDefStmt_instance_inline: (_def, name, _eq, body) => ({
           kind: 'def_stmt',
@@ -351,19 +397,31 @@ export class Parser {
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
         }),
         ClassDefStmt_instance: (_def, name, _open, params, _close, _do, body, _end) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'def_stmt',
           value: name.sourceString,
           target: 'instance',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+            };
+          })(),
         }),
         DefStmt_inline_params: (_def, name, _open, params, _close, _eq, body) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'def_stmt',
           value: name.sourceString,
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+            };
+          })(),
         }),
         DefStmt_inline: (_def, name, _eq, body) => ({
           kind: 'def_stmt',
@@ -373,11 +431,17 @@ export class Parser {
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
         }),
         DefStmt_block: (_def, name, _open, params, _close, _do, body, _end) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'def_stmt',
           value: name.sourceString,
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+            };
+          })(),
         }),
         LetStmt: (_let, name, _eq, expr) => ({
           kind: 'let_stmt',
@@ -434,11 +498,17 @@ export class Parser {
           children: Parser.listChildren(args.ast()),
         }),
         PriExp_lambda: (_arrow, _open, params, _close, _lbrace, body, _rbrace) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'lambda_expr',
           value: '<lambda>',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
+            };
+          })(),
         }),
         OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
         AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
@@ -497,11 +567,17 @@ export class Parser {
           children: [first.ast(), ...rest.children.map((child) => child.ast())],
         }),
         TrailingBlock: (_do, params, body, _end) => ({
+          ...(() => {
+            const signature = Parser.paramSignature(params.ast());
+            return {
           kind: 'block_expr',
           value: '',
-          params: Parser.paramSignature(params.ast()).params,
-          defaults: Parser.paramSignature(params.ast()).defaults,
+          params: signature.params,
+          restParam: signature.restParam,
+          defaults: signature.defaults,
           children: Parser.listChildren(body.ast()),
+            };
+          })(),
         }),
         BlockParams: (_open, params, _close) => params.ast(),
         BareCallArgs: (first, _seps, rest) => ({
@@ -540,11 +616,17 @@ export class Parser {
           value: name.sourceString,
           left: value.ast(),
         }),
+        Param_rest: (_star, name) => ({
+          kind: 'string',
+          value: name.sourceString,
+          target: 'rest_param',
+        }),
         Param_plain: (name) => ({
           kind: 'ident',
           value: name.sourceString,
         }),
-        HashEntry: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
+        HashEntry_pair: (key, _colon, value) => ({ kind: 'pair', value: key.sourceString, left: value.ast() }),
+        HashEntry_shorthand: (key) => ({ kind: 'pair', value: key.sourceString, left: { kind: 'ident', value: key.sourceString } }),
         dstring: (_open, parts, _close) => {
           const children = Parser.listChildren(parts.ast());
           const isPlain = children.every((child) => child.kind === 'string' && !(child.children?.length));

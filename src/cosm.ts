@@ -50,6 +50,8 @@ namespace Cosm {
           return this.evalClass(ast, env);
         case 'let':
           return this.evalLet(ast, env);
+        case 'assign':
+          return this.evalAssign(ast, env);
         case 'require':
           return this.evalRequire(ast, env);
         case 'def':
@@ -166,7 +168,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.12.1");
+        cosmRoot.fields.version = Construct.string("0.3.13.14");
       }
       return repository;
     }
@@ -250,6 +252,25 @@ namespace Cosm {
       return value;
     }
 
+    private static evalAssign(ast: CoreNode, env: Env): CosmValue {
+      if (!ast.left) {
+        throw new Error("Invalid AST: assign node must have a value expression");
+      }
+      if (this.isReservedBindingName(ast.value)) {
+        throw new Error(`Name error: cannot assign reserved name '${ast.value}'`);
+      }
+      if (/^[A-Z]/.test(ast.value)) {
+        throw new Error(`Name error: cannot assign constant name '${ast.value}'`);
+      }
+      if (Object.hasOwn(this.repo().classes, ast.value)) {
+        throw new Error(`Name error: cannot assign class name '${ast.value}'`);
+      }
+      const value = this.evalNode(ast.left, env);
+      const targetEnv = this.findAssignableEnv(ast.value, env) ?? env;
+      targetEnv.bindings[ast.value] = value;
+      return value;
+    }
+
     private static evalDef(ast: CoreNode, env: Env): CosmValue {
       if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${ast.value}'`);
@@ -257,6 +278,19 @@ namespace Cosm {
       const value = InterpreterClassRuntime.buildClosure(ast, env);
       env.bindings[ast.value] = value;
       return value;
+    }
+
+    private static findAssignableEnv(name: string, env: Env): Env | undefined {
+      for (let scope: Env | undefined = env; scope; scope = scope.parent) {
+        if (Object.hasOwn(scope.bindings, name)) {
+          return scope;
+        }
+      }
+      return undefined;
+    }
+
+    private static isReservedBindingName(name: string): boolean {
+      return ["class", "def", "do", "else", "end", "if", "let", "then", "yield", "super", "require", "true", "false", "self"].includes(name);
     }
 
     private static evalIf(ast: CoreNode, env: Env): CosmValue {

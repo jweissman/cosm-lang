@@ -158,13 +158,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.12.1");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.14");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.12.1");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.14");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -184,7 +184,23 @@ test("ternary is a compact expression form", () => {
 test("one-line defs are a compact callable form", () => {
   expect(cosmEval('def status = "ok"; status()')).toBe("ok");
   expect(cosmEval('def add(x, y) = x + y; add(20, 22)')).toBe(42);
+  expect(cosmEval('def join(head, *tail) = tail.length; join("a", "b", "c")')).toBe(2);
   expect(cosmEval('class Greeter do def label = "hi" end; Greeter.new().label()')).toBe("hi");
+});
+
+test("bare assignment introduces and reassigns locals", () => {
+  expect(cosmEval('answer = 41; answer = answer + 1; answer')).toBe(42);
+  expect(cosmEval('value = 1; do value = value + 1 end; value')).toBe(2);
+  expect(cosmEval('value = 1; do inner = 2 end; value')).toBe(1);
+  expect(() => cosmEval('yield = 1')).toThrow();
+});
+
+test("rest args and hash shorthand improve local ergonomics", () => {
+  expect(cosmEval('def collect(head, *tail) = tail; collect(1, 2, 3)')).toEqual([2, 3]);
+  expect(cosmEval('let collect = ->(head, *tail) { tail }; collect(1, 2, 3)')).toEqual([2, 3]);
+  expect(cosmEval('def greet(name = "cosm", *rest) = { name, rest }; greet()')).toEqual({ name: "cosm", rest: [] });
+  expect(cosmEval('foo = 1; bar = 2; { foo, bar }')).toEqual({ foo: 1, bar: 2 });
+  expect(cosmEval('foo = 1; { foo, bar: 2 }')).toEqual({ foo: 1, bar: 2 });
 });
 
 test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", () => {

@@ -23,6 +23,7 @@ export type CoreNodeKind =
   | 'class'
   | 'class_meta'
   | 'let'
+  | 'assign'
   | 'require'
   | 'def'
   | 'class_def'
@@ -67,6 +68,7 @@ export type CoreNode = {
   left?: CoreNode;
   right?: CoreNode;
   params?: string[];
+  restParam?: string;
   defaults?: Record<string, CoreNode>;
   target?: string;
 };
@@ -91,6 +93,7 @@ export type IrInstruction =
   | { op: "build_hash"; keys: string[] }
   | { op: "load_name"; name: string }
   | { op: "store_name"; name: string }
+  | { op: "assign_name"; name: string }
   | { op: "load_property"; name: string }
   | { op: "call"; argc: number }
   | { op: "call_access"; name: string; argc: number }
@@ -149,6 +152,7 @@ export type SurfaceNodeKind =
   | 'class_super'
   | 'class_body'
   | 'let_stmt'
+  | 'assign_stmt'
   | 'require_stmt'
   | 'if_expr'
   | 'ternary_expr'
@@ -193,6 +197,7 @@ export type SurfaceNode = {
   left?: SurfaceNode;
   right?: SurfaceNode;
   params?: string[];
+  restParam?: string;
   defaults?: Record<string, SurfaceNode>;
   target?: string;
 };

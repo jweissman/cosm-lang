@@ -15,12 +15,21 @@ test("Interpreter.ir emits a narrow executable IR for simple programs", () => {
       { op: "return" },
     ]),
   });
+  expect(Cosm.Interpreter.ir("base = 1; base = Kernel.dispatch(base, :plus, 2); base")).toMatchObject({
+    kind: "ir_program",
+    instructions: expect.arrayContaining([
+      { op: "assign_name", name: "base" },
+    ]),
+  });
 });
 
 test("vm mode can execute a narrow subset with the same result as the interpreter", () => {
   const source = "let base = 1; Kernel.dispatch(base, :plus, 2)";
   expect(cosmEvalVm(source)).toBe(3);
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
+  const reassignment = "base = 1; base = Kernel.dispatch(base, :plus, 2); base";
+  expect(cosmEvalVm(reassignment)).toBe(3);
+  expect(cosmEvalVm(reassignment)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(reassignment)));
 });
 
 test("vm mode can execute if expressions and scoped blocks in a dedicated smoke file", () => {

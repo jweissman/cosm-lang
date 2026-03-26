@@ -32,6 +32,7 @@ test("parser requires CamelCased class names", () => {
 
 test("parser treats significant newlines like semicolons", () => {
   expect(() => Parser.parse("let a = 1\nlet b = 2\nb")).not.toThrow();
+  expect(() => Parser.parse("a = 1\na = a + 1\na")).not.toThrow();
   expect(() => Parser.parse("class A\nend\nA.name")).not.toThrow();
   expect(() => Parser.parse("def f() 1 end\ndef g() 2 end\ng()")).not.toThrow();
   expect(() => Parser.parse("1 +\n2")).not.toThrow();
@@ -63,13 +64,20 @@ test("parser accepts ternary expressions", () => {
 test("parser accepts one-line defs", () => {
   expect(() => Parser.parse('def status = ai.status(); status()')).not.toThrow();
   expect(() => Parser.parse('def add(x, y) = x + y; add(1, 2)')).not.toThrow();
+  expect(() => Parser.parse('def join(head, *tail) = tail.length; join("a", "b", "c")')).not.toThrow();
   expect(() => Parser.parse('class Greeter do def label = "hi" end; Greeter.new().label()')).not.toThrow();
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {
   expect(() => Parser.parse('->(req) { puts "#{Time.isoNow()}"; HttpResponse.html("""<h1>Hello #{req.path}</h1>""", 200) }')).not.toThrow();
   expect(() => Parser.parse('let greet = ->(name = "cosm") { "hi " + name }; greet()')).not.toThrow();
+  expect(() => Parser.parse('->(head, *tail) { tail.length }')).not.toThrow();
   expect(() => Parser.parse('let values = [1, 2, 3, 4]; values.reduce(0, ->(acc, value) { acc + value })')).not.toThrow();
+});
+
+test("parser accepts hash shorthand and rejects non-trailing rest params", () => {
+  expect(() => Parser.parse('let foo = 1; let bar = 2; { foo, bar: 3 }')).not.toThrow();
+  expect(() => Parser.parse('def join(*tail, head) head end')).toThrow();
 });
 
 test("parser lowers trailing do-end blocks on calls", () => {

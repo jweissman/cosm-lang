@@ -12,6 +12,7 @@ Cosm {
     = ClassStmt
     | DefStmt
     | LetStmt
+    | AssignStmt
     | RequireStmt
     | BareCallStmt
     | Exp
@@ -68,6 +69,9 @@ Cosm {
 
   LetStmt
     = kw_let ident "=" Exp
+
+  AssignStmt
+    = ident "=" Exp
 
   RequireStmt
     = kw_require string          -- bare
@@ -186,7 +190,8 @@ Cosm {
     = Param ("," Param)*
 
   Param
-    = ident "=" Exp  -- default
+    = "*" ident      -- rest
+    | ident "=" Exp  -- default
     | ident          -- plain
 
   ArrayItems
@@ -196,7 +201,8 @@ Cosm {
     = HashEntry ("," HashEntry)*
 
   HashEntry
-    = ident ":" Exp
+    = ident ":" Exp  -- pair
+    | ident          -- shorthand
 
   string
     = dstring

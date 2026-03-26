@@ -21,7 +21,7 @@ export class InterpreterClassRuntime {
     if (!body) {
       throw new Error(`Invalid AST: ${ast.kind} node must have a body`);
     }
-    return Construct.closure(ast.value, ast.params ?? [], body, env, ast.defaults);
+    return Construct.closure(ast.value, ast.params ?? [], body, env, ast.defaults, ast.restParam);
   }
 
   static evalClass(ast: CoreNode, env: CosmEnv, hooks: ClassRuntimeHooks): CosmValue {
