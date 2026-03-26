@@ -143,7 +143,7 @@ The canonical style is to require a module for its exported constant path:
 
 ```cosm
 require "cosm/spec.cosm"
-Cosm::Spec.assert_equal(2 + 2, 4)
+assert_equal(2 + 2, 4)
 ```
 
 Maintained code should use module constants such as `Cosm::Spec`, `Cosm::AI`, `Support::Chat`, and `App::App` rather than older ambient lowercase wrappers.
@@ -375,6 +375,8 @@ Class.class.name
   Clears the current test counters.
 - `Kernel.testSummary()`
   Returns a hash with `passed`, `failed`, and `total`.
+- `cosm test <file.cosm>`
+  Canonical CLI test mode. It preloads implicit spec helpers, runs the file, prints a summary, and exits nonzero on failure.
 - `Kernel.raise(messageOrError, details?)`
   Raises an `Error`. Supported forms are `Kernel.raise("message")`, `Kernel.raise("message", details)`, and `Kernel.raise(error_object)`.
 - `puts(value)`
@@ -390,7 +392,7 @@ Class.class.name
 - `Cosm::Spec.assert_equal(actual, expected, message?)`
 - `Cosm::Spec.expect_raises(fn, message?)`
 - `Cosm::Spec.finish()`
-  Canonical Cosm-native testing surface built on top of the kernel primitives.
+  Explicit module API for Cosm-native tests outside `cosm test`. Inside `cosm test`, maintained specs should normally use implicit `suite`, `it`, `assert`, `refute`, `assert_equal`, and `expect_raises`, and do not need `finish()`.
 - `resetTests()`
   Convenience global alias for `Kernel.resetTests()`.
 - `testSummary()`
@@ -483,8 +485,8 @@ Kernel.warn("careful now")
 puts 'hello from cosm'
 test("smoke", ->() { assert true })
 require "cosm/spec.cosm"
-Cosm::Spec.suite("smoke section", ->() { Cosm::Spec.it("smoke", ->() { Cosm::Spec.assert(true) }) })
-Cosm::Spec.assert_equal([1, 2], [1, 2])
+suite("smoke section", ->() { it("smoke", ->() { assert(true) }) })
+assert_equal([1, 2], [1, 2])
 require "app/app"
 App::App.build().class.name
 Kernel.class.name
@@ -578,6 +580,7 @@ do let x = 1; x + 2 end
 - `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
 - `resetTests` and `testSummary` still exist as convenience globals, but `Cosm::Spec` is the maintained testing path.
 - `require "path"` is the maintained module-loading form. Prefer module constants like `Cosm::Spec` and `App::App` over older ambient bindings.
+- `cosm test <file.cosm>` is the maintained spec-running path. `--test` remains a compatibility alias for now.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.

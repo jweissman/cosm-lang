@@ -1,9 +1,9 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("Reflection", ->() {
-  Cosm::Spec.it("keeps receiver-side reflection compact", ->() {
-    Cosm::Spec.assert_equal(Object.new().methods(), [:eq, :method, :methods, :send, :inspect, :to_s])
-    Cosm::Spec.assert_equal(Object.new().method(:send).name, "send")
-    Cosm::Spec.assert_equal(Object.methods(), [:new, :classMethod, :include, :eq, :method, :methods, :send, :inspect, :to_s])
+suite("Reflection", ->() {
+  it("keeps receiver-side reflection compact", ->() {
+    assert_equal(Object.new().methods(), [:eq, :method, :methods, :send, :inspect, :to_s])
+    assert_equal(Object.new().method(:send).name, "send")
+    assert_equal(Object.methods(), [:new, :classMethod, :include, :eq, :method, :methods, :send, :inspect, :to_s])
   })
 })

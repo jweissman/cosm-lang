@@ -30,6 +30,7 @@ function usage(): string {
     "  cosm",
     "  cosm --version",
     "  cosm -e '<source>'",
+    "  cosm test <file.cosm>",
     "  cosm <file.cosm>",
     "  cosm <file.cosm> [args...]",
     "  cosm help",
@@ -41,9 +42,8 @@ function usage(): string {
     "  cosm <file.cosm> --trace-core",
     "  cosm <file.cosm> --trace-ir",
     "  cosm <file.cosm> --trace-send",
-    "  cosm <file.cosm> --vm",
+    "  cosm <file.cosm> --vm   # experimental",
     "  cosm --watch <file.cosm>",
-    "  cosm test <file.cosm>",
     "  cosm watch <file.cosm>",
   ].join("\n");
 }
@@ -56,6 +56,28 @@ type CliMode =
   | { kind: "run"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "test"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
+
+type TraceSurfaceNode = {
+  kind: string;
+  value?: string;
+  params?: string[];
+  restParam?: string;
+  target?: string;
+  children?: TraceSurfaceNode[];
+  left?: TraceSurfaceNode;
+  right?: TraceSurfaceNode;
+};
+
+type TraceCoreNode = {
+  kind: string;
+  value?: string;
+  params?: string[];
+  restParam?: string;
+  target?: string;
+  children?: TraceCoreNode[];
+  left?: TraceCoreNode;
+  right?: TraceCoreNode;
+};
 
 function parseArgs(args: string[]): CliMode {
   let traceSurface = false;
@@ -338,18 +360,75 @@ function repl() {
   });
 }
 
+function describeSurfaceAst(node: any): TraceSurfaceNode {
+  const summary: TraceSurfaceNode = { kind: node.kind };
+  if (node.value && node.value !== "") summary.value = node.value;
+  if (node.params?.length) summary.params = node.params;
+  if (node.restParam) summary.restParam = node.restParam;
+  if (node.target) summary.target = node.target;
+  if (node.left) summary.left = describeSurfaceAst(node.left);
+  if (node.right) summary.right = describeSurfaceAst(node.right);
+  if (node.children?.length) {
+    summary.children = node.children.map((child: any) => describeSurfaceAst(child));
+  }
+  return summary;
+}
+
+function describeCoreAst(node: any): TraceCoreNode {
+  const summary: TraceCoreNode = { kind: node.kind };
+  if (node.value && node.value !== "") summary.value = node.value;
+  if (node.params?.length) summary.params = node.params;
+  if (node.restParam) summary.restParam = node.restParam;
+  if (node.target) summary.target = node.target;
+  if (node.left) summary.left = describeCoreAst(node.left);
+  if (node.right) summary.right = describeCoreAst(node.right);
+  if (node.children?.length) {
+    summary.children = node.children.map((child: any) => describeCoreAst(child));
+  }
+  return summary;
+}
+
 function emitTraceFlags(source: string, traces: { traceSurface: boolean; traceCore: boolean; traceIr: boolean }): void {
   if (traces.traceSurface) {
+    const surfaceAst = Parser.parseSurface(source);
     console.log("[trace-surface]");
-    console.log(JSON.stringify(Parser.parseSurface(source), null, 2));
+    console.log(`# top-level forms: ${(surfaceAst.children ?? []).length}`);
+    console.log(JSON.stringify(describeSurfaceAst(surfaceAst), null, 2));
   }
   if (traces.traceCore) {
+    const coreAst = Lowerer.lower(Parser.parseSurface(source));
     console.log("[trace-core]");
-    console.log(JSON.stringify(Lowerer.lower(Parser.parseSurface(source)), null, 2));
+    console.log(`# normalized statements: ${(coreAst.children ?? []).length}`);
+    console.log(JSON.stringify(describeCoreAst(coreAst), null, 2));
   }
   if (traces.traceIr) {
     console.log("[trace-ir]");
     console.log(JSON.stringify(Cosm.Interpreter.ir(source), null, 2));
+  }
+}
+
+function createTestEnv(): ReturnType<typeof Cosm.Interpreter.createEnv> {
+  const env = Cosm.Interpreter.createEnv();
+  Cosm.Interpreter.evalInEnv('require "cosm/spec.cosm"', env);
+  return env;
+}
+
+function runTestMode(source: string, filePath: string, scriptArgs: string[], mode: { vm: boolean }): never {
+  const originalArgv = [...process.argv];
+  try {
+    process.argv = [originalArgv[0] ?? "bun", originalArgv[1] ?? "bin/cosm", filePath, ...scriptArgs];
+    Cosm.Interpreter.eval("Kernel.resetTests()");
+    if (mode.vm) {
+      Cosm.Interpreter.evalVm(source);
+    } else {
+      const env = createTestEnv();
+      Cosm.Interpreter.evalInEnv(source, env);
+    }
+    const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
+    console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
+    process.exit(summary.failed > 0 ? 1 : 0);
+  } finally {
+    process.argv = originalArgv;
   }
 }
 
@@ -399,15 +478,9 @@ if (require.main === module) {
         });
       }
       if (mode.kind === "test") {
-        Cosm.Interpreter.eval("Kernel.resetTests()");
+        runTestMode(source, mode.filePath, mode.scriptArgs, mode);
       }
       const result = mode.vm ? Cosm.Interpreter.evalVm(source) : Cosm.Interpreter.eval(source);
-      if (mode.kind === "test") {
-        const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
-        process.argv = originalArgv;
-        console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
-        process.exit(summary.failed > 0 ? 1 : 0);
-      }
       process.argv = originalArgv;
       // console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {

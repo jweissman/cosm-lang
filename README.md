@@ -26,15 +26,11 @@ pair.sum()
 ```
 
 ```cosm
-require "cosm/spec.cosm"
-
-Cosm::Spec.suite("math", ->() {
-  Cosm::Spec.it("adds", ->() {
-    Cosm::Spec.assert_equal(2 + 2, 4)
+suite("math", ->() {
+  it("adds", ->() {
+    assert_equal(2 + 2, 4)
   })
 })
-
-Cosm::Spec.finish()
 ```
 
 ```cosm
@@ -87,8 +83,9 @@ Common commands:
 - `./script/bunx run test:slow`
 - `./script/bunx run test:live-ai`
 - `./script/bunx run lint`
+- `./script/bunx bin/cosm test spec/core.cosm`
 - `./script/bunx bin/cosm spec/core.cosm`
-- `./script/bunx bin/cosm --test spec/runtime/baseline.cosm`
+- `./script/bunx bin/cosm test spec/runtime/baseline.cosm`
 - `./script/bunx bin/cosm --version`
 - `./script/bunx bin/cosm -e '1 + 2'`
 
@@ -107,6 +104,7 @@ Slack smoke testing:
 - outbound post only needs `SLACK_BOT_TOKEN`
 - inbound `/slack/events` verification also needs `SLACK_SIGNING_SECRET`
 - the one-shot DM helper expects a Slack conversation id such as `D...`
+- the current agent service also exposes `/status` and `/agent/status` for quick runtime inspection
 
 ## Docs
 
@@ -125,6 +123,6 @@ Cosm is intentionally still narrow in a few places:
 - no browser-side runtime
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
-- no fully general VM execution yet
+- no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

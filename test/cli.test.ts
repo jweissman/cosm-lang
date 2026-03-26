@@ -142,11 +142,15 @@ test("cli trace flags print parser and runtime traces", () => {
   const surface = runCli([sourcePath, "--trace-surface"]);
   expect(surface.exitCode).toBe(0);
   expect(surface.stdout).toContain("[trace-surface]");
+  expect(surface.stdout).toContain("# top-level forms: 1");
   expect(surface.stdout).toContain('"kind": "program"');
+  expect(surface.stdout).toContain('"kind": "add"');
 
   const core = runCli([sourcePath, "--trace-core"]);
   expect(core.exitCode).toBe(0);
   expect(core.stdout).toContain("[trace-core]");
+  expect(core.stdout).toContain("# normalized statements: 1");
+  expect(core.stdout).toContain('"kind": "program"');
   expect(core.stdout).toContain('"kind": "add"');
 
   const ir = runCli([sourcePath, "--trace-ir"]);
@@ -199,13 +203,37 @@ test("cli supports bare puts with single-quoted strings", () => {
 test("cli can sketch a tiny Cosm-native test harness", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "kernel-test.cosm");
-  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; Cosm::Spec.suite("smoke", ->() { Cosm::Spec.it("passes", ->() { Cosm::Spec.assert(true) }) }); Cosm::Spec.finish()\n');
+  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; suite("smoke", ->() { it("passes", ->() { assert(true) }) })\n');
 
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# smoke");
   expect(result.stdout).toContain("ok - passes");
+});
+
+test("cli test mode injects implicit spec helpers", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-test-mode-"));
+  const sourcePath = join(tempDir, "implicit_spec.cosm");
+  writeFileSync(sourcePath, 'suite("smoke", ->() { it("passes", ->() { assert_equal(2 + 2, 4) }) })\n');
+
+  const result = runCli(["test", sourcePath]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("# smoke");
+  expect(result.stdout).toContain("ok - passes");
+  expect(result.stdout).toContain("1 passed, 0 failed, 1 total");
+});
+
+test("ordinary runs do not inject implicit spec helpers", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-no-spec-globals-"));
+  const sourcePath = join(tempDir, "ordinary.cosm");
+  writeFileSync(sourcePath, 'suite("smoke", ->() { true })\n');
+
+  const result = runCli([sourcePath]);
+  expect(result.exitCode).toBe(1);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toContain("unknown identifier 'suite'");
 });
 
 test("cli can run the dedicated Cosm test file", () => {
@@ -223,7 +251,7 @@ test("cli can run the dedicated Cosm test file", () => {
 test("cli test mode reports failures and exits nonzero", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-failing-test-"));
   const sourcePath = join(tempDir, "failing_spec.cosm");
-  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; Cosm::Spec.suite("smoke", ->() { Cosm::Spec.it("passes", ->() { Cosm::Spec.assert(true) }); Cosm::Spec.it("fails", ->() { Cosm::Spec.assert(false, "boom") }) })\n');
+  writeFileSync(sourcePath, 'suite("smoke", ->() { it("passes", ->() { assert(true) }); it("fails", ->() { assert(false, "boom") }) })\n');
 
   const result = runCli(["--test", sourcePath]);
   expect(result.exitCode).toBe(1);
@@ -333,6 +361,7 @@ test("cli help prints usage", () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("Usage:");
+  expect(result.stdout).toContain("cosm test <file.cosm>");
   expect(result.stdout).toContain("cosm --watch <file.cosm>");
 });
 
@@ -367,7 +396,7 @@ test("cli can run the cosm self-test file", () => {
 });
 
 test("cli can run the dedicated runtime harness spec bundle", () => {
-  const result = runCli(["--test", "spec/runtime/baseline.cosm"]);
+  const result = runCli(["test", "spec/runtime/baseline.cosm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# Kernel");

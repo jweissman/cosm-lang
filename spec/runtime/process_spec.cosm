@@ -1,14 +1,14 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("Process", ->() {
-  Cosm::Spec.it("host process helpers stay available", ->() {
-    Cosm::Spec.assert(Process.cwd().length > 0)
-    Cosm::Spec.assert(Process.argv().length >= 1)
-    Cosm::Spec.assert(Process.pid() > 0)
+suite("Process", ->() {
+  it("host process helpers stay available", ->() {
+    assert(Process.cwd().length > 0)
+    assert(Process.argv().length >= 1)
+    assert(Process.pid() > 0)
   })
-  Cosm::Spec.it("platform helpers stay available", ->() {
-    Cosm::Spec.assert(Process.platform().length > 0)
-    Cosm::Spec.assert(Process.arch().length > 0)
+  it("platform helpers stay available", ->() {
+    assert(Process.platform().length > 0)
+    assert(Process.arch().length > 0)
   })
 })
 

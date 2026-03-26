@@ -494,14 +494,23 @@ export class Bootstrap {
       }
       const moduleName = this.resolveModuleName(target.value, modules, runtime, env);
       const loadedModule = modules[moduleName];
-      if (loadedModule instanceof CosmModuleValue) {
-        this.installModuleConstant(globals, classes, moduleName, loadedModule);
+        if (loadedModule instanceof CosmModuleValue) {
+          this.installModuleConstant(globals, classes, moduleName, loadedModule);
         if (moduleName === "cosm/test" || moduleName === "cosm/test.cosm") {
           env.bindings.test = loadedModule.fields.test;
           env.bindings.describe = loadedModule.fields.describe;
           env.bindings.expectEqual = loadedModule.fields.expectEqual;
           env.bindings.resetTests = loadedModule.fields.resetTests;
           env.bindings.testSummary = loadedModule.fields.testSummary;
+        }
+        if (moduleName === "cosm/spec" || moduleName === "cosm/spec.cosm") {
+          env.bindings.suite = loadedModule.fields.suite;
+          env.bindings.it = loadedModule.fields.it;
+          env.bindings.assert = loadedModule.fields.assert;
+          env.bindings.refute = loadedModule.fields.refute;
+          env.bindings.assert_equal = loadedModule.fields.assert_equal;
+          env.bindings.expect_raises = loadedModule.fields.expect_raises;
+          env.bindings.finish = loadedModule.fields.finish;
         }
         return loadedModule;
       }

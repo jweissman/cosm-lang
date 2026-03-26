@@ -168,7 +168,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.15");
+        cosmRoot.fields.version = Construct.string("0.3.13.16");
       }
       return repository;
     }
@@ -541,6 +541,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.15";
+    export const version = "0.3.13.16";
 }
 export default Cosm;

@@ -1,14 +1,14 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("Random", ->() {
-  Cosm::Spec.it("numeric helpers stay in expected bounds", ->() {
-    Cosm::Spec.assert(Random.float() >= 0)
-    Cosm::Spec.assert(Random.float() < 1)
-    Cosm::Spec.assert(Random.int(5) >= 0)
-    Cosm::Spec.assert(Random.int(5) < 5)
+suite("Random", ->() {
+  it("numeric helpers stay in expected bounds", ->() {
+    assert(Random.float() >= 0)
+    assert(Random.float() < 1)
+    assert(Random.int(5) >= 0)
+    assert(Random.int(5) < 5)
   })
-  Cosm::Spec.it("choice can select from arrays", ->() {
-    Cosm::Spec.assert(Random.choice(["a", "b", "c"]).class.name == "String")
+  it("choice can select from arrays", ->() {
+    assert(Random.choice(["a", "b", "c"]).class.name == "String")
   })
 })
 

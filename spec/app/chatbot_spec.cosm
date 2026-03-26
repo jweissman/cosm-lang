@@ -2,17 +2,17 @@ require "cosm/spec.cosm"
 require "support/chat"
 require "support/models"
 
-Cosm::Spec.suite("Support chatbot helpers", ->() {
-  Cosm::Spec.it("transcript appends stay stable", ->() {
-    Cosm::Spec.assert_equal(Support::Chat.append_transcript("", "user", "hello"), "user: hello")
-    Cosm::Spec.assert_equal(Support::Chat.append_transcript("user: hello", "assistant", "hi"), "user: hello\nassistant: hi")
+suite("Support chatbot helpers", ->() {
+  it("transcript appends stay stable", ->() {
+    assert_equal(Support::Chat.append_transcript("", "user", "hello"), "user: hello")
+    assert_equal(Support::Chat.append_transcript("user: hello", "assistant", "hi"), "user: hello\nassistant: hi")
   })
-  Cosm::Spec.it("step returns the structured chat-step model shape", ->() {
+  it("step returns the structured chat-step model shape", ->() {
     let step = { transcript: "user: hello\nassistant: hi", reply: { should_reply: true, text: "hi", rationale: "mocked", tool_calls: false, tool_results: false } }
-    Cosm::Spec.assert(Support::Models.chat_step.validate(step) == true)
+    assert(Support::Models.chat_step.validate(step) == true)
   })
-  Cosm::Spec.it("banner stays descriptive", ->() {
-    Cosm::Spec.assert(Support::Chat.banner().length > 20)
+  it("banner stays descriptive", ->() {
+    assert(Support::Chat.banner().length > 20)
   })
 })
 

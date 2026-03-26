@@ -1,18 +1,18 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("Kernel", ->() {
-  Cosm::Spec.it("ambient assertions and dispatch stay available", ->() {
-    Cosm::Spec.assert(Kernel.assert(true) == true)
-    Cosm::Spec.assert_equal(Kernel.dispatch(1, :plus, 2), 3)
+suite("Kernel", ->() {
+  it("ambient assertions and dispatch stay available", ->() {
+    assert(Kernel.assert(true) == true)
+    assert_equal(Kernel.dispatch(1, :plus, 2), 3)
   })
-  Cosm::Spec.it("explicit scalar helpers stay available", ->() {
-    Cosm::Spec.assert_equal("42".to_i(), 42)
-    Cosm::Spec.assert_equal("3.5".to_f(), 3.5)
-    Cosm::Spec.assert_equal(:status.to_s(), "status")
+  it("explicit scalar helpers stay available", ->() {
+    assert_equal("42".to_i(), 42)
+    assert_equal("3.5".to_f(), 3.5)
+    assert_equal(:status.to_s(), "status")
   })
-  Cosm::Spec.it("trace and validation helpers stay available", ->() {
-    Cosm::Spec.assert_equal(Kernel.trace("kernel spec", 41), 41)
-    Cosm::Spec.assert(Kernel.tryValidate(42, Schema.number()).ok == true)
+  it("trace and validation helpers stay available", ->() {
+    assert_equal(Kernel.trace("kernel spec", 41), 41)
+    assert(Kernel.tryValidate(42, Schema.number()).ok == true)
   })
 })
 

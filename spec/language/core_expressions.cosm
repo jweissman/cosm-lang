@@ -1,41 +1,41 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("Core language expressions", ->() {
-  Cosm::Spec.it("covers scalar and operator basics", ->() {
-    Cosm::Spec.assert(1 + 1 == 2, "math still works")
-    Cosm::Spec.assert("co" + "sm" == "cosm", "string concatenation works")
-    Cosm::Spec.assert("co".plus("sm") == "cosm", "string instances can send plus directly")
-    Cosm::Spec.assert(3.send(:lt, 4) == true, "numeric comparison can flow through explicit message send")
-    Cosm::Spec.assert(5.neg() == -5, "numeric unary behavior can flow through direct message send")
-    Cosm::Spec.assert("co" == "co", "string equality still works through operator syntax")
-    Cosm::Spec.assert(:ok == :ok, "symbol equality still works through operator syntax")
-    Cosm::Spec.assert(true == true, "boolean equality still works through operator syntax")
-    Cosm::Spec.assert([1, 2] == [1, 2], "array equality now also flows through eq message send")
-    Cosm::Spec.assert({ answer: 42 } == { answer: 42 }, "hash equality now also flows through eq message send")
-    Cosm::Spec.assert(true.and(false) == false, "boolean instances can send and directly")
-    Cosm::Spec.assert(false.or(true) == true, "boolean instances can send or directly")
-    Cosm::Spec.assert(true.not() == false, "boolean instances can send not directly")
+suite("Core language expressions", ->() {
+  it("covers scalar and operator basics", ->() {
+    assert(1 + 1 == 2, "math still works")
+    assert("co" + "sm" == "cosm", "string concatenation works")
+    assert("co".plus("sm") == "cosm", "string instances can send plus directly")
+    assert(3.send(:lt, 4) == true, "numeric comparison can flow through explicit message send")
+    assert(5.neg() == -5, "numeric unary behavior can flow through direct message send")
+    assert("co" == "co", "string equality still works through operator syntax")
+    assert(:ok == :ok, "symbol equality still works through operator syntax")
+    assert(true == true, "boolean equality still works through operator syntax")
+    assert([1, 2] == [1, 2], "array equality now also flows through eq message send")
+    assert({ answer: 42 } == { answer: 42 }, "hash equality now also flows through eq message send")
+    assert(true.and(false) == false, "boolean instances can send and directly")
+    assert(false.or(true) == true, "boolean instances can send or directly")
+    assert(true.not() == false, "boolean instances can send not directly")
   })
 
-  Cosm::Spec.it("covers property reads and interpolation", ->() {
-    Cosm::Spec.assert("cosm".length == 4, "strings expose length as a property")
-    Cosm::Spec.assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property")
-    Cosm::Spec.assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property")
-    Cosm::Spec.assert("hello #{1 + 1}" == "hello 2", "strings can interpolate expressions")
-    Cosm::Spec.assert(1.send(:plus, 2) == 3, "values can send messages through explicit symbolic dispatch")
-    Cosm::Spec.assert([1, 2].send(:eq, [1, 2]) == true, "structural equality can be driven through explicit eq send")
-    Cosm::Spec.assert("symbol=#{:ok}" == "symbol=:ok", "symbols format cleanly in interpolation")
-    Cosm::Spec.assert('#{1 + 1}' == '#{1 + 1}', "single-quoted strings do not interpolate")
+  it("covers property reads and interpolation", ->() {
+    assert("cosm".length == 4, "strings expose length as a property")
+    assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property")
+    assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property")
+    assert("hello #{1 + 1}" == "hello 2", "strings can interpolate expressions")
+    assert(1.send(:plus, 2) == 3, "values can send messages through explicit symbolic dispatch")
+    assert([1, 2].send(:eq, [1, 2]) == true, "structural equality can be driven through explicit eq send")
+    assert("symbol=#{:ok}" == "symbol=:ok", "symbols format cleanly in interpolation")
+    assert('#{1 + 1}' == '#{1 + 1}', "single-quoted strings do not interpolate")
   })
 
-  Cosm::Spec.it("lets locals feed later expressions", ->() {
+  it("lets locals feed later expressions", ->() {
     heading = "Cosm"
-    Cosm::Spec.assert("""<h1>#{heading}</h1>""" == "<h1>Cosm</h1>", "triple-quoted strings can interpolate across multiple lines")
+    assert("""<h1>#{heading}</h1>""" == "<h1>Cosm</h1>", "triple-quoted strings can interpolate across multiple lines")
 
     greeting = "hello"
     pair = { left: greeting, right: greeting + " cosm" }
-    Cosm::Spec.assert(pair.left == "hello", "locals can feed hashes")
-    Cosm::Spec.assert(pair.right == "hello cosm", "locals can be reused later")
-    Cosm::Spec.assert("#{greeting} cosm" == "hello cosm", "interpolation can see locals")
+    assert(pair.left == "hello", "locals can feed hashes")
+    assert(pair.right == "hello cosm", "locals can be reused later")
+    assert("#{greeting} cosm" == "hello cosm", "interpolation can see locals")
   })
 })

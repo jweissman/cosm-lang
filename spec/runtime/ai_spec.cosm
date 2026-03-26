@@ -1,13 +1,13 @@
 require "cosm/spec.cosm"
 
-Cosm::Spec.suite("AI runtime", ->() {
-  Cosm::Spec.it("Prompt and Schema stay explicit runtime objects", ->() {
-    Cosm::Spec.assert_equal(Prompt.text("hello").source, "hello")
-    Cosm::Spec.assert(Schema.string().validate("ok") == true)
+suite("AI runtime", ->() {
+  it("Prompt and Schema stay explicit runtime objects", ->() {
+    assert_equal(Prompt.text("hello").source, "hello")
+    assert(Schema.string().validate("ok") == true)
   })
-  Cosm::Spec.it("Data stays validation-first locally", ->() {
+  it("Data stays validation-first locally", ->() {
     ticket_model = Cosm::Data.model("Ticket", { title: Cosm::Data.string(), priority: Cosm::Data.enum("low", "high") })
-    Cosm::Spec.assert(ticket_model.validate({ title: "hello", priority: "low" }) == true)
+    assert(ticket_model.validate({ title: "hello", priority: "low" }) == true)
   })
 })
 
