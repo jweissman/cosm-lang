@@ -50,7 +50,7 @@ bench-vm:
   {{dev-bun}} run script/bench_vm.ts
 
 chat:
-  {{dev-bun}} bin/cosm support/chat_cli.cosm
+  {{dev-bun}} bin/cosm agent/chat_cli.cosm
 
 commit:
   git add .

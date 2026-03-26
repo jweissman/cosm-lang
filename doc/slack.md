@@ -1,6 +1,6 @@
 # Slack DM Agent
 
-The Slack wedge is intentionally narrow in `0.3.13.12`:
+The Slack wedge is intentionally narrow and runtime-centered:
 
 - DM-only
 - conversational only
@@ -11,10 +11,11 @@ The Slack wedge is intentionally narrow in `0.3.13.12`:
 ## Service Shape
 
 - [agent/service.cosm](/Users/joe/Work/cosm-lang/agent/service.cosm) defines the service object and routes
-- [agent/server.cosm](/Users/joe/Work/cosm-lang/agent/server.cosm) is the simple boot entry
-- [agent/runtime.cosm](/Users/joe/Work/cosm-lang/agent/runtime.cosm) owns the persistent agent turn loop, named-session policy, and conversation mutation
+- [agent/server.cosm](/Users/joe/Work/cosm-lang/agent/server.cosm) is the canonical live service entry
+- [agent/runtime.cosm](/Users/joe/Work/cosm-lang/agent/runtime.cosm) owns the persistent agent turn loop, named-session policy, conversation mutation, and runtime status
 - [agent/slack.cosm](/Users/joe/Work/cosm-lang/agent/slack.cosm) owns Slack verification, DM filtering, dedupe, and request normalization
 - [agent/store.cosm](/Users/joe/Work/cosm-lang/agent/store.cosm) owns file-backed thread storage
+- [agent/chat.cosm](/Users/joe/Work/cosm-lang/agent/chat.cosm) owns the local terminal chat loop over the same runtime/store path
 - [agent/slack_dm.cosm](/Users/joe/Work/cosm-lang/agent/slack_dm.cosm) owns the one-shot DM smoke command
 
 ## Minimum Setup
@@ -69,14 +70,15 @@ For DMs, this is usually a `D...` id.
 ## Manual DM-Only Checklist
 
 1. Export `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
-2. Start the separate service with `./script/bunx bin/cosm agent/server.cosm`.
+2. Start the separate service with `./script/bunx bin/cosm agent/server.cosm` or `just agent-server`.
 3. Check `GET /health` for process liveness.
 4. Check `GET /ready` and confirm Slack env, storage, AI config, and AI health all report ready.
-5. Run `./script/bunx bin/cosm agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
-6. Complete Slack URL verification against `POST /slack/events`.
-7. Send a first DM and confirm exactly one reply appears.
-8. Send a follow-up in the same DM thread and confirm context is reused.
-9. Replay the same Slack delivery and confirm it dedupes without a second reply.
-10. Send `help`, `status`, and `reset` and confirm each behaves cleanly.
-11. Restart the service and confirm the same DM thread still reuses transcript/session state.
-12. Simulate backend unavailability and confirm the user gets a readable fallback reply rather than silence.
+5. Optionally run `just chat` to verify the same runtime/store loop locally before touching Slack.
+6. Run `./script/bunx bin/cosm agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
+7. Complete Slack URL verification against `POST /slack/events`.
+8. Send a first DM and confirm exactly one reply appears.
+9. Send a follow-up in the same DM thread and confirm context is reused.
+10. Replay the same Slack delivery and confirm it dedupes without a second reply.
+11. Send `help`, `status`, and `reset` and confirm each behaves cleanly.
+12. Restart the service and confirm the same DM thread still reuses transcript/session state.
+13. Simulate backend unavailability and confirm the user gets a readable fallback reply rather than silence.

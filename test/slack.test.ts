@@ -349,7 +349,7 @@ test("slack service reset clears only the current thread state", async () => {
   expect(ValueAdapter.cosmToJS(resetResponse.nativeProperty?.("status"))).toBe(200);
   expect(JSON.parse(slackApi.calls[0].body)).toMatchObject({
     channel: "D555",
-    text: "Thread memory cleared. The next DM starts from a clean transcript and named session.",
+    text: "Conversation memory cleared. The next message starts from a clean transcript and named session.",
     thread_ts: "1710000020.000001",
   });
 

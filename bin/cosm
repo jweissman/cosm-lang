@@ -30,7 +30,7 @@ function usage(): string {
     "  cosm",
     "  cosm --version",
     "  cosm -e '<source>'",
-    "  cosm test <file.cosm>",
+    "  cosm test [file.cosm|spec/|test/]",
     "  cosm <file.cosm>",
     "  cosm <file.cosm> [args...]",
     "  cosm help",
@@ -54,7 +54,7 @@ type CliMode =
   | { kind: "help"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "eval"; source: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "run"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "test"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "test"; filePath?: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
 
 type TraceSurfaceNode = {
@@ -205,9 +205,6 @@ function parseArgs(args: string[]): CliMode {
   }
 
   if (modes.has("test")) {
-    if (!filePath) {
-      throw new Error("--test expects a file path");
-    }
     return { kind: "test", filePath, scriptArgs, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
@@ -413,7 +410,21 @@ function createTestEnv(): ReturnType<typeof Cosm.Interpreter.createEnv> {
   return env;
 }
 
-function runTestMode(source: string, filePath: string, scriptArgs: string[], mode: { vm: boolean }): never {
+function resolveTestTargets(filePath?: string): string[] {
+  if (!filePath) {
+    return ["spec/core.cosm", "spec/runtime/baseline.cosm"];
+  }
+  const normalized = filePath.replace(/\\/g, "/");
+  if (normalized === "spec" || normalized === "spec/") {
+    return ["spec/core.cosm", "spec/runtime/baseline.cosm"];
+  }
+  if (normalized === "test" || normalized === "test/") {
+    return ["test/test.cosm"];
+  }
+  return [filePath];
+}
+
+function runSingleTestTarget(source: string, filePath: string, scriptArgs: string[], mode: { vm: boolean }): { passed: number; failed: number; total: number } {
   const originalArgv = [...process.argv];
   try {
     process.argv = [originalArgv[0] ?? "bun", originalArgv[1] ?? "bin/cosm", filePath, ...scriptArgs];
@@ -424,12 +435,38 @@ function runTestMode(source: string, filePath: string, scriptArgs: string[], mod
       const env = createTestEnv();
       Cosm.Interpreter.evalInEnv(source, env);
     }
-    const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
-    console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
-    process.exit(summary.failed > 0 ? 1 : 0);
+    return ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
   } finally {
     process.argv = originalArgv;
   }
+}
+
+function runTestMode(filePath: string | undefined, scriptArgs: string[], mode: { vm: boolean; traceSurface: boolean; traceCore: boolean; traceIr: boolean }): never {
+  const targets = resolveTestTargets(filePath);
+  let failedTargets = 0;
+
+  for (const [index, targetPath] of targets.entries()) {
+    const source = readFileSync(targetPath, "utf8");
+    if (targets.length > 1) {
+      if (index > 0) {
+        console.log("");
+      }
+      console.log(`==> ${targetPath}`);
+    }
+    emitTraceFlags(source, mode);
+    const summary = runSingleTestTarget(source, targetPath, scriptArgs, mode);
+    console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
+    if (summary.failed > 0) {
+      failedTargets += 1;
+    }
+  }
+
+  if (targets.length > 1) {
+    console.log("");
+    console.log(`${targets.length - failedTargets} test bundles passed, ${failedTargets} failed`);
+  }
+
+  process.exit(failedTargets > 0 ? 1 : 0);
 }
 
 if (require.main === module) {
@@ -467,18 +504,20 @@ if (require.main === module) {
     try {
       const source = mode.kind === "eval"
         ? mode.source
-        : readFileSync(mode.filePath, "utf8");
-      if (mode.kind === "run" || mode.kind === "test") {
+        : (mode.kind === "test" ? "" : readFileSync(mode.filePath, "utf8"));
+      if (mode.kind === "run" || (mode.kind === "test" && mode.filePath)) {
         process.argv = [originalArgv[0] ?? "bun", originalArgv[1] ?? "bin/cosm", mode.filePath, ...mode.scriptArgs];
       }
-      emitTraceFlags(source, mode);
+      if (mode.kind !== "test") {
+        emitTraceFlags(source, mode);
+      }
       if (mode.traceSend) {
         RuntimeDispatch.installTraceHooks({
           logSend: (line) => console.log(line),
         });
       }
       if (mode.kind === "test") {
-        runTestMode(source, mode.filePath, mode.scriptArgs, mode);
+        runTestMode(mode.filePath, mode.scriptArgs, mode);
       }
       const result = mode.vm ? Cosm.Interpreter.evalVm(source) : Cosm.Interpreter.eval(source);
       process.argv = originalArgv;

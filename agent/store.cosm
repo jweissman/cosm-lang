@@ -71,3 +71,15 @@ def writable()
   let outcome = Kernel.try(->() { Kernel.writeText(ready_probe_path(), Time.isoNow()) })
   outcome.ok
 end
+
+def known_conversation_count()
+  Kernel.listDir(storage_dir()).filter(->(entry) { entry != ".ready" }).length
+end
+
+def status()
+  {
+    storage_dir: storage_dir(),
+    storage_writable: writable(),
+    known_conversations: known_conversation_count()
+  }
+end

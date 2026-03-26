@@ -6,6 +6,8 @@ def append_message(conversation, role, text)
   let entry = { role: role, text: text }
   let messages = conversation.messages.append(entry)
   let value = {
+    agent: conversation.agent,
+    transport: conversation.transport,
     key: conversation.key,
     channel: conversation.channel,
     thread: conversation.thread,
@@ -27,6 +29,8 @@ def append_user_message(conversation, inbound)
   let entry = { role: "user", user: inbound.user, text: inbound.text, ts: inbound.ts }
   let messages = conversation.messages.append(entry)
   let value = {
+    agent: conversation.agent,
+    transport: conversation.transport,
     key: conversation.key,
     channel: conversation.channel,
     thread: conversation.thread,
@@ -45,6 +49,8 @@ end
 def cli_conversation(messages)
   let now = Time.isoNow()
   let value = {
+    agent: "iapetus",
+    transport: "cli",
     key: "cli:iapetus",
     channel: "cli",
     thread: "cli",
@@ -63,6 +69,8 @@ end
 def page_conversation(key, transcript, context = false)
   let now = Time.isoNow()
   let value = {
+    agent: "iapetus",
+    transport: "web",
     key: key,
     channel: "web",
     thread: key,
@@ -126,7 +134,8 @@ def display_transcript(conversation) = current_transcript(conversation);
 
 def command_reply(conversation, command)
   Support::Models.conversation.validate(conversation)
-  let text = command == "help" ? "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory." : (command == "reset" ? "Thread memory cleared. The next DM starts from a clean transcript and named session." : (command == "status" ? "This DM thread is using `" + conversation.session_name + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread." : "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."))
+  let thread_label = conversation.transport == "slack" ? "this DM thread" : "this conversation"
+  let text = command == "help" ? "Iapetus is a persistent support assistant. Send a normal message to chat, `reset` to clear " + thread_label + ", or `status` to inspect the current memory." : (command == "reset" ? "Conversation memory cleared. The next message starts from a clean transcript and named session." : (command == "status" ? "This conversation is using `" + conversation.session_name + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just " + thread_label + "." : "I can chat here and keep conversation-local memory. Send `help`, `status`, or `reset`."))
   let value = { should_reply: true, text: text, rationale: "meta", tool_calls: false, tool_results: false }
   Support::Models.agent_reply.validate(value)
   value

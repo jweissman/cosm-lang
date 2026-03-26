@@ -83,7 +83,10 @@ Common commands:
 - `./script/bunx run test:slow`
 - `./script/bunx run test:live-ai`
 - `./script/bunx run lint`
+- `./script/bunx bin/cosm test`
 - `./script/bunx bin/cosm test spec/core.cosm`
+- `./script/bunx bin/cosm test spec/`
+- `./script/bunx bin/cosm test test/`
 - `./script/bunx bin/cosm spec/core.cosm`
 - `./script/bunx bin/cosm test spec/runtime/baseline.cosm`
 - `./script/bunx bin/cosm --version`
@@ -96,15 +99,22 @@ Common commands:
 - `just watch-test`
 - `just server`
 - `just agent-server`
+- `just chat`
 - `just send-dm <channel_id> <text>`
 - `just self-test`
+
+Iapetus workflow:
+
+- `just agent-server` starts the DM-first Slack-facing service at the canonical entrypoint
+- `just chat` starts the local terminal loop against the same `Agent::Runtime` and file-backed store
+- `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM it
 
 Slack smoke testing:
 
 - outbound post only needs `SLACK_BOT_TOKEN`
 - inbound `/slack/events` verification also needs `SLACK_SIGNING_SECRET`
 - the one-shot DM helper expects a Slack conversation id such as `D...`
-- the current agent service also exposes `/status` and `/agent/status` for quick runtime inspection
+- the current agent service and local chat loop both reuse the same durable runtime/store path
 
 ## Docs
 

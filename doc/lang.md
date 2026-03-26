@@ -375,8 +375,8 @@ Class.class.name
   Clears the current test counters.
 - `Kernel.testSummary()`
   Returns a hash with `passed`, `failed`, and `total`.
-- `cosm test <file.cosm>`
-  Canonical CLI test mode. It preloads implicit spec helpers, runs the file, prints a summary, and exits nonzero on failure.
+- `cosm test [file.cosm|spec/|test/]`
+  Canonical CLI test mode. It preloads implicit spec helpers, runs the file or narrow built-in bundle target, prints a summary, and exits nonzero on failure.
 - `Kernel.raise(messageOrError, details?)`
   Raises an `Error`. Supported forms are `Kernel.raise("message")`, `Kernel.raise("message", details)`, and `Kernel.raise(error_object)`.
 - `puts(value)`
@@ -580,7 +580,7 @@ do let x = 1; x + 2 end
 - `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
 - `resetTests` and `testSummary` still exist as convenience globals, but `Cosm::Spec` is the maintained testing path.
 - `require "path"` is the maintained module-loading form. Prefer module constants like `Cosm::Spec` and `App::App` over older ambient bindings.
-- `cosm test <file.cosm>` is the maintained spec-running path. `--test` remains a compatibility alias for now.
+- `cosm test` may also run the maintained Cosm bundles directly with no argument, and `cosm test spec/` / `cosm test test/` are narrow built-in shorthands. `--test` remains a compatibility alias for now.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.

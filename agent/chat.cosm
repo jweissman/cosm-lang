@@ -1,0 +1,33 @@
+require "agent/runtime"
+
+def banner(name = "iapetus") = "Iapetus local chat is using the durable `" + Agent::Runtime.local_target(name).thread + "` conversation. Press enter on an empty line to exit. Use help, status, or reset.";
+
+def target(name = "iapetus") = Agent::Runtime.local_target(name);
+
+def step(text, name = "iapetus") = Agent::Runtime.execute_stored_turn_for_target(target(name), text);
+
+def status(name = "iapetus")
+  let conversation = Agent::Runtime.load_conversation_for_target(target(name))
+  {
+    conversation_key: conversation.key,
+    session_name: conversation.session_name,
+    messages: conversation.messages.length,
+    runtime: Agent::Runtime.status()
+  }
+end
+
+def run(name = "iapetus")
+  Kernel.puts(banner(name))
+  loop(name)
+end
+
+def loop(name = "iapetus")
+  let input = Kernel.readline("you> ")
+  if input == "" then
+    Kernel.puts("iapetus> Goodbye for now.")
+  else
+    let turn = step(input, name)
+    Kernel.puts("iapetus> " + turn.reply.text)
+    loop(name)
+  end
+end

@@ -87,6 +87,76 @@ test("agent runtime handles commands transport-agnostically", () => {
   });
 });
 
+test("local Iapetus chat reuses the shared runtime and durable store", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cosm-agent-chat-"));
+  process.env.SLACK_STORAGE_DIR = dir;
+
+  CosmAiValue.installRuntimeHooks({
+    cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
+      prompt.includes("Session.default().reset()")
+        ? {
+            should_reply: true,
+            text: "You can also inspect the current stored conversation with status.",
+            rationale: "mocked follow-up",
+            tool_calls: false,
+            tool_results: false,
+          }
+        : {
+            should_reply: true,
+            text: "You can call Session.default().reset() to clear it in code.",
+            rationale: "mocked first reply",
+            tool_calls: false,
+            tool_results: false,
+          },
+    )),
+  });
+
+  expect(cosmEval(`
+    require "agent/chat"
+    let first = Agent::Chat.step("How do I reset it?")
+    let second = Agent::Chat.step("Any code path?")
+    let status = Agent::Chat.status()
+    {
+      first_reply: first.reply.text,
+      second_reply: second.reply.text,
+      session_name: second.conversation.session_name,
+      messages: status.messages,
+      known_conversations: status.runtime.storage.known_conversations
+    }
+  `)).toEqual({
+    first_reply: "You can call Session.default().reset() to clear it in code.",
+    second_reply: "You can also inspect the current stored conversation with status.",
+    session_name: "agent:local:cli:iapetus",
+    messages: 4,
+    known_conversations: 1,
+  });
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("local Iapetus chat routes help, status, and reset through the shared runtime path", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cosm-agent-chat-commands-"));
+  process.env.SLACK_STORAGE_DIR = dir;
+
+  expect(cosmEval(`
+    require "agent/chat"
+    Agent::Chat.step("status")
+    let reset = Agent::Chat.step("reset")
+    let status = Agent::Chat.status()
+    {
+      reset_reply: reset.reply.text,
+      messages: status.messages,
+      key: status.conversation_key
+    }
+  `)).toEqual({
+    reset_reply: "Conversation memory cleared. The next message starts from a clean transcript and named session.",
+    messages: 0,
+    key: "local:cli:iapetus",
+  });
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("slack dm smoke helper sends one outbound message through the shared slack client", () => {
   process.env.SLACK_BOT_TOKEN = "xoxb-smoke";
   process.env.SLACK_API_URL = "https://slack.test/api/chat.postMessage";

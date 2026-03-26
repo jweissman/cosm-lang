@@ -361,7 +361,7 @@ test("cli help prints usage", () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("Usage:");
-  expect(result.stdout).toContain("cosm test <file.cosm>");
+  expect(result.stdout).toContain("cosm test [file.cosm|spec/|test/]");
   expect(result.stdout).toContain("cosm --watch <file.cosm>");
 });
 
@@ -401,6 +401,31 @@ test("cli can run the dedicated runtime harness spec bundle", () => {
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# Kernel");
   expect(result.stdout).toContain("# Support chatbot helpers");
+  expect(result.stdout).toContain("passed");
+});
+
+test("cli test with no target runs the maintained Cosm spec bundles", () => {
+  const result = runCli(["test"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("==> spec/core.cosm");
+  expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
+  expect(result.stdout).toContain("test bundles passed");
+});
+
+test("cli test accepts the narrow spec/ directory shorthand", () => {
+  const result = runCli(["test", "spec/"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("==> spec/core.cosm");
+  expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
+});
+
+test("cli test accepts the narrow test/ directory shorthand", () => {
+  const result = runCli(["test", "test/"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("# kernel basics");
   expect(result.stdout).toContain("passed");
 });
 

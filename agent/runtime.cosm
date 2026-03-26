@@ -1,6 +1,8 @@
 require "support/controller"
 require "support/models"
 require "agent/store"
+require "agent/config"
+require "cosm/ai"
 
 let agent_turn = Data.model("agent_turn", {
   conversation: Support::Models.conversation,
@@ -17,17 +19,44 @@ def identity = {
   persistence: "file-backed-thread"
 };
 
-def conversation_key(channel, thread) = channel + ":" + thread;
+def conversation_key(channel, thread, transport = false) = transport == false || transport == "slack" ? channel + ":" + thread : transport + ":" + channel + ":" + thread;
 
 def session_name(key) = identity().session_prefix + key;
 
-def conversation_for_inbound(inbound, transcript = false, context = false)
-  let now = Time.isoNow()
-  let key = conversation_key(inbound.channel, inbound.thread)
+def target(channel, thread, transport = "slack", user = "visitor")
+  {
+    channel: channel,
+    thread: thread,
+    transport: transport,
+    user: user
+  }
+end
+
+def local_target(name = "iapetus")
+  target("cli", name, "local", "you")
+end
+
+def inbound_for_target(target, text, ts = false)
   let value = {
+    channel: target.channel,
+    thread: target.thread,
+    user: target.user,
+    text: text,
+    ts: ts == false ? Time.isoNow() : ts
+  }
+  Support::Models.inbound_message.validate(value)
+  value
+end
+
+def conversation_for_target(target, transcript = false, context = false)
+  let now = Time.isoNow()
+  let key = conversation_key(target.channel, target.thread, target.transport)
+  let value = {
+    agent: identity().name,
+    transport: target.transport,
     key: key,
-    channel: inbound.channel,
-    thread: inbound.thread,
+    channel: target.channel,
+    thread: target.thread,
     messages: [],
     session_name: session_name(key),
     session_length: 0,
@@ -40,28 +69,40 @@ def conversation_for_inbound(inbound, transcript = false, context = false)
   value
 end
 
-def load_conversation(inbound, transcript = false, context = false)
-  let key = conversation_key(inbound.channel, inbound.thread)
+def conversation_for_inbound(inbound, transcript = false, context = false, transport = "slack")
+  conversation_for_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
+end
+
+def load_conversation_for_target(target, transcript = false, context = false)
+  let key = conversation_key(target.channel, target.thread, target.transport)
   let loaded = Agent::Store.load_record(key)
-  loaded == false ? conversation_for_inbound(inbound, transcript, context) : loaded.conversation
+  loaded == false ? conversation_for_target(target, transcript, context) : loaded.conversation
+end
+
+def load_conversation(inbound, transcript = false, context = false, transport = "slack")
+  load_conversation_for_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
 end
 
 def save_conversation(conversation) = Agent::Store.save_conversation(conversation).conversation;
 
-def processed(inbound, event_key) = Agent::Store.processed(conversation_key(inbound.channel, inbound.thread), event_key);
+def processed(inbound, event_key, transport = "slack") = Agent::Store.processed(conversation_key(inbound.channel, inbound.thread, transport), event_key);
 
 def mark_processed(conversation, event_key) = Agent::Store.mark_processed(conversation, event_key);
 
-def reset_conversation(inbound, transcript = false, context = false)
-  let fresh = conversation_for_inbound(inbound, transcript, context)
+def reset_target(target, transcript = false, context = false)
+  let fresh = conversation_for_target(target, transcript, context)
   save_conversation(fresh)
+end
+
+def reset_conversation(inbound, transcript = false, context = false, transport = "slack")
+  reset_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
 end
 
 def command_name(text) = text == "help" || text == "/help" ? "help" : (text == "reset" || text == "/reset" ? "reset" : (text == "status" || text == "/status" ? "status" : false));
 
 def from_command(conversation, inbound, command)
   if command == "reset" then
-    let fresh = conversation_for_inbound(inbound, conversation.transcript, conversation.context)
+    let fresh = conversation_for_target(target(inbound.channel, inbound.thread, conversation.transport, inbound.user), conversation.transcript, conversation.context)
     Session.named(fresh.session_name).reset()
     let reply = Support::Controller.command_reply(fresh, command)
     let value = { conversation: fresh, inbound: inbound, reply: reply, command: command }
@@ -104,4 +145,34 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   value
 end
 
-def status = identity();
+def execute_stored_turn_for_target(target, text, transcript = false, context = false)
+  let inbound = inbound_for_target(target, text)
+  let conversation = load_conversation_for_target(target, transcript, context)
+  let turn = execute_turn(conversation, inbound)
+  let saved = save_conversation(turn.conversation)
+  let value = { conversation: saved, inbound: turn.inbound, reply: turn.reply, command: turn.command }
+  agent_turn.validate(value)
+  value
+end
+
+def status()
+  let store = Agent::Store.status()
+  let ai_config = Cosm::AI.config()
+  let ai_health = Cosm::AI.health()
+  let ai_status = { configured: ai_config.configured, health: ai_health.ok }
+  let slack_status = {
+    signing_secret: Agent::Config.slack_signing_secret() != false,
+    bot_token: Agent::Config.slack_bot_token() != false
+  }
+  let value = {
+    name: identity().name,
+    mode: identity().mode,
+    control: identity().control,
+    session_prefix: identity().session_prefix,
+    persistence: identity().persistence,
+    storage: store,
+    ai: ai_status,
+    slack: slack_status
+  }
+  value
+end
