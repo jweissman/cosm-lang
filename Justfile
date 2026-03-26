@@ -23,10 +23,16 @@ repl:
   {{dev-bun}} bin/cosm
 
 server:
-  {{dev-bun}} bin/cosm --watch app/server.cosm
+  {{dev-bun}} bin/cosm app/server.cosm
 
 watch-server:
   {{dev-bun}} bin/cosm --watch app/server.cosm
+
+agent-server:
+  {{dev-bun}} bin/cosm agent/server.cosm
+
+watch-agent-server:
+  {{dev-bun}} bin/cosm --watch agent/server.cosm
 
 bench-vm:
   {{dev-bun}} run script/bench_vm.ts

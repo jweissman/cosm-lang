@@ -65,10 +65,6 @@ class App
         post "/notebook/agent/reset" do |req|
           App.notebookAgentReset(req)
         end
-
-        post "/slack/events" do |req|
-          slack.events(req)
-        end
       end
 
       App.new(router)

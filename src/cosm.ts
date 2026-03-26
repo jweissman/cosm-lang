@@ -508,6 +508,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.8";
+    export const version = "0.3.13.9";
 }
 export default Cosm;

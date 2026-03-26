@@ -1,0 +1,5 @@
+require("agent/service.cosm")
+
+let port = Process.env("COSM_AGENT_PORT")
+let listenPort = if port == false then 12456 else port.to_i() end
+let server = http.serve(listenPort, service.AgentService.build())

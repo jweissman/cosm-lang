@@ -143,7 +143,7 @@ Module objects currently support:
 
 Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.12.x`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` or `render(context, body)` entry point, which fits naturally with an `app/views/...` layout. `.ecosm` now supports both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation. Layout composition may provide template child content through `yield()` inside `.ecosm`, and in `0.3.12.x` that body now flows through renderer-owned metadata rather than hijacking ordinary context keys.
 
-`require("app/examples.cosm")` is also now used as a small example of Cosm-authored app support code: a plain module that exposes notebook example source through ordinary defs. `require("support/chat.cosm")` and `require("support/agent.cosm")` now provide the tiny support-assistant core that both the CLI chatbot and Slack ingress build on.
+`require("app/examples.cosm")` is also now used as a small example of Cosm-authored app support code: a plain module that exposes notebook example source through ordinary defs. `require("support/chat.cosm")` and `require("support/agent.cosm")` now provide the tiny support-assistant core that both the CLI chatbot and the separate Slack agent service build on.
 
 `Data` is now also available as a module-backed stdlib surface. It exposes:
 

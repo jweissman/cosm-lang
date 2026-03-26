@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { Construct } from "../Construct";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
 import { CosmEnv, CosmValue } from "../types";
@@ -16,13 +17,30 @@ import { CosmErrorValue } from "./CosmErrorValue";
 export class CosmHttpValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
+  private static requestHandler?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
 
   static installRuntimeHooks(hooks: {
     invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
     lookupMethod: (receiver: CosmValue, message: CosmValue) => CosmValue;
+    request?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
   }): void {
     this.invokeHandler = hooks.invoke;
     this.methodLookupHandler = hooks.lookupMethod;
+    if ("request" in hooks) {
+      this.requestHandler = hooks.request;
+    }
+  }
+
+  static currentRuntimeHooks(): {
+    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    lookupMethod?: (receiver: CosmValue, message: CosmValue) => CosmValue;
+    request?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
+  } {
+    return {
+      invoke: this.invokeHandler,
+      lookupMethod: this.methodLookupHandler,
+      request: this.requestHandler,
+    };
   }
 
   static readonly manifest: RuntimeValueManifest<CosmHttpValue> = {
@@ -52,6 +70,28 @@ export class CosmHttpValue extends CosmObjectValue {
         const port = server.port;
         const url = `http://127.0.0.1:${port}`;
         return new CosmHttpServerValue(server, port, url, selfValue.serverClassRef);
+      }),
+      request: () => new CosmFunctionValue('request', (args, selfValue) => {
+        if (!(selfValue instanceof CosmHttpValue)) {
+          throw new Error('Type error: request expects an Http receiver');
+        }
+        if (args.length < 2 || args.length > 3) {
+          throw new Error(`Arity error: request expects 2 or 3 arguments, got ${args.length}`);
+        }
+        const [methodValue, urlValue, optionsValue] = args;
+        if (!(methodValue instanceof CosmStringValue)) {
+          throw new Error("Type error: request expects a string method");
+        }
+        if (!(urlValue instanceof CosmStringValue)) {
+          throw new Error("Type error: request expects a string url");
+        }
+        const request = selfValue.parseRequestOptions(optionsValue);
+        const response = selfValue.performRequest(methodValue.value, urlValue.value, request);
+        return new CosmNamespaceValue({
+          status: Construct.number(response.status),
+          ok: Construct.bool(response.status >= 200 && response.status < 300),
+          body: Construct.string(response.body),
+        }, selfValue.namespaceClassRef);
       }),
     },
   };
@@ -97,6 +137,68 @@ export class CosmHttpValue extends CosmObjectValue {
       return new Response(body, { status, headers });
     }
     return new Response(this.renderBody(value));
+  }
+
+  private parseRequestOptions(value: CosmValue | undefined): {
+    headers: Record<string, string>;
+    body?: string;
+  } {
+    if (value === undefined || value.type === "bool") {
+      return { headers: {} };
+    }
+    if (!(value instanceof CosmNamespaceValue) && !(value instanceof CosmHashValue)) {
+      throw new Error("Type error: request options must be a Namespace, Hash, or false");
+    }
+    const fields = value instanceof CosmNamespaceValue ? value.fields : value.entries;
+    const headersValue = fields.headers;
+    const bodyValue = fields.body;
+    const headers = this.renderHeaders(headersValue);
+    const body = bodyValue === undefined || bodyValue.type === "bool"
+      ? undefined
+      : this.renderBody(bodyValue);
+    return {
+      headers: headers ? Object.fromEntries(Object.entries(headers)) : {},
+      body,
+    };
+  }
+
+  private performRequest(method: string, url: string, options: { headers: Record<string, string>; body?: string }): {
+    status: number;
+    body: string;
+  } {
+    if (CosmHttpValue.requestHandler) {
+      return CosmHttpValue.requestHandler(method, url, options);
+    }
+    const args = [
+      "-sS",
+      "-X",
+      method,
+      "-w",
+      "\n__COSM_HTTP_STATUS__:%{http_code}",
+    ];
+    for (const [key, value] of Object.entries(options.headers)) {
+      args.push("-H", `${key}: ${value}`);
+    }
+    if (options.body !== undefined) {
+      args.push("-d", options.body);
+    }
+    args.push(url);
+    const raw = execFileSync("curl", args, {
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const marker = "\n__COSM_HTTP_STATUS__:";
+    const markerIndex = raw.lastIndexOf(marker);
+    if (markerIndex === -1) {
+      throw new Error("Http runtime error: request did not return a status marker");
+    }
+    const body = raw.slice(0, markerIndex);
+    const statusText = raw.slice(markerIndex + marker.length).trim();
+    const status = Number.parseInt(statusText, 10);
+    if (!Number.isInteger(status)) {
+      throw new Error(`Http runtime error: request returned an invalid status code ${JSON.stringify(statusText)}`);
+    }
+    return { status, body };
   }
 
   private renderBody(value: CosmValue): string {

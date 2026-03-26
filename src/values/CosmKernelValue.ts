@@ -18,6 +18,7 @@ import { CosmDataModelValue } from "./CosmDataModelValue";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, readSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { createHmac } from "node:crypto";
 
 
 export class CosmKernelValue extends CosmObjectValue {
@@ -281,6 +282,19 @@ export class CosmKernelValue extends CosmObjectValue {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;'),
         );
+      }),
+      hmacSha256: () => new CosmFunctionValue('hmacSha256', (args) => {
+        if (args.length !== 2) {
+          throw new Error(`Arity error: hmacSha256 expects 2 arguments, got ${args.length}`);
+        }
+        const [secretValue, payloadValue] = args;
+        if (!(secretValue instanceof CosmStringValue)) {
+          throw new Error("Type error: hmacSha256 expects a string secret");
+        }
+        if (!(payloadValue instanceof CosmStringValue)) {
+          throw new Error("Type error: hmacSha256 expects a string payload");
+        }
+        return new CosmStringValue(createHmac("sha256", secretValue.value).update(payloadValue.value).digest("hex"));
       }),
       eval: () => new CosmFunctionValue('eval', (args) => {
         if (args.length !== 1) {

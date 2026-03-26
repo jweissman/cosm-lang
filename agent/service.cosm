@@ -1,0 +1,42 @@
+require("agent/slack.cosm")
+
+class AgentService
+  def init(router)
+    true
+  end
+
+  def handle(req)
+    @router.handle(req)
+  end
+
+  class << self
+    def build()
+      let router = HttpRouter.new()
+
+      router.use do |req, next|
+        puts "[#{Time.isoNow()}] agent #{req.method} #{req.path}"
+        next()
+      end
+
+      router.draw do
+        get "/health" do |req|
+          slack.health(req)
+        end
+
+        get "/ready" do |req|
+          slack.ready(req)
+        end
+
+        get "/status" do |req|
+          slack.status(req)
+        end
+
+        post "/slack/events" do |req|
+          slack.events(req)
+        end
+      end
+
+      AgentService.new(router)
+    end
+  end
+end

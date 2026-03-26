@@ -59,7 +59,7 @@ def aiCastHelper()
 end
 
 def supportAgentPreview()
-  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack adapter.", "require(\"support/agent.cosm\"); agent.preview()")
+  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "require(\"support/agent.cosm\"); agent.preview()")
 end
 
 def promptData()
@@ -75,7 +75,7 @@ def supportStepModel()
 end
 
 def supportPage()
-  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack adapter.", "require(\"support/controller.cosm\"); controller.pageConversation(\"demo\", \"user: hello\")")
+  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require(\"support/controller.cosm\"); controller.pageConversation(\"demo\", \"user: hello\")")
 end
 
 def notebookPage()

@@ -6,28 +6,77 @@ import { join } from "node:path";
 import { AiRuntime } from "../src/runtime/AiRuntime";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { CosmAiValue } from "../src/values/CosmAiValue";
-import { CosmSlackValue } from "../src/values/CosmSlackValue";
+import { CosmHttpValue } from "../src/values/CosmHttpValue";
 import { dispatchService } from "./support/request_spec";
 
 const originalSigningSecret = process.env.COSM_SLACK_SIGNING_SECRET;
 const originalBotToken = process.env.COSM_SLACK_BOT_TOKEN;
 const originalSlackInline = process.env.COSM_SLACK_INLINE_SESSION;
 const originalSlackDir = process.env.COSM_SLACK_DIR;
+const originalSlackApiUrl = process.env.COSM_SLACK_API_URL;
+const originalHttpHooks = CosmHttpValue.currentRuntimeHooks();
+
+const serviceSource = `
+  require("agent/service.cosm")
+  service.AgentService.build()
+`;
 
 const signBody = (body: string, secret: string, timestamp: string) => {
   const base = `v0:${timestamp}:${body}`;
   return `v0=${createHmac("sha256", secret).update(base).digest("hex")}`;
 };
 
+type SlackCall = {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+};
+
+function installSlackApiHook(responseFactory?: (call: SlackCall) => { status: number; body: string }) {
+  const calls: SlackCall[] = [];
+  CosmHttpValue.installRuntimeHooks({
+    invoke: originalHttpHooks.invoke!,
+    lookupMethod: originalHttpHooks.lookupMethod!,
+    request: (method, url, options) => {
+      const call = {
+        method,
+        url,
+        headers: options.headers,
+        body: options.body ?? "",
+      };
+      calls.push(call);
+      if (responseFactory) {
+        return responseFactory(call);
+      }
+      return { status: 200, body: JSON.stringify({ ok: true }) };
+    },
+  });
+  return {
+    calls,
+    url: "https://slack.test/api/chat.postMessage",
+    stop: () => CosmHttpValue.installRuntimeHooks({
+      invoke: originalHttpHooks.invoke!,
+      lookupMethod: originalHttpHooks.lookupMethod!,
+      request: originalHttpHooks.request,
+    }),
+  };
+}
+
 afterEach(() => {
   process.env.COSM_SLACK_SIGNING_SECRET = originalSigningSecret;
   process.env.COSM_SLACK_BOT_TOKEN = originalBotToken;
   process.env.COSM_SLACK_INLINE_SESSION = originalSlackInline;
   process.env.COSM_SLACK_DIR = originalSlackDir;
-  CosmSlackValue.resetRegistry();
-  CosmSlackValue.installRuntimeHooks({});
+  process.env.COSM_SLACK_API_URL = originalSlackApiUrl;
+  CosmHttpValue.installRuntimeHooks({
+    invoke: originalHttpHooks.invoke!,
+    lookupMethod: originalHttpHooks.lookupMethod!,
+    request: originalHttpHooks.request,
+  });
   CosmAiValue.installRuntimeHooks({
     status: () => AiRuntime.status(),
+    health: () => AiRuntime.health(),
     complete: (prompt) => AiRuntime.complete(prompt),
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
@@ -46,19 +95,20 @@ function withSlackEnv() {
   };
 }
 
-test("slack dm ingress verifies, reuses a session, and posts a structured reply", () => {
-  const cleanup = withSlackEnv();
-
-  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
-  CosmSlackValue.installRuntimeHooks({
-    postMessage: (conversation, text) => {
-      outboundCalls.push({
-        channel: conversation.channel,
-        text,
-        thread_ts: conversation.thread,
-      });
+function dispatchSlack(body: string, timestamp: string) {
+  return dispatchService(serviceSource, "POST", "/slack/events", {
+    body,
+    headers: {
+      "x-slack-request-timestamp": timestamp,
+      "x-slack-signature": signBody(body, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
     },
   });
+}
+
+test("slack dm ingress verifies, reuses a session, and posts a structured reply through the separate agent service", async () => {
+  const cleanup = withSlackEnv();
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
     cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
@@ -83,6 +133,7 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply"
   const timestamp = String(Math.floor(Date.now() / 1000));
   const body = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-first",
     event: {
       type: "message",
       channel_type: "im",
@@ -92,31 +143,20 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply"
       ts: "1710000000.000001",
     },
   });
-  const signature = signBody(body, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp);
 
-  const response = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signature,
-    },
-  });
-
+  const response = dispatchSlack(body, timestamp);
   expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
   expect(JSON.parse(String(ValueAdapter.cosmToJS(response.nativeProperty?.("body"))))).toMatchObject({ ok: true, replied: true });
-  expect(outboundCalls).toEqual([
-    {
-      channel: "D123",
-      text: "Reset the session with the Reset Session button in the notebook UI.",
-      thread_ts: "1710000000.000001",
-    },
-  ]);
+  expect(slackApi.calls).toHaveLength(1);
+  expect(JSON.parse(slackApi.calls[0].body)).toMatchObject({
+    channel: "D123",
+    text: "Reset the session with the Reset Session button in the notebook UI.",
+    thread_ts: "1710000000.000001",
+  });
 
   const followUpBody = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-second",
     event: {
       type: "message",
       channel_type: "im",
@@ -127,50 +167,24 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply"
       thread_ts: "1710000000.000001",
     },
   });
-  const followUpSignature = signBody(followUpBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp);
 
-  const followUpResponse = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body: followUpBody,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": followUpSignature,
-    },
+  const followUpResponse = dispatchSlack(followUpBody, timestamp);
+  expect(ValueAdapter.cosmToJS(followUpResponse.nativeProperty?.("status"))).toBe(200);
+  expect(slackApi.calls).toHaveLength(2);
+  expect(JSON.parse(slackApi.calls[1].body)).toMatchObject({
+    channel: "D123",
+    text: "You can also call Session.default().reset() from Cosm if you need to reset it in code.",
+    thread_ts: "1710000000.000001",
   });
 
-  expect(ValueAdapter.cosmToJS(followUpResponse.nativeProperty?.("status"))).toBe(200);
-  expect(JSON.parse(String(ValueAdapter.cosmToJS(followUpResponse.nativeProperty?.("body"))))).toMatchObject({ ok: true, replied: true });
-  expect(outboundCalls).toEqual([
-    {
-      channel: "D123",
-      text: "Reset the session with the Reset Session button in the notebook UI.",
-      thread_ts: "1710000000.000001",
-    },
-    {
-      channel: "D123",
-      text: "You can also call Session.default().reset() from Cosm if you need to reset it in code.",
-      thread_ts: "1710000000.000001",
-    },
-  ]);
-
+  slackApi.stop();
   cleanup();
 });
 
-test("slack dm ingress shapes AI failures into a human-readable fallback reply", () => {
+test("slack service shapes AI failures into a human-readable fallback reply", async () => {
   const cleanup = withSlackEnv();
-
-  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
-  CosmSlackValue.installRuntimeHooks({
-    postMessage: (conversation, text) => {
-      outboundCalls.push({
-        channel: conversation.channel,
-        text,
-        thread_ts: conversation.thread,
-      });
-    },
-  });
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
     cast: () => {
@@ -181,6 +195,7 @@ test("slack dm ingress shapes AI failures into a human-readable fallback reply",
   const timestamp = String(Math.floor(Date.now() / 1000));
   const body = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-fallback",
     event: {
       type: "message",
       channel_type: "im",
@@ -190,69 +205,38 @@ test("slack dm ingress shapes AI failures into a human-readable fallback reply",
       ts: "1710000002.000001",
     },
   });
-  const signature = signBody(body, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp);
 
-  const response = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signature,
-    },
+  const response = dispatchSlack(body, timestamp);
+  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
+  expect(JSON.parse(slackApi.calls[0].body)).toMatchObject({
+    channel: "D999",
+    text: "I hit a support-agent hiccup while handling that DM. Please try again in a bit.",
+    thread_ts: "1710000002.000001",
   });
 
-  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
-  expect(JSON.parse(String(ValueAdapter.cosmToJS(response.nativeProperty?.("body"))))).toMatchObject({ ok: true, replied: true });
-  expect(outboundCalls).toEqual([
-    {
-      channel: "D999",
-      text: "I hit a support-agent hiccup while handling that DM. Please try again in a bit.",
-      thread_ts: "1710000002.000001",
-    },
-  ]);
-
+  slackApi.stop();
   cleanup();
 });
 
-test("slack dm conversations survive registry resets through the durable store", () => {
+test("slack service dedupes duplicate deliveries persistently", async () => {
   const cleanup = withSlackEnv();
-
-  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
-  CosmSlackValue.installRuntimeHooks({
-    postMessage: (conversation, text) => {
-      outboundCalls.push({
-        channel: conversation.channel,
-        text,
-        thread_ts: conversation.thread,
-      });
-    },
-  });
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
-    cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
-      prompt.includes("First question?")
-        ? {
-            shouldReply: true,
-            text: "I still remember your first question in this DM thread.",
-            rationale: "mocked persistence",
-            toolCalls: false,
-            toolResults: false,
-          }
-        : {
-            shouldReply: true,
-            text: "First reply in a durable DM thread.",
-            rationale: "mocked initial",
-            toolCalls: false,
-            toolResults: false,
-          },
-    )),
+    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+      shouldReply: true,
+      text: "First reply in a durable DM thread.",
+      rationale: "mocked initial",
+      toolCalls: false,
+      toolResults: false,
+    })),
   });
 
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const firstBody = JSON.stringify({
+  const body = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-dedupe",
     event: {
       type: "message",
       channel_type: "im",
@@ -263,67 +247,52 @@ test("slack dm conversations survive registry resets through the durable store",
     },
   });
 
-  const firstResponse = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body: firstBody,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signBody(firstBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
-    },
-  });
+  const first = dispatchSlack(body, timestamp);
+  expect(ValueAdapter.cosmToJS(first.nativeProperty?.("status"))).toBe(200);
+  expect(slackApi.calls).toHaveLength(1);
 
-  expect(ValueAdapter.cosmToJS(firstResponse.nativeProperty?.("status"))).toBe(200);
-  CosmSlackValue.resetRegistry();
+  const duplicate = dispatchSlack(body, timestamp);
+  expect(ValueAdapter.cosmToJS(duplicate.nativeProperty?.("status"))).toBe(200);
+  expect(JSON.parse(String(ValueAdapter.cosmToJS(duplicate.nativeProperty?.("body"))))).toMatchObject({ ok: true, deduped: true });
+  expect(slackApi.calls).toHaveLength(1);
 
-  const secondBody = JSON.stringify({
-    type: "event_callback",
-    event: {
-      type: "message",
-      channel_type: "im",
-      channel: "D777",
-      user: "U777",
-      text: "Do you still remember it?",
-      ts: "1710000011.000001",
-      thread_ts: "1710000010.000001",
-    },
-  });
-
-  const secondResponse = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body: secondBody,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signBody(secondBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
-    },
-  });
-
-  expect(ValueAdapter.cosmToJS(secondResponse.nativeProperty?.("status"))).toBe(200);
-  expect(outboundCalls.at(-1)).toEqual({
-    channel: "D777",
-    text: "I still remember your first question in this DM thread.",
-    thread_ts: "1710000010.000001",
-  });
-
+  slackApi.stop();
   cleanup();
 });
 
-test("slack dm reset clears only the current thread state", () => {
+test("slack service ignores bot and non-dm events", async () => {
   const cleanup = withSlackEnv();
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
 
-  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
-  CosmSlackValue.installRuntimeHooks({
-    postMessage: (conversation, text) => {
-      outboundCalls.push({
-        channel: conversation.channel,
-        text,
-        thread_ts: conversation.thread,
-      });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const body = JSON.stringify({
+    type: "event_callback",
+    event_id: "Ev-ignored",
+    event: {
+      type: "message",
+      channel_type: "channel",
+      channel: "C123",
+      user: "U123",
+      text: "hello",
+      ts: "1710000012.000001",
+      bot_id: "B123",
     },
   });
+
+  const response = dispatchSlack(body, timestamp);
+  expect(ValueAdapter.cosmToJS(response.nativeProperty?.("status"))).toBe(200);
+  expect(JSON.parse(String(ValueAdapter.cosmToJS(response.nativeProperty?.("body"))))).toMatchObject({ ok: true, ignored: true });
+  expect(slackApi.calls).toHaveLength(0);
+
+  slackApi.stop();
+  cleanup();
+});
+
+test("slack service reset clears only the current thread state", async () => {
+  const cleanup = withSlackEnv();
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
 
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
@@ -338,6 +307,7 @@ test("slack dm reset clears only the current thread state", () => {
   const timestamp = String(Math.floor(Date.now() / 1000));
   const resetBody = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-reset",
     event: {
       type: "message",
       channel_type: "im",
@@ -348,28 +318,17 @@ test("slack dm reset clears only the current thread state", () => {
     },
   });
 
-  const resetResponse = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body: resetBody,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signBody(resetBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
-    },
-  });
-
+  const resetResponse = dispatchSlack(resetBody, timestamp);
   expect(ValueAdapter.cosmToJS(resetResponse.nativeProperty?.("status"))).toBe(200);
-  expect(outboundCalls.at(-1)).toEqual({
+  expect(JSON.parse(slackApi.calls[0].body)).toMatchObject({
     channel: "D555",
     text: "Thread memory cleared. The next DM starts from a clean transcript and named session.",
     thread_ts: "1710000020.000001",
   });
 
-  CosmSlackValue.resetRegistry();
-
   const followUpBody = JSON.stringify({
     type: "event_callback",
+    event_id: "Ev-reset-followup",
     event: {
       type: "message",
       channel_type: "im",
@@ -381,23 +340,44 @@ test("slack dm reset clears only the current thread state", () => {
     },
   });
 
-  const followUpResponse = dispatchService(`
-    require("app/app.cosm")
-    app.App.build()
-  `, "POST", "/slack/events", {
-    body: followUpBody,
-    headers: {
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": signBody(followUpBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
-    },
-  });
-
+  const followUpResponse = dispatchSlack(followUpBody, timestamp);
   expect(ValueAdapter.cosmToJS(followUpResponse.nativeProperty?.("status"))).toBe(200);
-  expect(outboundCalls.at(-1)).toEqual({
+  expect(JSON.parse(slackApi.calls[1].body)).toMatchObject({
     channel: "D555",
     text: "Fresh AI reply after reset.",
     thread_ts: "1710000020.000001",
   });
 
+  slackApi.stop();
+  cleanup();
+});
+
+test("slack service exposes readiness and status surfaces", async () => {
+  const cleanup = withSlackEnv();
+  const slackApi = installSlackApiHook();
+  process.env.COSM_SLACK_API_URL = slackApi.url;
+
+  CosmAiValue.installRuntimeHooks({
+    status: () => ValueAdapter.jsToCosm({ backend: "mock", baseUrl: slackApi.url, model: "mock-model", configured: true }),
+    health: () => ValueAdapter.jsToCosm({ ok: true, error: false }),
+  });
+
+  const ready = dispatchService(serviceSource, "GET", "/ready");
+  expect(ValueAdapter.cosmToJS(ready.nativeProperty?.("status"))).toBe(200);
+  expect(JSON.parse(String(ValueAdapter.cosmToJS(ready.nativeProperty?.("body"))))).toMatchObject({
+    ok: true,
+    path: "/ready",
+    slack: { signingSecret: true, botToken: true, storageWritable: true },
+    ai: { configured: true, health: true },
+  });
+
+  const status = dispatchService(serviceSource, "GET", "/status");
+  expect(ValueAdapter.cosmToJS(status.nativeProperty?.("status"))).toBe(200);
+  expect(JSON.parse(String(ValueAdapter.cosmToJS(status.nativeProperty?.("body"))))).toMatchObject({
+    ok: true,
+    path: "/status",
+  });
+
+  slackApi.stop();
   cleanup();
 });

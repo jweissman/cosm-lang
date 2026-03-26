@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import Cosm from "../../src/cosm";
 import { ValueAdapter } from "../../src/ValueAdapter";
+import { CosmHttpValue } from "../../src/values/CosmHttpValue";
 import { dispatchService } from "../support/request_spec";
 
 test("http request and response runtime objects reflect cleanly", () => {
@@ -65,4 +66,38 @@ test("router request specs can dispatch without a live server listen", () => {
 
   expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("status"))).toBe(201);
   expect(ValueAdapter.cosmToJS(postResponse.nativeProperty?.("body"))).toBe("code=1%20%2B%202");
+});
+
+test("http.request can make a narrow outbound request through the generic host surface", () => {
+  const calls: Array<{ method: string; body: string; headers: Record<string, string> }> = [];
+  const previousHooks = CosmHttpValue.currentRuntimeHooks();
+  CosmHttpValue.installRuntimeHooks({
+    invoke: previousHooks.invoke!,
+    lookupMethod: previousHooks.lookupMethod!,
+    request: (method, _url, options) => {
+      calls.push({
+        method,
+        body: options.body ?? "",
+        headers: options.headers,
+      });
+      return { status: 202, body: "accepted" };
+    },
+  });
+  try {
+    const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
+    expect(cosmEval('http.request("POST", "https://example.test/submit", { headers: Kernel.parseJson("{\\"authorization\\":\\"Bearer token\\"}"), body: "payload" }).status')).toBe(202);
+    expect(cosmEval('http.request("POST", "https://example.test/submit", { headers: Kernel.parseJson("{\\"authorization\\":\\"Bearer token\\"}"), body: "payload" }).body')).toBe("accepted");
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({
+      method: "POST",
+      body: "payload",
+      headers: expect.objectContaining({ authorization: "Bearer token" }),
+    });
+  } finally {
+    CosmHttpValue.installRuntimeHooks({
+      invoke: previousHooks.invoke!,
+      lookupMethod: previousHooks.lookupMethod!,
+      request: previousHooks.request,
+    });
+  }
 });

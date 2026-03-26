@@ -1,0 +1,129 @@
+require("support/models.cosm")
+
+let SlackThreadRecord = Data.model("SlackThreadRecord", {
+  conversation: models.Conversation,
+  processedEvents: Data.array(Data.string())
+})
+
+def storageDir()
+  let configured = Process.env("COSM_SLACK_DIR")
+  if configured == false then
+    "var/slack/threads"
+  else
+    configured
+  end
+end
+
+def readyProbePath()
+  storageDir() + "/.ready"
+end
+
+def recordPath(key)
+  storageDir() + "/" + Kernel.hmacSha256("cosm-slack-store", key) + ".json"
+end
+
+def conversationKey(channel, thread)
+  channel + ":" + thread
+end
+
+def sessionName(key)
+  "slack-" + key
+end
+
+def conversationForInbound(inbound)
+  let now = Time.isoNow()
+  let key = conversationKey(inbound.channel, inbound.thread)
+  let value = {
+    key: key,
+    channel: inbound.channel,
+    thread: inbound.thread,
+    messages: [],
+    sessionName: sessionName(key),
+    sessionLength: 0,
+    transcript: false,
+    context: false,
+    createdAt: now,
+    updatedAt: now
+  }
+  models.Conversation.validate(value)
+  value
+end
+
+def record(conversation, processedEvents = [])
+  let value = {
+    conversation: conversation,
+    processedEvents: processedEvents
+  }
+  SlackThreadRecord.validate(value)
+  value
+end
+
+def loadRecord(key)
+  if Kernel.exists(recordPath(key)) then
+    let value = Kernel.parseJson(Kernel.readText(recordPath(key)))
+    SlackThreadRecord.validate(value)
+    value
+  else
+    false
+  end
+end
+
+def loadConversation(inbound)
+  let key = conversationKey(inbound.channel, inbound.thread)
+  let loaded = loadRecord(key)
+  if loaded == false then
+    conversationForInbound(inbound)
+  else
+    loaded.conversation
+  end
+end
+
+def saveConversation(conversation)
+  let key = conversation.key
+  let loaded = loadRecord(key)
+  let processed = if loaded == false then [] else loaded.processedEvents end
+  let value = record(conversation, processed)
+  Kernel.writeText(recordPath(key), Kernel.json(value))
+  value
+end
+
+def processed(inbound, eventKey)
+  let loaded = loadRecord(conversationKey(inbound.channel, inbound.thread))
+  if loaded == false then
+    false
+  else
+    loaded.processedEvents.find(->(entry) { entry == eventKey }) != false
+  end
+end
+
+def nextProcessedEvents(loaded, eventKey)
+  if loaded == false then
+    [eventKey]
+  else
+    if loaded.processedEvents.find(->(entry) { entry == eventKey }) != false then
+      loaded.processedEvents
+    else
+      loaded.processedEvents.append(eventKey)
+    end
+  end
+end
+
+def markProcessed(conversation, eventKey)
+  let loaded = loadRecord(conversation.key)
+  let processed = nextProcessedEvents(loaded, eventKey)
+  let value = record(conversation, processed)
+  Kernel.writeText(recordPath(conversation.key), Kernel.json(value))
+  value
+end
+
+def resetConversation(inbound)
+  let fresh = conversationForInbound(inbound)
+  saveConversation(fresh).conversation
+end
+
+def writable()
+  let outcome = Kernel.try(->() {
+    Kernel.writeText(readyProbePath(), Time.isoNow())
+  })
+  outcome.ok
+end

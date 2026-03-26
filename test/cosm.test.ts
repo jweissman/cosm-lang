@@ -97,6 +97,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Random.methods.int.name")).toBe("int");
   expect(cosmEval("classes.Process.methods.env.name")).toBe("env");
   expect(cosmEval("classes.Http.methods.serve.name")).toBe("serve");
+  expect(cosmEval("classes.Http.methods.request.name")).toBe("request");
   expect(cosmEval("classes.HttpRequest.methods.bodyText.name")).toBe("bodyText");
   expect(cosmEval("classes.HttpResponse.classMethods.ok.name")).toBe("ok");
   expect(cosmEval("classes.HttpResponse.classMethods.html.name")).toBe("html");
@@ -118,6 +119,7 @@ test("Kernel and cosm expose ambient reflective services", () => {
   expect(cosmEval("Kernel.method(:warn).name")).toBe("warn");
   expect(cosmEval("Kernel.method(:test).name")).toBe("test");
   expect(cosmEval("Kernel.method(:describe).name")).toBe("describe");
+  expect(cosmEval("Kernel.method(:hmacSha256).name")).toBe("hmacSha256");
   expect(cosmEval("Kernel.method(:expectEqual).name")).toBe("expectEqual");
   expect(cosmEval("Kernel.method(:resetTests).name")).toBe("resetTests");
   expect(cosmEval("Kernel.method(:testSummary).name")).toBe("testSummary");
@@ -158,13 +160,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.8");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.9");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.13.8");
+  expect(cosmEval("cosm.version")).toBe("0.3.13.9");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -176,6 +178,7 @@ test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", 
   expect(cosmEval("Kernel.send(:assert, true)")).toBe(true);
   expect(cosmEval("Kernel.dispatch(1, :plus, 2)")).toBe(3);
   expect(cosmEval("Kernel.uuid().length >= 32")).toBe(true);
+  expect(cosmEval('Kernel.hmacSha256("secret", "payload")')).toBe("b82fcb791acec57859b989b430a826488ce2e479fdf92326bd0a2e8375a42ba4");
   expect(cosmEval('Kernel.trace("value", 41)')).toBe(41);
   expect(cosmEval('Kernel.inspect(Symbol.intern("ok"))')).toBe(":ok");
   expect(cosmEval('Symbol.intern("ok").inspect()')).toBe(":ok");

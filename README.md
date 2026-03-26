@@ -16,11 +16,11 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.13.8`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on turning the Slack adapter into a durable DM-first assistant while the persistent notebook remains the main proving wedge:
+The current tree is best read as **`0.3.13.9`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on separating the Slack agent into its own Cosm service while the persistent notebook remains the main proving wedge:
 
 - keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
 - keep a small send-first VM subset alive through `--trace-ir` and `--vm`
-- keep the support assistant explicit and small through a shared Cosm-authored core reused by the CLI chat, `/assistant`, notebook-attached assistant, and Slack
+- keep the support assistant explicit and small through a shared Cosm-authored core reused by the CLI chat, `/assistant`, notebook-attached assistant, and the separate Slack agent service
 - keep the AI boundary explicit through `Prompt`, `Schema`, `Data`, `cosm.ai`, config-vs-health semantics, and callback-based streaming events
 - keep the notebook as a persistent server-side workbench with whole-page execution and an attached assistant
 
@@ -34,7 +34,7 @@ What already feels real:
 - explicit `Session` runtime objects for notebook/server eval
 - a pure Cosm support-chat core through `require("support/chat.cosm")` and `support/chat_cli.cosm`
 - a tiny page-backed assistant wedge at `/assistant`
-- a durable DM-first Slack assistant with per-thread local memory
+- a durable DM-first Slack assistant service with per-thread local memory
 
 What is still deliberately narrow or deferred:
 
@@ -150,9 +150,9 @@ around(41) do |number|
 end
 ```
 
-The demo app now exposes a persistent `/notebook` workbench with saved block pages, whole-page Cosm execution, one named session per page, and an attached assistant that reuses the shared support/controller core. The notebook actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, linear workflow helpers, and the same narrow assistant stack used by the CLI, `/assistant`, and Slack.
+The demo app now exposes a persistent `/notebook` workbench with saved block pages, whole-page Cosm execution, one named session per page, and an attached assistant that reuses the shared support/controller core. The notebook actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, linear workflow helpers, and the same narrow assistant stack used by the CLI, `/assistant`, and the separate Slack agent service.
 
-The canonical app also exposes a narrow Slack ingress at `/slack/events`. Verification, thread-local persistence, session/thread mapping, and outbound posting stay TS-owned, while prompt assembly, reply shaping, and model definitions live in Cosm under `support/`. The current Slack scope is intentionally DM-only, with durable local per-thread memory plus `help`, `status`, and `reset` style meta interactions.
+Slack now lives in its own Cosm-owned service entrypoint instead of the demo app. `agent/service.cosm` owns `/slack/events`, `/health`, `/ready`, and `/status`, while `agent/server.cosm` is the simple server boot entry. Slack verification, DM-only filtering, dedupe, file-backed per-thread persistence, and outbound posting now live in Cosm on top of narrow generic host primitives (`http.request(...)` and `Kernel.hmacSha256(...)`). The current Slack scope remains intentionally DM-only, with durable local per-thread memory plus `help`, `status`, and `reset` style meta interactions.
 
 You can also talk to the pure Cosm support loop directly:
 
@@ -180,6 +180,8 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - `just repl`
 - `just server`
 - `just watch-server`
+- `just agent-server`
+- `just watch-agent-server`
 - `just bench-vm`
 - `just self-test`
 - `just http-test`
@@ -197,6 +199,7 @@ For local AI use, `cosm.ai` now assumes LM Studio by default:
 - [Language reference](./doc/lang.md)
 - [Feature snapshot](./doc/features.md)
 - [Roadmap](./doc/roadmap.md)
+- [Slack DM Agent](./doc/slack.md)
 - [Vision](./doc/vision.md)
 
 ## Near-Term Direction
@@ -205,5 +208,5 @@ The next useful milestones are:
 
 1. keep pushing interpreter/runtime cleanup so message-passing seams, block forwarding, and invocation feel more MPI-shaped
 2. keep widening the tiny VM subset only where it overlaps with real support/controller/app logic
-3. make the support-chat transport more honest, and only add true streaming where the backend boundary can really support it
+3. harden the separate Slack agent service before layering on tools or richer staged behavior
 4. keep lifting small policy/workflow layers into Cosm without pretending the low-level runtime is ready to move

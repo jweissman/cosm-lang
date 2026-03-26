@@ -38,7 +38,7 @@ class NotebookExamples
     end
 
     def supportMarkup()
-      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and Slack remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
+      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and the Slack service remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
     end
 
     def notebookMarkup()

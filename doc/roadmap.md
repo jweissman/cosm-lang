@@ -15,7 +15,7 @@ The long-running goals are:
 4. A credible VM target
    A send-first execution core that clarifies semantics before it tries to optimize them.
 5. A narrow proving-app family
-   Notebook, CLI chat, `/assistant`, and Slack pressure the same runtime instead of becoming separate product lines.
+   Notebook, CLI chat, `/assistant`, and a separate Slack agent service pressure the same runtime instead of becoming separate product lines.
 
 ## Current Tracks
 
@@ -51,12 +51,12 @@ The proving wedge is intentionally small and shared:
 - notebook
 - CLI chat
 - `/assistant`
-- Slack adapter
+- separate Slack agent service
 
 Current priorities:
 
 - keep the shared support/controller core explicit and Cosm-authored where practical
-- keep Slack thin
+- keep the Slack service thin
 - keep the notebook as a workbench, not a framework/product layer
 - keep the app surfaces teaching the real runtime instead of implying larger hidden machinery
 
@@ -73,7 +73,7 @@ This patch line is about hardening, not breadth:
 - honest streaming semantics
 - a slightly richer Enumerable-style authoring surface
 - a tiny page-backed assistant wedge
-- a durable DM-first Slack assistant with explicit per-thread local memory
+- a durable DM-first Slack assistant service with explicit per-thread local memory
 - more Cosm-authored support and harness code
 
 Explicitly not the goal of `0.3.13.x`:
@@ -107,7 +107,7 @@ Explicitly not the goal of `0.3.13.x`:
 
 ### Milestone D: Shared Interactive Tool Family
 
-- notebook, CLI chat, `/assistant`, and Slack should feel like one small family
+- notebook, CLI chat, `/assistant`, and the Slack agent service should feel like one small family
 - keep one shared support/controller core
 - keep persistence/session boundaries explicit and narrow
 
@@ -126,7 +126,7 @@ Explicitly not the goal of `0.3.13.x`:
 - a server-side notebook workbench
 - a pure Cosm support-chat loop
 - a tiny page-backed assistant wedge
-- a live DM-first Slack adapter with durable thread-local state
+- a live DM-first Slack service with durable thread-local state
 
 ## What Still Feels Provisional
 

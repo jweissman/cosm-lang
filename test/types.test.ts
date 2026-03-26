@@ -267,6 +267,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "eval",
     "exists",
     "expectEqual",
+    "hmacSha256",
     "inspect",
     "json",
     "listDir",
@@ -294,7 +295,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(processMethods).sort()).toEqual(["arch", "argv", "cwd", "env", "exit", "pid", "platform"]);
   expect(Object.keys(timeMethods).sort()).toEqual(["fromIso", "iso", "isoNow", "now"]);
   expect(Object.keys(randomMethods).sort()).toEqual(["choice", "float", "int"]);
-  expect(Object.keys(httpMethods)).toEqual(["serve"]);
+  expect(Object.keys(httpMethods).sort()).toEqual(["request", "serve"]);
   expect(Object.keys(httpRequestMethods).sort()).toEqual(["bodyText", "form"]);
   expect(Object.keys(httpResponseMethods)).toEqual([]);
   expect(Object.keys(httpResponseClassMethods).sort()).toEqual(["html", "json", "ok", "text"]);

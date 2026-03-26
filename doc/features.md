@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.8
+## Current Release Target: 0.3.13.9
 
-`0.3.13.8` is now best read as a PL-core hardening slice with a live durable Slack DM wedge on top of the persistent notebook and OO cleanup work:
+`0.3.13.9` is now best read as a PL-core hardening slice with a separate durable Slack DM service on top of the persistent notebook and OO cleanup work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -33,8 +33,9 @@
 - start lifting more harness behavior into Cosm through `require("cosm/spec.cosm")`
 - make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
 - make the notebook feel more like a persistent workbench through saved pages, whole-page execution, attached assistant state, and Cosm-inspected output
-- ship a tiny DM-first Slack support path with durable local per-thread memory while keeping broader agent/runtime ambitions narrow
-- keep a pure Cosm CLI chatbot as the canonical proving surface, with Slack reusing the same support core
+- ship a tiny DM-first Slack service with durable local per-thread memory while keeping broader agent/runtime ambitions narrow
+- keep a pure Cosm CLI chatbot as the canonical proving surface, with the Slack service reusing the same support core
+- remove the Slack-specific runtime root in favor of generic host primitives like `http.request(...)` and `Kernel.hmacSha256(...)`
 - add small CLI ergonomics through `cosm --version` and `cosm -e '<source>'`
 
 For `0.3.12.x`, the callable boundary still stays intentionally narrow:
@@ -109,7 +110,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.13.8 Definition Of Done
+## v0.3.13.9 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
@@ -128,7 +129,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
-- Full notebook/framework work is still intentionally post-`0.3.12.x`, and the current proving step is keeping the tiny DM-first Slack support path durable and narrow before reaching for tools or staged agent behavior.
+- The separate Slack service entrypoint (`agent/service.cosm` plus `agent/server.cosm`) stays narrow, DM-only, and durable before reaching for tools or staged agent behavior.
 
 ## Explicitly Not In v0.3.12.x
 
@@ -150,7 +151,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Deepen the data/model layer and move more policy/orchestration code into Cosm from this stronger app/view/notebook foundation.
 - Use the repaired reflective surface to clarify where later delegation/hologram work should sit, before reaching for a VM.
 - Decide browser/runtime exposure after the notebook shell and data/model story feel stronger.
-- Only after the current Slack wedge feels steady, deepen it toward richer session policy, tool contracts, and later Slack/MCP adapters.
+- Only after the separate Slack service feels steady, deepen it toward richer session policy, tool contracts, and later Slack/MCP adapters.
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
 - Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.

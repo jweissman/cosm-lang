@@ -3,7 +3,7 @@
     <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm <%= version %></p>
     <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
     <p class="max-w-2xl text-lg text-slate-300">
-      Object-first routing, router middleware, `.ecosm` templates, and one small interactive-tool family spanning the notebook, CLI chat, assistant page, and Slack adapter.
+      Object-first routing, router middleware, `.ecosm` templates, and one small interactive-tool family spanning the notebook, CLI chat, assistant page, and a separate Slack agent service.
     </p>
   </div>
 
@@ -29,7 +29,7 @@
     <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-3">
       <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Slack DM</p>
       <h2 class="mt-3 text-2xl font-bold">Installed Narrow Agent</h2>
-      <p class="mt-2 text-sm text-slate-300">The same shared support/controller core now powers a DM-first Slack adapter with durable thread-local memory, plus lightweight <code>help</code>, <code>status</code>, and <code>reset</code> commands.</p>
+      <p class="mt-2 text-sm text-slate-300">The same shared support/controller core now powers a DM-first Slack service with durable thread-local memory, plus lightweight <code>help</code>, <code>status</code>, and <code>reset</code> commands.</p>
     </div>
 
     <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-3">
