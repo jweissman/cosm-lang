@@ -64,7 +64,7 @@ test("cli can evaluate a source file", () => {
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("Array");
+  expect(result.stdout).toBe("");
 });
 
 test("cli can write output through Kernel.puts", () => {
@@ -76,7 +76,6 @@ test("cli can write output through Kernel.puts", () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("hello from cosm");
-  expect(result.stdout).toContain("7");
 });
 
 test("cli can write warnings through Kernel.warn", () => {
@@ -86,7 +85,7 @@ test("cli can write warnings through Kernel.warn", () => {
 
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("5");
+  expect(result.stdout).toBe("");
   expect(result.stderr).toContain("careful now");
 });
 
@@ -99,7 +98,6 @@ test("cli can trace inspected values through Kernel.trace", () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("pair: { answer: 42 }");
-  expect(result.stdout).toContain("9");
 });
 
 test("cli can read a line through Kernel.readline", () => {
@@ -123,7 +121,6 @@ test("cli can read a line through Kernel.readline", () => {
   expect(proc.exitCode).toBe(0);
   expect(stderr).toBe("");
   expect(stdout).toContain("name? ");
-  expect(stdout).toContain('"cosm"');
 });
 
 test("cli trace flags print parser and runtime traces", () => {
@@ -160,21 +157,21 @@ test("cli can execute a narrow program through vm mode", () => {
   const result = runCli([sourcePath, "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("3");
+  expect(result.stdout).toBe("");
 });
 
 test("cli can execute the dedicated vm smoke file", () => {
   const result = runCli(["test/vm.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("3");
+  expect(result.stdout).toBe("");
 });
 
 test("cli can execute the assistant-shaped vm smoke file", () => {
   const result = runCli(["test/vm_assistant.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("assistant: Use the Reset Session button. [offline]");
+  expect(result.stdout).toBe("");
 });
 
 test("cli supports bare puts with single-quoted strings", () => {
@@ -186,7 +183,6 @@ test("cli supports bare puts with single-quoted strings", () => {
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("hello from bare puts");
-  expect(result.stdout).toContain("9");
 });
 
 test("cli can sketch a tiny Cosm-native test harness", () => {
@@ -199,7 +195,6 @@ test("cli can sketch a tiny Cosm-native test harness", () => {
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("ok - smoke");
   expect(result.stdout).toContain("not ok - sad: Assertion failed: boom");
-  expect(result.stdout).toContain("11");
 });
 
 test("cli can run the dedicated Cosm test file", () => {
@@ -212,7 +207,6 @@ test("cli can run the dedicated Cosm test file", () => {
   expect(result.stdout).toContain("ok - math smoke");
   expect(result.stdout).toContain("ok - class smoke");
   expect(result.stdout).toContain("not ok - sad path: Assertion failed: boom");
-  expect(result.stdout).toContain("test harness complete");
 });
 
 test("cli test mode reports failures and exits nonzero", () => {
@@ -300,7 +294,7 @@ test("cli watch mode also works with trailing --watch", async () => {
 test("cli watch mode rejects a missing file path", () => {
   const result = runCli(["--watch"]);
   expect(result.exitCode).toBe(1);
-  expect(result.stdout).toContain("Cosm version:");
+  expect(result.stdout).toBe("");
   expect(result.stderr).toContain("Error: --watch expects a file path");
   expect(result.stderr).toContain("Usage:");
 });
@@ -308,7 +302,7 @@ test("cli watch mode rejects a missing file path", () => {
 test("cli rejects unknown switches loudly", () => {
   const result = runCli(["--watcch", "app/server.cosm"]);
   expect(result.exitCode).toBe(1);
-  expect(result.stdout).toContain("Cosm version:");
+  expect(result.stdout).toBe("");
   expect(result.stderr).toContain("Error: unknown option '--watcch'");
   expect(result.stderr).toContain("Usage:");
 });
@@ -316,7 +310,7 @@ test("cli rejects unknown switches loudly", () => {
 test("cli rejects invalid mode combinations", () => {
   const result = runCli(["--watch", "--test", "test/test.cosm"]);
   expect(result.exitCode).toBe(1);
-  expect(result.stdout).toContain("Cosm version:");
+  expect(result.stdout).toBe("");
   expect(result.stderr).toContain("Error: --watch and --test cannot be combined");
   expect(result.stderr).toContain("Usage:");
 });
@@ -325,9 +319,16 @@ test("cli help prints usage", () => {
   const result = runCli(["--help"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("Cosm version:");
   expect(result.stdout).toContain("Usage:");
   expect(result.stdout).toContain("cosm --watch <file.cosm>");
+});
+
+test("cli prints a bare version with --version", () => {
+  const result = runCli(["--version"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout.trim()).toMatch(/^0\.3\./);
+  expect(result.stdout).not.toContain("Cosm version:");
 });
 
 test("cli help command prints usage", () => {
@@ -337,12 +338,18 @@ test("cli help command prints usage", () => {
   expect(result.stdout).toContain("Usage:");
 });
 
+test("cli can evaluate one-off source with -e", () => {
+  const result = runCli(["-e", "let value = [1, 2, 3, 4]; value.reduce(0, ->(acc, entry) { acc + entry })"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toBe("");
+});
+
 test("cli can run the cosm self-test file", () => {
   const result = runCli(["spec/core.cosm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("Cosm version:");
-  expect(result.stdout).toContain("String");
+  expect(result.stdout).toBe("");
 });
 
 test("cli can run the dedicated runtime harness spec bundle", () => {
@@ -358,5 +365,5 @@ test("cli can execute the support-oriented vm smoke file", () => {
   const result = runCli(["test/vm_support.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("Try the Reset Session button.");
+  expect(result.stdout).toBe("");
 });

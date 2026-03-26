@@ -1,5 +1,5 @@
 let Message = Data.object({ role: Data.string(), user: Data.optional(Data.string()), text: Data.string(), ts: Data.optional(Data.string()) })
-let Conversation = Data.model("Conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(Message), sessionName: Data.optional(Data.string()), sessionLength: Data.optional(Data.number()), transcript: Data.optional(Data.string()), context: Data.optional(Data.string()) })
+let Conversation = Data.model("Conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(Message), sessionName: Data.optional(Data.string()), sessionLength: Data.optional(Data.number()), transcript: Data.optional(Data.string()), context: Data.optional(Data.string()), createdAt: Data.optional(Data.string()), updatedAt: Data.optional(Data.string()) })
 let InboundMessage = Data.model("InboundMessage", { channel: Data.string(), thread: Data.string(), user: Data.string(), text: Data.string(), ts: Data.string() })
 let ToolCall = Data.model("ToolCall", { name: Data.string(), inputSummary: Data.optional(Data.string()) })
 let ToolResult = Data.model("ToolResult", { ok: Data.boolean(), summary: Data.string() })

@@ -7,7 +7,6 @@ import { Parser } from "../src/ast/parser";
 import { Lowerer } from "../src/ast/lowerer";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { RuntimeDispatch } from "../src/runtime/RuntimeDispatch";
-console.log("Cosm version:", Cosm.version);
 
 const HISTORY_PATH = join(process.cwd(), ".cosm_history");
 
@@ -29,6 +28,8 @@ function usage(): string {
   return [
     "Usage:",
     "  cosm",
+    "  cosm --version",
+    "  cosm -e '<source>'",
     "  cosm <file.cosm>",
     "  cosm help",
     "  cosm --help",
@@ -47,8 +48,10 @@ function usage(): string {
 }
 
 type CliMode =
+  | { kind: "version" }
   | { kind: "repl"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "help"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "eval"; source: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "run"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "test"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
@@ -64,12 +67,17 @@ function parseArgs(args: string[]): CliMode {
     return { kind: "repl", traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
+  if (args.length === 1 && args[0] === "--version") {
+    return { kind: "version" };
+  }
+
   if (args.length === 1 && (args[0] === "help" || args[0] === "--help")) {
     return { kind: "help", traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   const modes = new Set<"test" | "watch">();
   let filePath: string | undefined;
+  let evalSource: string | undefined;
 
   const takeFile = (value: string) => {
     if (filePath) {
@@ -108,6 +116,22 @@ function parseArgs(args: string[]): CliMode {
       continue;
     }
 
+    if (arg === "-e" || arg === "--eval") {
+      const next = args[index + 1];
+      if (next === undefined) {
+        throw new Error(`${arg} expects a source string`);
+      }
+      if (evalSource !== undefined) {
+        throw new Error(`${arg} cannot be given more than once`);
+      }
+      if (filePath) {
+        throw new Error(`${arg} cannot be combined with a file path`);
+      }
+      evalSource = next;
+      index += 1;
+      continue;
+    }
+
     if (arg === "--vm") {
       vm = true;
       continue;
@@ -142,6 +166,13 @@ function parseArgs(args: string[]): CliMode {
 
   if (modes.has("test") && modes.has("watch")) {
     throw new Error("--watch and --test cannot be combined");
+  }
+
+  if (evalSource !== undefined) {
+    if (modes.size > 0) {
+      throw new Error("-e cannot be combined with --test or --watch");
+    }
+    return { kind: "eval", source: evalSource, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (modes.has("test")) {
@@ -326,6 +357,13 @@ if (require.main === module) {
     process.exit(1);
   }
 
+  if (mode.kind === "version") {
+    console.log(Cosm.version);
+    process.exit(0);
+  }
+
+  // console.log("Cosm version:", Cosm.version);
+
   if (mode.kind === "help") {
     console.log(usage());
     process.exit(0);
@@ -340,7 +378,9 @@ if (require.main === module) {
     watchFileRunner(mode.filePath, mode);
   } else {
     try {
-      const source = readFileSync(mode.filePath, "utf8");
+      const source = mode.kind === "eval"
+        ? mode.source
+        : readFileSync(mode.filePath, "utf8");
       emitTraceFlags(source, mode);
       if (mode.traceSend) {
         RuntimeDispatch.installTraceHooks({
@@ -356,7 +396,7 @@ if (require.main === module) {
         console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
         process.exit(summary.failed > 0 ? 1 : 0);
       }
-      console.log(Cosm.Interpreter.inspect(result));
+      // console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {
       console.error("Error:", e.message);
       process.exit(1);

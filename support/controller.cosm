@@ -13,7 +13,9 @@ def appendMessage(conversation, role, text)
     sessionName: conversation.sessionName,
     sessionLength: messages.length,
     transcript: conversation.transcript,
-    context: conversation.context
+    context: conversation.context,
+    createdAt: conversation.createdAt,
+    updatedAt: Time.isoNow()
   }
   models.Conversation.validate(value)
   value
@@ -32,13 +34,16 @@ def appendUserMessage(conversation, inbound)
     sessionName: conversation.sessionName,
     sessionLength: messages.length,
     transcript: conversation.transcript,
-    context: conversation.context
+    context: conversation.context,
+    createdAt: conversation.createdAt,
+    updatedAt: Time.isoNow()
   }
   models.Conversation.validate(value)
   value
 end
 
 def cliConversation(messages)
+  let now = Time.isoNow()
   let value = {
     key: "cli:iapetus",
     channel: "cli",
@@ -47,13 +52,16 @@ def cliConversation(messages)
     sessionName: "iapetus-cli",
     sessionLength: messages.length,
     transcript: false,
-    context: false
+    context: false,
+    createdAt: now,
+    updatedAt: now
   }
   models.Conversation.validate(value)
   value
 end
 
 def pageConversation(key, transcript, context = false)
+  let now = Time.isoNow()
   let value = {
     key: key,
     channel: "web",
@@ -62,7 +70,9 @@ def pageConversation(key, transcript, context = false)
     sessionName: "iapetus-page",
     sessionLength: 0,
     transcript: transcript,
-    context: context
+    context: context,
+    createdAt: now,
+    updatedAt: now
   }
   models.Conversation.validate(value)
   value
@@ -136,6 +146,26 @@ end
 
 def displayTranscript(conversation)
   currentTranscript(conversation)
+end
+
+def commandReply(conversation, command)
+  models.Conversation.validate(conversation)
+  let text = if command == "help" then
+    "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory."
+  else
+    if command == "reset" then
+      "Thread memory cleared. The next DM starts from a clean transcript and named session."
+    else
+      if command == "status" then
+        "This DM thread is using `" + conversation.sessionName + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread."
+      else
+        "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."
+      end
+    end
+  end
+  let value = { shouldReply: true, text: text, rationale: "meta", toolCalls: false, toolResults: false }
+  models.AgentReply.validate(value)
+  value
 end
 
 def turn(conversation, inbound)

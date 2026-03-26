@@ -73,6 +73,7 @@ This patch line is about hardening, not breadth:
 - honest streaming semantics
 - a slightly richer Enumerable-style authoring surface
 - a tiny page-backed assistant wedge
+- a durable DM-first Slack assistant with explicit per-thread local memory
 - more Cosm-authored support and harness code
 
 Explicitly not the goal of `0.3.13.x`:
@@ -125,12 +126,12 @@ Explicitly not the goal of `0.3.13.x`:
 - a server-side notebook workbench
 - a pure Cosm support-chat loop
 - a tiny page-backed assistant wedge
+- a live DM-first Slack adapter with durable thread-local state
 
 ## What Still Feels Provisional
 
-- true backend streaming in the AI transport
 - broader CLI UX such as readline-style history
 - a fuller VM subset
 - host interop beyond the current narrow runtime values
 - broader module/DSL syntax
-- any larger persistent agent/runtime story
+- any larger persistent agent/runtime story beyond narrow DM persistence

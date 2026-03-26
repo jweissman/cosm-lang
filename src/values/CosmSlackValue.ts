@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Construct } from "../Construct";
 import { ValueAdapter } from "../ValueAdapter";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
@@ -32,8 +34,11 @@ type SlackConversationState = {
   key: string;
   channel: string;
   thread: string;
+  sessionName: string;
   session: CosmSessionValue;
   messages: SlackConversationMessage[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SlackAgentReply = {
@@ -125,21 +130,28 @@ export class CosmSlackValue extends CosmObjectValue {
       return this.jsonResponse({ ok: true, ignored: true }, 200);
     }
 
-    const conversation = this.conversationFor(inbound);
-    conversation.messages.push({
-      role: "user",
-      user: inbound.user,
-      text: inbound.text,
-      ts: inbound.ts,
-    });
+    const command = this.commandName(inbound.text);
+    if (command === "reset") {
+      const cleared = this.resetConversation(inbound);
+      const reply = this.resolveCommandReply(cleared, inbound, modulePath, command);
+      cleared.session.reset();
+      this.postMessage(cleared, reply.text);
+      return this.jsonResponse({ ok: true, replied: true, command }, 200);
+    }
+
+    const conversation = this.appendInboundMessage(this.conversationFor(inbound), inbound);
+
+    if (command) {
+      const reply = this.resolveCommandReply(conversation, inbound, modulePath, command);
+      const withAssistant = this.appendAssistantMessage(conversation, reply.text);
+      this.postMessage(withAssistant, reply.text);
+      return this.jsonResponse({ ok: true, replied: true, command }, 200);
+    }
 
     const reply = this.resolveReply(conversation, inbound, modulePath);
     if (reply.shouldReply !== false) {
-      conversation.messages.push({
-        role: "assistant",
-        text: reply.text,
-      });
-      this.postMessage(conversation, reply.text);
+      const withAssistant = this.appendAssistantMessage(conversation, reply.text);
+      this.postMessage(withAssistant, reply.text);
     }
 
     return this.jsonResponse({ ok: true, replied: reply.shouldReply !== false }, 200);
@@ -210,6 +222,40 @@ export class CosmSlackValue extends CosmObjectValue {
       shouldReply: value.shouldReply !== false,
       text: value.text,
       rationale: typeof value.rationale === "string" ? value.rationale : false,
+    };
+  }
+
+  private resolveCommandReply(
+    conversation: SlackConversationState,
+    inbound: SlackInboundMessage,
+    modulePath: string,
+    command: "help" | "reset" | "status",
+  ): Required<Pick<SlackAgentReply, "text">> & Pick<SlackAgentReply, "shouldReply" | "rationale"> {
+    const source = [
+      `require(${JSON.stringify(modulePath)})`,
+      `let conversation = ${this.cosmLiteral(this.conversationPayload(conversation))}`,
+      `let inbound = ${this.cosmLiteral(inbound)}`,
+      `controller.commandReply(conversation, ${JSON.stringify(command)})`,
+    ].join("\n");
+    const result = ValueAdapter.cosmToJS(conversation.session.tryEvalSource(source)) as Record<string, unknown>;
+    if (result.ok === true && result.value && typeof result.value === "object" && !Array.isArray(result.value)) {
+      const value = result.value as SlackAgentReply;
+      if (typeof value.text === "string" && value.text.trim().length > 0) {
+        return {
+          shouldReply: value.shouldReply !== false,
+          text: value.text,
+          rationale: typeof value.rationale === "string" ? value.rationale : false,
+        };
+      }
+    }
+    return {
+      shouldReply: true,
+      text: command === "reset"
+        ? "Thread memory cleared. The next DM starts from a clean transcript and named session."
+        : command === "status"
+          ? `This DM thread is using ${conversation.sessionName} with ${conversation.messages.length} stored messages.`
+          : "Iapetus can chat in this DM and keep thread-local memory. Send help, status, or reset.",
+      rationale: "meta",
     };
   }
 
@@ -300,24 +346,82 @@ export class CosmSlackValue extends CosmObjectValue {
     };
   }
 
+  private commandName(text: string): "help" | "reset" | "status" | false {
+    const normalized = text.trim().toLowerCase();
+    if (normalized === "help" || normalized === "/help") {
+      return "help";
+    }
+    if (normalized === "reset" || normalized === "/reset") {
+      return "reset";
+    }
+    if (normalized === "status" || normalized === "/status") {
+      return "status";
+    }
+    return false;
+  }
+
   private conversationFor(inbound: SlackInboundMessage): SlackConversationState {
     const key = `${inbound.channel}:${inbound.thread}`;
     const existing = CosmSlackValue.conversations.get(key);
     if (existing) {
       return existing;
     }
-    const session = new CosmSessionValue(
-      `slack-${CosmSlackValue.conversations.size + 1}`,
-      this.sessionClassRef,
-      this.errorClassRef,
-    );
+    const persisted = this.loadConversationRecord(key);
+    const sessionName = persisted?.sessionName ?? this.sessionNameFor(key);
+    const session = this.namedSession(sessionName);
+    const conversation: SlackConversationState = {
+      key,
+      channel: persisted?.channel ?? inbound.channel,
+      thread: persisted?.thread ?? inbound.thread,
+      sessionName,
+      session,
+      messages: persisted?.messages ?? [],
+      createdAt: persisted?.createdAt ?? this.isoNow(),
+      updatedAt: persisted?.updatedAt ?? this.isoNow(),
+    };
+    CosmSlackValue.conversations.set(key, conversation);
+    return conversation;
+  }
+
+  private appendInboundMessage(conversation: SlackConversationState, inbound: SlackInboundMessage): SlackConversationState {
+    conversation.messages = conversation.messages.concat({
+      role: "user",
+      user: inbound.user,
+      text: inbound.text,
+      ts: inbound.ts,
+    });
+    conversation.updatedAt = this.isoNow();
+    this.saveConversationRecord(conversation);
+    return conversation;
+  }
+
+  private appendAssistantMessage(conversation: SlackConversationState, text: string): SlackConversationState {
+    conversation.messages = conversation.messages.concat({
+      role: "assistant",
+      text,
+    });
+    conversation.updatedAt = this.isoNow();
+    this.saveConversationRecord(conversation);
+    return conversation;
+  }
+
+  private resetConversation(inbound: SlackInboundMessage): SlackConversationState {
+    const key = `${inbound.channel}:${inbound.thread}`;
+    const existing = this.conversationFor(inbound);
+    existing.session.reset();
+    CosmSlackValue.conversations.delete(key);
     const conversation: SlackConversationState = {
       key,
       channel: inbound.channel,
       thread: inbound.thread,
-      session,
+      sessionName: existing.sessionName,
+      session: this.namedSession(existing.sessionName),
       messages: [],
+      createdAt: this.isoNow(),
+      updatedAt: this.isoNow(),
     };
+    this.deleteConversationRecord(key);
+    this.saveConversationRecord(conversation);
     CosmSlackValue.conversations.set(key, conversation);
     return conversation;
   }
@@ -328,11 +432,97 @@ export class CosmSlackValue extends CosmObjectValue {
       channel: conversation.channel,
       thread: conversation.thread,
       messages: conversation.messages,
-      sessionName: conversation.session.sessionName,
+      sessionName: conversation.sessionName,
       sessionLength: ValueAdapter.cosmToJS(conversation.session.nativeProperty("length") ?? Construct.number(0)),
       transcript: false,
       context: false,
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt,
     };
+  }
+
+  private slackDir(): string {
+    return process.env.COSM_SLACK_DIR || join(process.cwd(), "var", "slack", "conversations");
+  }
+
+  private sessionNameFor(key: string): string {
+    return `slack-${key.replace(/[^a-zA-Z0-9_-]+/g, "-")}`;
+  }
+
+  private conversationPath(key: string): string {
+    return join(this.slackDir(), `${encodeURIComponent(key)}.json`);
+  }
+
+  private ensureSlackDir(): void {
+    mkdirSync(this.slackDir(), { recursive: true });
+  }
+
+  private loadConversationRecord(key: string): Omit<SlackConversationState, "session"> | false {
+    const path = this.conversationPath(key);
+    if (!existsSync(path)) {
+      return false;
+    }
+    try {
+      const value = JSON.parse(readFileSync(path, "utf8")) as Partial<Omit<SlackConversationState, "session">>;
+      if (
+        typeof value.key !== "string" ||
+        typeof value.channel !== "string" ||
+        typeof value.thread !== "string" ||
+        typeof value.sessionName !== "string" ||
+        !Array.isArray(value.messages)
+      ) {
+        return false;
+      }
+      return {
+        key: value.key,
+        channel: value.channel,
+        thread: value.thread,
+        sessionName: value.sessionName,
+        messages: value.messages.map((entry) => ({
+          role: entry.role === "assistant" ? "assistant" : "user",
+          user: typeof entry.user === "string" ? entry.user : undefined,
+          text: typeof entry.text === "string" ? entry.text : "",
+          ts: typeof entry.ts === "string" ? entry.ts : undefined,
+        })),
+        createdAt: typeof value.createdAt === "string" ? value.createdAt : this.isoNow(),
+        updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : this.isoNow(),
+      };
+    } catch {
+      return false;
+    }
+  }
+
+  private saveConversationRecord(conversation: SlackConversationState): void {
+    this.ensureSlackDir();
+    writeFileSync(this.conversationPath(conversation.key), JSON.stringify({
+      key: conversation.key,
+      channel: conversation.channel,
+      thread: conversation.thread,
+      sessionName: conversation.sessionName,
+      messages: conversation.messages,
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt,
+    }), "utf8");
+    CosmSlackValue.conversations.set(conversation.key, conversation);
+  }
+
+  private deleteConversationRecord(key: string): void {
+    const path = this.conversationPath(key);
+    if (existsSync(path)) {
+      rmSync(path);
+    }
+  }
+
+  private namedSession(name: string): CosmSessionValue {
+    const hooks = CosmSessionValue.currentRuntimeHooks();
+    if (hooks.namedSession) {
+      return hooks.namedSession(name);
+    }
+    return new CosmSessionValue(name, this.sessionClassRef, this.errorClassRef);
+  }
+
+  private isoNow(): string {
+    return new Date().toISOString();
   }
 
   private cosmLiteral(value: unknown): string {

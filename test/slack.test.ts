@@ -1,5 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
 import { createHmac } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { AiRuntime } from "../src/runtime/AiRuntime";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { CosmAiValue } from "../src/values/CosmAiValue";
@@ -9,6 +12,7 @@ import { dispatchService } from "./support/request_spec";
 const originalSigningSecret = process.env.COSM_SLACK_SIGNING_SECRET;
 const originalBotToken = process.env.COSM_SLACK_BOT_TOKEN;
 const originalSlackInline = process.env.COSM_SLACK_INLINE_SESSION;
+const originalSlackDir = process.env.COSM_SLACK_DIR;
 
 const signBody = (body: string, secret: string, timestamp: string) => {
   const base = `v0:${timestamp}:${body}`;
@@ -19,6 +23,7 @@ afterEach(() => {
   process.env.COSM_SLACK_SIGNING_SECRET = originalSigningSecret;
   process.env.COSM_SLACK_BOT_TOKEN = originalBotToken;
   process.env.COSM_SLACK_INLINE_SESSION = originalSlackInline;
+  process.env.COSM_SLACK_DIR = originalSlackDir;
   CosmSlackValue.resetRegistry();
   CosmSlackValue.installRuntimeHooks({});
   CosmAiValue.installRuntimeHooks({
@@ -29,10 +34,20 @@ afterEach(() => {
   });
 });
 
-test("slack dm ingress verifies, reuses a session, and posts a structured reply", () => {
+function withSlackEnv() {
   process.env.COSM_SLACK_SIGNING_SECRET = "signing-secret";
   process.env.COSM_SLACK_BOT_TOKEN = "xoxb-test";
   process.env.COSM_SLACK_INLINE_SESSION = "1";
+  process.env.COSM_SLACK_DIR = mkdtempSync(join(tmpdir(), "cosm-slack-"));
+  return () => {
+    if (process.env.COSM_SLACK_DIR) {
+      rmSync(process.env.COSM_SLACK_DIR, { recursive: true, force: true });
+    }
+  };
+}
+
+test("slack dm ingress verifies, reuses a session, and posts a structured reply", () => {
+  const cleanup = withSlackEnv();
 
   const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
   CosmSlackValue.installRuntimeHooks({
@@ -139,12 +154,12 @@ test("slack dm ingress verifies, reuses a session, and posts a structured reply"
       thread_ts: "1710000000.000001",
     },
   ]);
+
+  cleanup();
 });
 
 test("slack dm ingress shapes AI failures into a human-readable fallback reply", () => {
-  process.env.COSM_SLACK_SIGNING_SECRET = "signing-secret";
-  process.env.COSM_SLACK_BOT_TOKEN = "xoxb-test";
-  process.env.COSM_SLACK_INLINE_SESSION = "1";
+  const cleanup = withSlackEnv();
 
   const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
   CosmSlackValue.installRuntimeHooks({
@@ -197,4 +212,192 @@ test("slack dm ingress shapes AI failures into a human-readable fallback reply",
       thread_ts: "1710000002.000001",
     },
   ]);
+
+  cleanup();
+});
+
+test("slack dm conversations survive registry resets through the durable store", () => {
+  const cleanup = withSlackEnv();
+
+  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
+  CosmSlackValue.installRuntimeHooks({
+    postMessage: (conversation, text) => {
+      outboundCalls.push({
+        channel: conversation.channel,
+        text,
+        thread_ts: conversation.thread,
+      });
+    },
+  });
+
+  CosmAiValue.installRuntimeHooks({
+    cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
+      prompt.includes("First question?")
+        ? {
+            shouldReply: true,
+            text: "I still remember your first question in this DM thread.",
+            rationale: "mocked persistence",
+            toolCalls: false,
+            toolResults: false,
+          }
+        : {
+            shouldReply: true,
+            text: "First reply in a durable DM thread.",
+            rationale: "mocked initial",
+            toolCalls: false,
+            toolResults: false,
+          },
+    )),
+  });
+
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const firstBody = JSON.stringify({
+    type: "event_callback",
+    event: {
+      type: "message",
+      channel_type: "im",
+      channel: "D777",
+      user: "U777",
+      text: "First question?",
+      ts: "1710000010.000001",
+    },
+  });
+
+  const firstResponse = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/slack/events", {
+    body: firstBody,
+    headers: {
+      "x-slack-request-timestamp": timestamp,
+      "x-slack-signature": signBody(firstBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
+    },
+  });
+
+  expect(ValueAdapter.cosmToJS(firstResponse.nativeProperty?.("status"))).toBe(200);
+  CosmSlackValue.resetRegistry();
+
+  const secondBody = JSON.stringify({
+    type: "event_callback",
+    event: {
+      type: "message",
+      channel_type: "im",
+      channel: "D777",
+      user: "U777",
+      text: "Do you still remember it?",
+      ts: "1710000011.000001",
+      thread_ts: "1710000010.000001",
+    },
+  });
+
+  const secondResponse = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/slack/events", {
+    body: secondBody,
+    headers: {
+      "x-slack-request-timestamp": timestamp,
+      "x-slack-signature": signBody(secondBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
+    },
+  });
+
+  expect(ValueAdapter.cosmToJS(secondResponse.nativeProperty?.("status"))).toBe(200);
+  expect(outboundCalls.at(-1)).toEqual({
+    channel: "D777",
+    text: "I still remember your first question in this DM thread.",
+    thread_ts: "1710000010.000001",
+  });
+
+  cleanup();
+});
+
+test("slack dm reset clears only the current thread state", () => {
+  const cleanup = withSlackEnv();
+
+  const outboundCalls: Array<{ channel: string; text: string; thread_ts: string }> = [];
+  CosmSlackValue.installRuntimeHooks({
+    postMessage: (conversation, text) => {
+      outboundCalls.push({
+        channel: conversation.channel,
+        text,
+        thread_ts: conversation.thread,
+      });
+    },
+  });
+
+  CosmAiValue.installRuntimeHooks({
+    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+      shouldReply: true,
+      text: "Fresh AI reply after reset.",
+      rationale: "mocked",
+      toolCalls: false,
+      toolResults: false,
+    })),
+  });
+
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const resetBody = JSON.stringify({
+    type: "event_callback",
+    event: {
+      type: "message",
+      channel_type: "im",
+      channel: "D555",
+      user: "U555",
+      text: "reset",
+      ts: "1710000020.000001",
+    },
+  });
+
+  const resetResponse = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/slack/events", {
+    body: resetBody,
+    headers: {
+      "x-slack-request-timestamp": timestamp,
+      "x-slack-signature": signBody(resetBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
+    },
+  });
+
+  expect(ValueAdapter.cosmToJS(resetResponse.nativeProperty?.("status"))).toBe(200);
+  expect(outboundCalls.at(-1)).toEqual({
+    channel: "D555",
+    text: "Thread memory cleared. The next DM starts from a clean transcript and named session.",
+    thread_ts: "1710000020.000001",
+  });
+
+  CosmSlackValue.resetRegistry();
+
+  const followUpBody = JSON.stringify({
+    type: "event_callback",
+    event: {
+      type: "message",
+      channel_type: "im",
+      channel: "D555",
+      user: "U555",
+      text: "Hello again",
+      ts: "1710000021.000001",
+      thread_ts: "1710000020.000001",
+    },
+  });
+
+  const followUpResponse = dispatchService(`
+    require("app/app.cosm")
+    app.App.build()
+  `, "POST", "/slack/events", {
+    body: followUpBody,
+    headers: {
+      "x-slack-request-timestamp": timestamp,
+      "x-slack-signature": signBody(followUpBody, process.env.COSM_SLACK_SIGNING_SECRET!, timestamp),
+    },
+  });
+
+  expect(ValueAdapter.cosmToJS(followUpResponse.nativeProperty?.("status"))).toBe(200);
+  expect(outboundCalls.at(-1)).toEqual({
+    channel: "D555",
+    text: "Fresh AI reply after reset.",
+    thread_ts: "1710000020.000001",
+  });
+
+  cleanup();
 });
