@@ -1,8 +1,8 @@
-require "support/models"
-require "agent/config"
-require "agent/runtime"
-require "agent/store"
-require "agent/slack_client"
+require "lib/support/models"
+require "lib/agent/config"
+require "lib/agent/runtime"
+require "lib/agent/store"
+require "lib/agent/slack_client"
 require "cosm/ai"
 
 def slack_config() = Agent::Config.slack_config_status();

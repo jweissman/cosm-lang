@@ -1,4 +1,4 @@
-require "support/models"
+require "lib/support/models"
 
 def storage_dir()
   let configured = Process.env("COSM_NOTEBOOK_DIR")

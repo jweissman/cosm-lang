@@ -32,25 +32,25 @@ repl:
   {{dev-bun}} bin/cosm
 
 server:
-  {{dev-bun}} bin/cosm app/server.cosm
+  {{dev-bun}} bin/cosm lib/app/server.cosm
 
 watch-server:
-  {{dev-bun}} bin/cosm --watch app/server.cosm
+  {{dev-bun}} bin/cosm --watch lib/app/server.cosm
 
 agent-server:
-  {{dev-bun}} bin/cosm agent/server.cosm
+  {{dev-bun}} bin/cosm lib/agent/server.cosm
 
 watch-agent-server:
-  {{dev-bun}} bin/cosm --watch agent/server.cosm
+  {{dev-bun}} bin/cosm --watch lib/agent/server.cosm
 
 send-dm channel_id text:
-  {{dev-bun}} bin/cosm agent/send_dm.cosm {{channel_id}} {{text}}
+  {{dev-bun}} bin/cosm lib/agent/send_dm.cosm {{channel_id}} {{text}}
 
 bench-vm:
   {{dev-bun}} run script/bench_vm.ts
 
 chat:
-  {{dev-bun}} bin/cosm agent/chat_cli.cosm
+  {{dev-bun}} bin/cosm lib/agent/chat_cli.cosm
 
 commit:
   git add .

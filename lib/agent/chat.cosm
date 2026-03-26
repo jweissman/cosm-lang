@@ -1,4 +1,4 @@
-require "agent/runtime"
+require "lib/agent/runtime"
 
 def banner(name = "iapetus") = "Iapetus local chat is using the durable `" + Agent::Runtime.local_target(name).thread + "` conversation. Press enter on an empty line to exit. Use help, status, or reset.";
 

@@ -1,5 +1,5 @@
-require "support/agent"
-require "support/models"
+require "lib/support/agent"
+require "lib/support/models"
 
 def append_message(conversation, role, text)
   Support::Models.conversation.validate(conversation)

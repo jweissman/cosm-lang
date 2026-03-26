@@ -1,2 +1,2 @@
-require "app/app"
+require "lib/app/app"
 let server = http.serve(12345, App::App.build())

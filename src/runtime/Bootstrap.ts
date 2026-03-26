@@ -607,7 +607,8 @@ export class Bootstrap {
     if (parts.length === 0) {
       return [];
     }
-    const mapped = parts.map((part) => this.constantSegment(part));
+    const logicalParts = parts[0] === "lib" ? parts.slice(1) : parts;
+    const mapped = logicalParts.map((part) => this.constantSegment(part));
     if (mapped.length === 2 && mapped[0] === mapped[1]) {
       return [mapped[0]];
     }

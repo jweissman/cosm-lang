@@ -1,3 +1,0 @@
-require "support/chat"
-
-Support::Chat.run()

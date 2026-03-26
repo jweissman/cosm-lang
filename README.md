@@ -72,8 +72,7 @@ end
 - `cosm/` contains Cosm-authored stdlib-ish helpers
 - `spec/` contains Cosm-native language/runtime specs
 - `test/` contains Bun tests for parser/runtime/CLI/integration behavior
-- `app/` contains the notebook/demo app
-- `agent/` contains the separate Slack-facing agent service and runtime
+- `lib/` contains project-local Cosm-authored modules, including `lib/app/`, `lib/agent/`, and `lib/support/`
 
 ## Development
 
@@ -105,7 +104,7 @@ Common commands:
 
 Iapetus workflow:
 
-- `just agent-server` starts the DM-first Slack-facing service at the canonical entrypoint
+- `just agent-server` starts the DM-first Slack-facing service at the canonical `lib/agent/server.cosm` entrypoint
 - `just chat` starts the local terminal loop against the same `Agent::Runtime` and file-backed store
 - `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM it
 

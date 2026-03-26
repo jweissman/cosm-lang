@@ -1,7 +1,7 @@
-require "app/views/index"
-require "app/notebook_store"
-require "app/notebook_runtime"
-require "support/controller"
+require "lib/app/views/index"
+require "lib/app/notebook_store"
+require "lib/app/notebook_runtime"
+require "lib/support/controller"
 
 let views = App::Views
 let notebook_store = App::NotebookStore

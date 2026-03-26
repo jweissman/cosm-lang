@@ -15,7 +15,7 @@ def method_lookup()
 end
 
 def mixin_include()
-  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require \"support/label_mixin\"; class Mixed do end; Mixed.include(Support::LabelMixin); Mixed.new().label()")
+  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require \"lib/support/label_mixin\"; class Mixed do end; Mixed.include(Support::LabelMixin); Mixed.new().label()")
 end
 
 def dispatch_helper()
@@ -42,6 +42,14 @@ def enumerable_filter()
   example("Collections", "Enumerable filter", "Collection helpers stay explicit and runtime-backed through include plus Enumerable.", "{ reset: true, note: false }.filter(->(key, value) { value })")
 end
 
+def enumerable_compact_map()
+  example("Collections", "Enumerable compact_map", "Build and filter in one pass through a small Cosm-authored helper.", "[1, 2, 3].compact_map(->(value) { value > 1 ? value + 10 : false })")
+end
+
+def enumerable_sum_by()
+  example("Collections", "Enumerable sum_by", "Aggregate through a helper that keeps the callback object-first.", "{ a: 1, b: 2 }.sum_by(->(_key, value) { value })")
+end
+
 def prompt_object()
   example("AI", "Prompt object", "Inspect the explicit prompt runtime object.", "Prompt.text(\"Summarize Cosm in one sentence.\")")
 end
@@ -59,27 +67,27 @@ def ai_cast_helper()
 end
 
 def support_agent_preview()
-  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "require \"support/agent\"; Support::Agent.preview()")
+  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "require \"lib/support/agent\"; Support::Agent.preview()")
 end
 
 def prompt_data()
-  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require \"support/prompt_data\"; Support::PromptData.iapetus_system()")
+  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require \"lib/support/prompt_data\"; Support::PromptData.iapetus_system()")
 end
 
 def support_chat_step()
-  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require \"support/chat\"; Support::Chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require \"lib/support/chat\"; Support::Chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
 
 def support_step_model()
-  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require \"support/models\"; Support::Models.chat_step.json_schema()")
+  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require \"lib/support/models\"; Support::Models.chat_step.json_schema()")
 end
 
 def support_page()
-  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require \"support/controller\"; Support::Controller.page_conversation(\"demo\", \"user: hello\")")
+  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require \"lib/support/controller\"; Support::Controller.page_conversation(\"demo\", \"user: hello\")")
 end
 
 def notebook_page()
-  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require \"app/notebook_store\"; App::NotebookStore.create_page(\"Demo page\").title")
+  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require \"lib/app/notebook_store\"; App::NotebookStore.create_page(\"Demo page\").title")
 end
 
 def workflow_run()
@@ -107,7 +115,7 @@ def data()
 end
 
 def collections()
-  [enumerable_reduce(), enumerable_filter()]
+  [enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by()]
 end
 
 def ai()
@@ -123,5 +131,5 @@ def support()
 end
 
 def catalog()
-  [math_reflection(), receiver_reflection(), method_lookup(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), support_agent_preview(), prompt_data(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
+  [math_reflection(), receiver_reflection(), method_lookup(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), support_agent_preview(), prompt_data(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
 end

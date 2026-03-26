@@ -1,4 +1,4 @@
-require "agent/config"
+require "lib/agent/config"
 
 def post_message(channel_id, text, thread_ts = false)
   let bot_token = Agent::Config.slack_bot_token()

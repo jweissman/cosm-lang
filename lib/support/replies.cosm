@@ -1,4 +1,4 @@
-require "support/models"
+require "lib/support/models"
 
 def text(text, rationale)
   let value = { should_reply: true, text: text, rationale: rationale, tool_calls: false, tool_results: false }

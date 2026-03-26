@@ -1,10 +1,10 @@
-require "agent/slack_client"
+require "lib/agent/slack_client"
 
 def usage()
-  """Usage: bun bin/cosm agent/send_dm.cosm <channel_id> <text>
+  """Usage: bun bin/cosm lib/agent/send_dm.cosm <channel_id> <text>
 
 <channel_id> is a Slack conversation id, usually starting with D for a DM.
-Example: bun bin/cosm agent/send_dm.cosm D01234567 "hello from Cosm"
+Example: bun bin/cosm lib/agent/send_dm.cosm D01234567 "hello from Cosm"
 """
 end
 

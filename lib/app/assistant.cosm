@@ -1,11 +1,11 @@
-require "app/rendering"
-require "support/controller"
+require "lib/app/rendering"
+require "lib/support/controller"
 require "cosm/ai"
 
 class AssistantView
   class << self
     def page_template()
-      require "app/views/assistant/page.ecosm"
+      require "lib/app/views/assistant/page.ecosm"
       App::Views::Assistant::Page
     end
 

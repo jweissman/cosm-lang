@@ -1,7 +1,7 @@
-require "support/controller"
-require "support/models"
-require "agent/store"
-require "agent/config"
+require "lib/support/controller"
+require "lib/support/models"
+require "lib/agent/store"
+require "lib/agent/config"
 require "cosm/ai"
 
 let agent_turn = Data.model("agent_turn", {

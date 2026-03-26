@@ -1,6 +1,6 @@
 require "cosm/spec.cosm"
-require "support/chat"
-require "support/models"
+require "lib/support/chat"
+require "lib/support/models"
 
 suite("Support chatbot helpers", ->() {
   it("transcript appends stay stable", ->() {

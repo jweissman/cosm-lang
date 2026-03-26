@@ -487,7 +487,7 @@ test("smoke", ->() { assert true })
 require "cosm/spec.cosm"
 suite("smoke section", ->() { it("smoke", ->() { assert(true) }) })
 assert_equal([1, 2], [1, 2])
-require "app/app"
+require "lib/app/app"
 App::App.build().class.name
 Kernel.class.name
 Kernel.inspect(Kernel)

@@ -1,22 +1,22 @@
-require "app/rendering"
-require "app/examples"
-require "app/notebook_store"
-require "app/notebook_runtime"
+require "lib/app/rendering"
+require "lib/app/examples"
+require "lib/app/notebook_store"
+require "lib/app/notebook_runtime"
 
 class NotebookExamples
   class << self
     def example_section_template()
-      require "app/views/notebook/examples.ecosm"
+      require "lib/app/views/notebook/examples.ecosm"
       App::Views::Notebook::Examples
     end
 
     def example_category_template()
-      require "app/views/notebook/example_category.ecosm"
+      require "lib/app/views/notebook/example_category.ecosm"
       App::Views::Notebook::ExampleCategory
     end
 
     def example_card_template()
-      require "app/views/notebook/example_card.ecosm"
+      require "lib/app/views/notebook/example_card.ecosm"
       App::Views::Notebook::ExampleCard
     end
 
@@ -69,27 +69,27 @@ end
 class NotebookView
   class << self
     def page_template()
-      require "app/views/notebook/page.ecosm"
+      require "lib/app/views/notebook/page.ecosm"
       App::Views::Notebook::Page
     end
 
     def script_template()
-      require "app/views/notebook/script.ecosm"
+      require "lib/app/views/notebook/script.ecosm"
       App::Views::Notebook::Script
     end
 
     def empty_template()
-      require "app/views/notebook/empty.ecosm"
+      require "lib/app/views/notebook/empty.ecosm"
       App::Views::Notebook::Empty
     end
 
     def result_template()
-      require "app/views/notebook/result.ecosm"
+      require "lib/app/views/notebook/result.ecosm"
       App::Views::Notebook::Result
     end
 
     def error_template()
-      require "app/views/notebook/error.ecosm"
+      require "lib/app/views/notebook/error.ecosm"
       App::Views::Notebook::Error
     end
 

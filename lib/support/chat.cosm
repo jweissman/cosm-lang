@@ -1,4 +1,4 @@
-require "support/agent"
+require "lib/support/agent"
 
 def banner() = "Iapetus is a tiny local-model Cosm support assistant. Press enter on an empty line to exit. Use /help for commands.";
 

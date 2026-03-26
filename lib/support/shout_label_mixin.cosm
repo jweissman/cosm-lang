@@ -1,0 +1,3 @@
+def label() = "label-from-shout-mixin";
+
+def shout() = "SHOUT";

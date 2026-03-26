@@ -1,6 +1,6 @@
-require "app/rendering"
-require "app/notebook"
-require "app/assistant"
+require "lib/app/rendering"
+require "lib/app/notebook"
+require "lib/app/assistant"
 
 let html_view = App::Rendering::HtmlView
 let notebook_view = App::Notebook::NotebookView
@@ -10,7 +10,7 @@ let assistant_view = App::Assistant::AssistantView
 class HomeView
   class << self
     def template()
-      require "app/views/home/page.ecosm"
+      require "lib/app/views/home/page.ecosm"
       App::Views::Home::Page
     end
 

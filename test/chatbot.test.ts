@@ -38,20 +38,20 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
     )),
   });
 
-  expect(cosmEval('require "support/chat"; Support::Chat.step("", "How do I reset the notebook session?").reply.text')).toBe(
+  expect(cosmEval('require "lib/support/chat"; Support::Chat.step("", "How do I reset the notebook session?").reply.text')).toBe(
     "Reset the session with the Reset Session button in the notebook UI.",
   );
-  expect(cosmEval('require "support/chat"; Support::Chat.step("", "How do I reset the notebook session?").transcript')).toContain(
+  expect(cosmEval('require "lib/support/chat"; Support::Chat.step("", "How do I reset the notebook session?").transcript')).toContain(
     "assistant: Reset the session with the Reset Session button in the notebook UI.",
   );
-  expect(cosmEval('require "support/agent"; Support::Agent.step_transcript("", "How do I reset the notebook session?").reply.text')).toBe(
+  expect(cosmEval('require "lib/support/agent"; Support::Agent.step_transcript("", "How do I reset the notebook session?").reply.text')).toBe(
     "Reset the session with the Reset Session button in the notebook UI.",
   );
 });
 
 test("pure Cosm support chat transcript helpers stay stable", () => {
-  expect(cosmEval('require "support/chat"; Support::Chat.append_transcript("", "user", "hello")')).toBe("user: hello");
-  expect(cosmEval('require "support/chat"; Support::Chat.append_transcript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
+  expect(cosmEval('require "lib/support/chat"; Support::Chat.append_transcript("", "user", "hello")')).toBe("user: hello");
+  expect(cosmEval('require "lib/support/chat"; Support::Chat.append_transcript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
 });
 
 test("support controller provides a thin conversation contract for shared chat flows", () => {
@@ -66,26 +66,26 @@ test("support controller provides a thin conversation contract for shared chat f
   });
 
   expect(cosmEval(`
-    require "support/controller"
+    require "lib/support/controller"
     let turn = Support::Controller.turn(Support::Controller.cli_conversation([]), Support::Controller.cli_inbound("How do I reset the notebook session?"))
     turn.reply.text
   `)).toBe("Reset the session with the Reset Session button in the notebook UI.");
 
   expect(cosmEval(`
-    require "support/controller"
+    require "lib/support/controller"
     let turn = Support::Controller.turn(Support::Controller.cli_conversation([]), Support::Controller.cli_inbound("How do I reset the notebook session?"))
     turn.conversation.messages.length
   `)).toBe(2);
 
   expect(cosmEval(`
-    require "support/controller"
+    require "lib/support/controller"
     let turn = Support::Controller.turn(Support::Controller.page_conversation("page-1", "user: hello"), Support::Controller.page_inbound("page-1", "How do I reset the notebook session?"))
     Support::Controller.display_transcript(turn.conversation)
   `)).toContain("assistant: Reset the session with the Reset Session button in the notebook UI.");
 });
 
 test("support prompt data is loaded from markdown-backed prompt files", () => {
-  expect(cosmEval('require "support/prompt_data"; Support::PromptData.iapetus_system().length > 10')).toBe(true);
+  expect(cosmEval('require "lib/support/prompt_data"; Support::PromptData.iapetus_system().length > 10')).toBe(true);
 });
 
 test("pure Cosm support chat can stream chunks through the shared chat loop helpers", () => {
@@ -108,7 +108,7 @@ test("pure Cosm support chat can stream chunks through the shared chat loop help
 
   try {
     expect(cosmEval(`
-      require "support/chat"
+      require "lib/support/chat"
       let result = Support::Chat.stream_step("", "How do I reset the notebook session?") do |event|
         Support::Chat.render_stream_event(event)
       end

@@ -1,4 +1,4 @@
-require "agent/chat"
+require "lib/agent/chat"
 
 let name = Process.argv().length > 1 ? Process.argv().get(1) : "iapetus"
 Agent::Chat.run(name)

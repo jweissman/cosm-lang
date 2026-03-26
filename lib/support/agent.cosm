@@ -1,7 +1,7 @@
 require "cosm/ai"
-require "support/models"
-require "support/prompts"
-require "support/replies"
+require "lib/support/models"
+require "lib/support/prompts"
+require "lib/support/replies"
 
 def append_transcript(transcript, role, text) = transcript == "" ? role + ": " + text : transcript + "\n" + role + ": " + text;
 

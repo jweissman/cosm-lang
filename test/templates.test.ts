@@ -39,20 +39,20 @@ test("yield is a narrow language feature for the current trailing block", () => 
 });
 
 test(".ecosm templates still interpolate explicit context bindings", () => {
-  expect(cosmEval('require "app/views/notebook/result.ecosm"; App::Views::Notebook::Result.render({ inspect: "42" })')).toContain("42");
-  expect(cosmEval('require "app/views/layout/head.ecosm"; App::Views::Layout::Head.render({})')).toContain("tailwindcss");
+  expect(cosmEval('require "lib/app/views/notebook/result.ecosm"; App::Views::Notebook::Result.render({ inspect: "42" })')).toContain("42");
+  expect(cosmEval('require "lib/app/views/layout/head.ecosm"; App::Views::Layout::Head.render({})')).toContain("tailwindcss");
 });
 
 test(".ecosm templates support preferred <%= ... %> interpolation while keeping #{...}", () => {
-  expect(cosmEval('require "app/views/layout/page.ecosm"; App::Views::Layout::Page.render({ title: "Demo", extra_head: "<meta name=\\"x\\" content=\\"1\\">", extra_script: "<script>ok</script>" }, "<main>Body</main>")')).toContain("<title>Demo</title>");
-  expect(cosmEval('require "app/notebook"; require "app/examples"; App::Notebook::NotebookExamples.card(App::Examples.receiver_reflection())')).toContain("Receiver reflection");
-  expect(cosmEval('require "app/notebook"; App::Notebook::NotebookExamples.markup()')).toContain("Method names first");
+  expect(cosmEval('require "lib/app/views/layout/page.ecosm"; App::Views::Layout::Page.render({ title: "Demo", extra_head: "<meta name=\\"x\\" content=\\"1\\">", extra_script: "<script>ok</script>" }, "<main>Body</main>")')).toContain("<title>Demo</title>");
+  expect(cosmEval('require "lib/app/notebook"; require "lib/app/examples"; App::Notebook::NotebookExamples.card(App::Examples.receiver_reflection())')).toContain("Receiver reflection");
+  expect(cosmEval('require "lib/app/notebook"; App::Notebook::NotebookExamples.markup()')).toContain("Method names first");
 });
 
 test(".ecosm layout templates can render child content through yield", () => {
   const rendered = cosmEval(`
-    require "app/views/index"
-    require "app/views/notebook/result.ecosm"
+    require "lib/app/views/index"
+    require "lib/app/views/notebook/result.ecosm"
     App::Rendering::HtmlView.render_layout("Demo", App::Views::Notebook::Result, { inspect: "42" }, "", "")
   `);
   expect(rendered).toContain("<!doctype html>");
@@ -62,7 +62,7 @@ test(".ecosm layout templates can render child content through yield", () => {
 
 test(".ecosm layout yield no longer hijacks ordinary context keys", () => {
   expect(cosmEval(`
-    require "app/views/layout/page.ecosm"
+    require "lib/app/views/layout/page.ecosm"
     App::Views::Layout::Page.render({ title: "Demo", extra_head: "", extra_script: "", body_label: "context-body" }, "<div>body</div>")
   `)).toContain("body");
 
@@ -78,7 +78,7 @@ test(".ecosm layout yield no longer hijacks ordinary context keys", () => {
 });
 
 test("nested app/views loads expose explicit constant modules", () => {
-  expect(cosmEval('require "app/views/index"; App::Views.class.name')).toBe("Module");
-  expect(cosmEval('require "app/views/layout/head.ecosm"; App::Views::Layout::Head.class.name')).toBe("Module");
-  expect(cosmEval('require "app/views/notebook/result.ecosm"; App::Views::Notebook::Result.class.name')).toBe("Module");
+  expect(cosmEval('require "lib/app/views/index"; App::Views.class.name')).toBe("Module");
+  expect(cosmEval('require "lib/app/views/layout/head.ecosm"; App::Views::Layout::Head.class.name')).toBe("Module");
+  expect(cosmEval('require "lib/app/views/notebook/result.ecosm"; App::Views::Notebook::Result.class.name')).toBe("Module");
 });

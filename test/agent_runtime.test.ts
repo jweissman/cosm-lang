@@ -50,7 +50,7 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
   });
 
   expect(cosmEval(`
-    require "agent/runtime"
+    require "lib/agent/runtime"
     let inbound = { channel: "D100", thread: "1710000100.000001", user: "U100", text: "How do I reset it?", ts: "1710000100.000001" }
     let turn = Agent::Runtime.execute_stored_turn(inbound)
     {
@@ -71,7 +71,7 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
 
 test("agent runtime handles commands transport-agnostically", () => {
   expect(cosmEval(`
-    require "agent/runtime"
+    require "lib/agent/runtime"
     let inbound = { channel: "D200", thread: "1710000200.000001", user: "U200", text: "status", ts: "1710000200.000001" }
     let conversation = Agent::Runtime.conversation_for_inbound(inbound)
     let turn = Agent::Runtime.execute_turn(conversation, inbound)
@@ -112,7 +112,7 @@ test("local Iapetus chat reuses the shared runtime and durable store", () => {
   });
 
   expect(cosmEval(`
-    require "agent/chat"
+    require "lib/agent/chat"
     let first = Agent::Chat.step("How do I reset it?")
     let second = Agent::Chat.step("Any code path?")
     let status = Agent::Chat.status()
@@ -139,7 +139,7 @@ test("local Iapetus chat routes help, status, and reset through the shared runti
   process.env.SLACK_STORAGE_DIR = dir;
 
   expect(cosmEval(`
-    require "agent/chat"
+    require "lib/agent/chat"
     Agent::Chat.step("status")
     let reset = Agent::Chat.step("reset")
     let status = Agent::Chat.status()
@@ -172,7 +172,7 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
   });
 
   expect(cosmEval(`
-    require "agent/slack_dm"
+    require "lib/agent/slack_dm"
     let result = Agent::SlackDM.post_message("DCLI", "smoke test")
     {
       ok: result.ok,
@@ -190,11 +190,11 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
 
 test("slack dm smoke helper usage describes channel ids clearly", () => {
   expect(cosmEval(`
-    require "agent/slack_dm"
+    require "lib/agent/slack_dm"
     Agent::SlackDM.usage()
   `)).toContain("<channel_id>");
   expect(cosmEval(`
-    require "agent/slack_dm"
+    require "lib/agent/slack_dm"
     Agent::SlackDM.usage()
   `)).toContain("usually starting with D");
 });

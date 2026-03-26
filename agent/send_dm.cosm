@@ -1,3 +1,0 @@
-require "agent/slack_dm"
-
-Agent::SlackDM.run()

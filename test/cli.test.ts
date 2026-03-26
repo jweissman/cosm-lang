@@ -341,7 +341,7 @@ test("cli watch mode rejects a missing file path", () => {
 });
 
 test("cli rejects unknown switches loudly", () => {
-  const result = runCli(["--watcch", "app/server.cosm"]);
+  const result = runCli(["--watcch", "lib/app/server.cosm"]);
   expect(result.exitCode).toBe(1);
   expect(result.stdout).toBe("");
   expect(result.stderr).toContain("Error: unknown option '--watcch'");

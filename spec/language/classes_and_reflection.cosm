@@ -1,5 +1,6 @@
 require "cosm/spec.cosm"
-require "support/label_mixin"
+require "lib/support/label_mixin"
+require "lib/support/shout_label_mixin"
 
 suite("Classes and reflection", ->() {
   it("keeps metaclass basics visible", ->() {
@@ -71,6 +72,17 @@ suite("Classes and reflection", ->() {
     ChildMixer.include(Support::LabelMixin)
     assert(ChildMixer.new().label() == "label-from-mixin!", "super follows local then mixin then superclass lookup order")
 
+    class OrderedMixer do
+      def label() do
+        "base"
+      end
+    end
+    OrderedMixer.include(Support::LabelMixin)
+    OrderedMixer.include(Support::ShoutLabelMixin)
+    assert(OrderedMixer.new().label() == "base", "local instance methods still win before the included-module chain")
+    assert(OrderedMixer.new().method(:label).name == "label", "receiver-side reflection agrees with local-before-include dispatch")
+    assert(OrderedMixer.includedModules.map(->(mod) { mod.name }).join(",") == "lib/support/label_mixin.cosm,lib/support/shout_label_mixin.cosm", "includedModules keeps stable inspectable include order")
+
     class Checked do
       def init(value) do
         assert(@value == value, "init bodies can observe assigned fields")
@@ -117,6 +129,7 @@ suite("Classes and reflection", ->() {
       end
     end
     assert(LoudLabel.label() == "base!", "class-side methods can call super through the metaclass chain")
+    assert(LoudLabel.classMethod(:label).call() == "base!", "class-side reflection agrees with metaclass super dispatch")
   })
 
   it("keeps hash access and reflective service objects object-first", ->() {

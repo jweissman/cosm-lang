@@ -1,5 +1,5 @@
-require "support/models"
-require "agent/config"
+require "lib/support/models"
+require "lib/agent/config"
 
 let agent_thread_record = Data.model("agent_thread_record", {
   conversation: Support::Models.conversation,

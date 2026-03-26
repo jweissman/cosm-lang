@@ -1,5 +1,5 @@
-require "support/models"
-require "support/prompt_data"
+require "lib/support/models"
+require "lib/support/prompt_data"
 
 def reply_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
 #{Support::PromptData.iapetus_system()}

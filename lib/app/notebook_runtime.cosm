@@ -1,7 +1,7 @@
-require "app/notebook_store"
-require "support/controller"
+require "lib/app/notebook_store"
+require "lib/support/controller"
 require "cosm/workflow"
-require "agent/runtime"
+require "lib/agent/runtime"
 
 def session_name(page)
   "notebook-page:" + page.id
@@ -43,11 +43,11 @@ def final_result(results)
 end
 
 def execution_summary(results)
-  let lines = results.reject(->(result) { result.kind != "cosm" }).map(->(result) {
-    if result.ok then
-      "ok: " + result.rendered
+  let lines = results.compact_map(->(result) {
+    if result.kind != "cosm" then
+      false
     else
-      "error: " + result.error.message
+      result.ok ? "ok: " + result.rendered : "error: " + result.error.message
     end
   })
   if lines.empty() then

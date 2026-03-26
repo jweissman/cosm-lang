@@ -13,12 +13,12 @@ class HtmlView
     end
 
     def page_layout_template()
-      require "app/views/layout/page.ecosm"
+      require "lib/app/views/layout/page.ecosm"
       App::Views::Layout::Page
     end
 
     def head_template()
-      require "app/views/layout/head.ecosm"
+      require "lib/app/views/layout/head.ecosm"
       App::Views::Layout::Head
     end
 

@@ -1,5 +1,5 @@
-require "agent/service"
-require "agent/config"
+require "lib/agent/service"
+require "lib/agent/config"
 
 let listen_port = Agent::Config.agent_port()
 let server = http.serve(listen_port, Agent::Service::AgentService.build())

@@ -44,6 +44,31 @@ def compact()
   self.select(->(value) { value != false })
 end
 
+def presence()
+  self.present() ? self : false
+end
+
+def compact_map(callback)
+  let missing = :__cosm_compact_map_missing__
+  self.reduce([], ->(acc, first, second = missing) {
+    let mapped = second == missing ? callback(first) : callback(first, second)
+    mapped == false ? acc : acc.append(mapped)
+  })
+end
+
+def find_map(callback)
+  let missing = :__cosm_find_map_missing__
+  let result = self.reduce(missing, ->(acc, first, second = missing) {
+    if acc != missing then
+      acc
+    else
+      let mapped = second == missing ? callback(first) : callback(first, second)
+      mapped == false ? missing : mapped
+    end
+  })
+  result == missing ? false : result
+end
+
 def flat_map(callback)
   self.map(callback).reduce([], ->(acc, value) {
     if value.class.name == "Array" then
@@ -56,4 +81,11 @@ end
 
 def sum()
   self.reduce(0, ->(acc, value) { acc + value })
+end
+
+def sum_by(callback)
+  let missing = :__cosm_sum_by_missing__
+  self.reduce(0, ->(acc, first, second = missing) {
+    acc + (second == missing ? callback(first) : callback(first, second))
+  })
 end

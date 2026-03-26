@@ -10,13 +10,13 @@ The Slack wedge is intentionally narrow and runtime-centered:
 
 ## Service Shape
 
-- [agent/service.cosm](/Users/joe/Work/cosm-lang/agent/service.cosm) defines the service object and routes
-- [agent/server.cosm](/Users/joe/Work/cosm-lang/agent/server.cosm) is the canonical live service entry
-- [agent/runtime.cosm](/Users/joe/Work/cosm-lang/agent/runtime.cosm) owns the persistent agent turn loop, named-session policy, conversation mutation, and runtime status
-- [agent/slack.cosm](/Users/joe/Work/cosm-lang/agent/slack.cosm) owns Slack verification, DM filtering, dedupe, and request normalization
-- [agent/store.cosm](/Users/joe/Work/cosm-lang/agent/store.cosm) owns file-backed thread storage
-- [agent/chat.cosm](/Users/joe/Work/cosm-lang/agent/chat.cosm) owns the local terminal chat loop over the same runtime/store path
-- [agent/slack_dm.cosm](/Users/joe/Work/cosm-lang/agent/slack_dm.cosm) owns the one-shot DM smoke command
+- [service.cosm](/Users/joe/Work/cosm-lang/lib/agent/service.cosm) defines the service object and routes
+- [server.cosm](/Users/joe/Work/cosm-lang/lib/agent/server.cosm) is the canonical live service entry
+- [runtime.cosm](/Users/joe/Work/cosm-lang/lib/agent/runtime.cosm) owns the persistent agent turn loop, named-session policy, conversation mutation, and runtime status
+- [slack.cosm](/Users/joe/Work/cosm-lang/lib/agent/slack.cosm) owns Slack verification, DM filtering, dedupe, and request normalization
+- [store.cosm](/Users/joe/Work/cosm-lang/lib/agent/store.cosm) owns file-backed thread storage
+- [chat.cosm](/Users/joe/Work/cosm-lang/lib/agent/chat.cosm) owns the local terminal chat loop over the same runtime/store path
+- [slack_dm.cosm](/Users/joe/Work/cosm-lang/lib/agent/slack_dm.cosm) owns the one-shot DM smoke command
 
 ## Minimum Setup
 
@@ -57,7 +57,7 @@ If you just want to prove the bot token works before touching inbound events:
 
 1. Export `SLACK_BOT_TOKEN`.
 2. Find a Slack DM conversation id like `D01234567`.
-3. Run `./script/bunx bin/cosm agent/send_dm.cosm D01234567 "hello from Cosm"`.
+3. Run `./script/bunx bin/cosm lib/agent/send_dm.cosm D01234567 "hello from Cosm"`.
 4. Confirm you see:
    - `ok`
    - `channel_id: D...`
@@ -70,11 +70,11 @@ For DMs, this is usually a `D...` id.
 ## Manual DM-Only Checklist
 
 1. Export `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
-2. Start the separate service with `./script/bunx bin/cosm agent/server.cosm` or `just agent-server`.
+2. Start the separate service with `./script/bunx bin/cosm lib/agent/server.cosm` or `just agent-server`.
 3. Check `GET /health` for process liveness.
 4. Check `GET /ready` and confirm Slack env, storage, AI config, and AI health all report ready.
 5. Optionally run `just chat` to verify the same runtime/store loop locally before touching Slack.
-6. Run `./script/bunx bin/cosm agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
+6. Run `./script/bunx bin/cosm lib/agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
 7. Complete Slack URL verification against `POST /slack/events`.
 8. Send a first DM and confirm exactly one reply appears.
 9. Send a follow-up in the same DM thread and confirm context is reused.

@@ -22,7 +22,7 @@ const originalLegacySlackApiUrl = process.env.COSM_SLACK_API_URL;
 const originalHttpHooks = CosmHttpValue.currentRuntimeHooks();
 
 const serviceSource = `
-  let service = require("agent/service.cosm")
+  let service = require("lib/agent/service.cosm")
   service.AgentService.build()
 `;
 

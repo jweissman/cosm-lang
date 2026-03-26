@@ -1,5 +1,5 @@
-require "agent/slack"
-require "agent/runtime"
+require "lib/agent/slack"
+require "lib/agent/runtime"
 
 class AgentService
   def init(router)

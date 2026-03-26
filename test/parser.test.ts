@@ -96,7 +96,7 @@ test("parser keeps bare-call sugar statement-oriented", () => {
 });
 
 test("parser accepts the canonical app/server.cosm shape", () => {
-  expect(() => Parser.parse(readFileSync("app/server.cosm", "utf8"))).not.toThrow();
-  expect(() => Parser.parse(readFileSync("app/app.cosm", "utf8"))).not.toThrow();
-  expect(() => Parser.parse(readFileSync("app/views/index.cosm", "utf8"))).not.toThrow();
+  expect(() => Parser.parse(readFileSync("lib/app/server.cosm", "utf8"))).not.toThrow();
+  expect(() => Parser.parse(readFileSync("lib/app/app.cosm", "utf8"))).not.toThrow();
+  expect(() => Parser.parse(readFileSync("lib/app/views/index.cosm", "utf8"))).not.toThrow();
 });

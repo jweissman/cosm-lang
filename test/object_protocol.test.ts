@@ -58,14 +58,14 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     Child.new().method(:greet).name
   `)).toBe("greet");
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class Mixed
     end
     Mixed.include(Support::LabelMixin)
     Mixed.new().methods()
   `)).toEqual(expect.arrayContaining([{ kind: "symbol", name: "label" }, { kind: "symbol", name: "emphasize" }]));
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class Mixed
       def label()
         "local"
@@ -75,7 +75,7 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     Mixed.new().label()
   `)).toBe("local");
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class BaseMixed
     end
     BaseMixed.include(Support::LabelMixin)
@@ -84,14 +84,14 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     ChildMixed.new().method(:label).name
   `)).toBe("label");
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class Mixed
     end
     Mixed.include(Support::LabelMixin)
     Mixed.new().method(:label).name
   `)).toBe("label");
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class BaseMixed
       def label()
         "base"
@@ -106,7 +106,7 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     ChildMixed.new().label()
   `)).toBe("label-from-mixin!");
   expect(cosmEval(`
-    require "support/label_mixin"
+    require "lib/support/label_mixin"
     class Ordered
       def label()
         "base"
@@ -116,7 +116,40 @@ test("receiver-side methods() includes inherited methods and agrees with method(
     Ordered.include(Support::LabelMixin)
     Ordered.includedModules.length
   `)).toBe(1);
-  expect(cosmEval('require "support/label_mixin"; Support::LabelMixin.class.name')).toBe("Module");
+  expect(cosmEval(`
+    require "lib/support/label_mixin"
+    require "lib/support/shout_label_mixin"
+    class Ordered
+      def label()
+        "base"
+      end
+    end
+    Ordered.include(Support::LabelMixin)
+    Ordered.include(Support::ShoutLabelMixin)
+    Ordered.new().label()
+  `)).toBe("base");
+  expect(cosmEval(`
+    require "lib/support/label_mixin"
+    require "lib/support/shout_label_mixin"
+    class Ordered
+      def label()
+        "base"
+      end
+    end
+    Ordered.include(Support::LabelMixin)
+    Ordered.include(Support::ShoutLabelMixin)
+    Ordered.new().method(:label).name
+  `)).toBe("label");
+  expect(cosmEval(`
+    require "lib/support/label_mixin"
+    require "lib/support/shout_label_mixin"
+    class Ordered
+    end
+    Ordered.include(Support::LabelMixin)
+    Ordered.include(Support::ShoutLabelMixin)
+    Ordered.includedModules.map(->(mod) { mod.name })
+  `)).toEqual(["lib/support/label_mixin.cosm", "lib/support/shout_label_mixin.cosm"]);
+  expect(cosmEval('require "lib/support/label_mixin"; Support::LabelMixin.class.name')).toBe("Module");
 });
 
 test("Mirror inspect remains wrapper-visible", () => {
@@ -180,8 +213,13 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval("[1].one()")).toBe(true);
   expect(cosmEval("[1, 2, 3].filter(->(value) { value > 1 })")).toEqual([2, 3]);
   expect(cosmEval("[1, false, 3].compact()")).toEqual([1, 3]);
+  expect(cosmEval("[].presence()")).toBe(false);
+  expect(cosmEval("[1].presence()")).toEqual([1]);
+  expect(cosmEval('[1, 2, 3].compact_map(->(value) { value > 1 ? value + 10 : false })')).toEqual([12, 13]);
+  expect(cosmEval('[1, 2, 3].find_map(->(value) { value > 1 ? value + 10 : false })')).toBe(12);
   expect(cosmEval("[1, 2].flat_map(->(value) { [value, value + 10] })")).toEqual([1, 11, 2, 12]);
   expect(cosmEval("[1, 2, 3].sum()")).toBe(6);
+  expect(cosmEval("[1, 2, 3].sum_by(->(value) { value + 1 })")).toBe(9);
   expect(cosmEval("[1, 2, 3].first()")).toBe(1);
   expect(cosmEval('[1, 2, 3].find(->(value) { value > 1 })')).toBe(2);
   expect(cosmEval('[1, 2, 3].reject(->(value) { value > 1 })')).toEqual([1]);
@@ -190,9 +228,11 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('["co", "sm"].join("-")')).toBe("co-sm");
   expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
   expect(cosmEval('{ a: 1, b: 2 }.find(->(key, value) { value > 1 })')).toEqual(["b", 2]);
+  expect(cosmEval('{ a: 1, b: 2 }.find_map(->(key, value) { value > 1 ? key + value.to_s() : false })')).toBe("b2");
   expect(cosmEval('{ a: 1, b: 2 }.reject(->(key, value) { value > 1 })')).toEqual({ a: 1 });
   expect(cosmEval('{ a: 1, b: 2 }.take(1)')).toEqual({ a: 1 });
   expect(cosmEval('{ a: 1, b: 2 }.reduce("", ->(acc, key, value) { acc + key + value.to_s() })')).toBe("a1b2");
+  expect(cosmEval('{ a: 1, b: 2 }.sum_by(->(_key, value) { value })')).toBe(3);
   expect(cosmEval("let increment = ->(value) { value + 1 }; [1, 2, 3].map(increment)")).toEqual([2, 3, 4]);
   expect(cosmEval("let gtOne = ->(key, value) { value > 1 }; { a: 1, b: 2 }.select(gtOne)")).toEqual({ b: 2 });
 });
