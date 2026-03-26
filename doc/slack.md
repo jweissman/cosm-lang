@@ -17,7 +17,19 @@ The Slack wedge is intentionally narrow in `0.3.13.11`:
 - [agent/store.cosm](/Users/joe/Work/cosm-lang/agent/store.cosm) owns file-backed thread storage
 - [agent/slack_dm.cosm](/Users/joe/Work/cosm-lang/agent/slack_dm.cosm) owns the one-shot DM smoke command
 
-## Required Env
+## Minimum Setup
+
+To send one outbound DM with the smoke helper, you only need:
+
+- `SLACK_BOT_TOKEN`
+
+To receive inbound Slack events at `/slack/events`, you additionally need:
+
+- `SLACK_SIGNING_SECRET`
+
+Everything else is optional for the basic testing loop.
+
+## Full Env Surface
 
 - `SLACK_SIGNING_SECRET`
 - `SLACK_BOT_TOKEN`
@@ -38,16 +50,33 @@ For practical setup:
 - `SLACK_SIGNING_SECRET` is additionally required for inbound `/slack/events` verification
 - `SLACK_APP_ID`, `SLACK_CLIENT_ID`, and `SLACK_CLIENT_SECRET` belong to app/OAuth administration and are not required for the basic DM send/verify loop
 
+## Fastest Test Loop
+
+If you just want to prove the bot token works before touching inbound events:
+
+1. Export `SLACK_BOT_TOKEN`.
+2. Find a Slack DM conversation id like `D01234567`.
+3. Run `./script/bunx bin/cosm agent/send_dm.cosm D01234567 "hello from Cosm"`.
+4. Confirm you see:
+   - `ok`
+   - `channel_id: D...`
+   - `ts: ...`
+
+In the smoke command, `channel_id` means a Slack conversation/channel id, not a username, email, or app id.
+
+For DMs, this is usually a `D...` id.
+
 ## Manual DM-Only Checklist
 
-1. Start the separate service with `./script/bunx bin/cosm agent/server.cosm`.
-2. Check `GET /health` for process liveness.
-3. Check `GET /ready` and confirm Slack env, storage, AI config, and AI health all report ready.
-4. Run `./script/bunx bin/cosm agent/send_dm.cosm <target> "<text>"` to verify outbound auth and posting before testing inbound events.
-5. Complete Slack URL verification against `POST /slack/events`.
-6. Send a first DM and confirm exactly one reply appears.
-7. Send a follow-up in the same DM thread and confirm context is reused.
-8. Replay the same Slack delivery and confirm it dedupes without a second reply.
-9. Send `help`, `status`, and `reset` and confirm each behaves cleanly.
-10. Restart the service and confirm the same DM thread still reuses transcript/session state.
-11. Simulate backend unavailability and confirm the user gets a readable fallback reply rather than silence.
+1. Export `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
+2. Start the separate service with `./script/bunx bin/cosm agent/server.cosm`.
+3. Check `GET /health` for process liveness.
+4. Check `GET /ready` and confirm Slack env, storage, AI config, and AI health all report ready.
+5. Run `./script/bunx bin/cosm agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
+6. Complete Slack URL verification against `POST /slack/events`.
+7. Send a first DM and confirm exactly one reply appears.
+8. Send a follow-up in the same DM thread and confirm context is reused.
+9. Replay the same Slack delivery and confirm it dedupes without a second reply.
+10. Send `help`, `status`, and `reset` and confirm each behaves cleanly.
+11. Restart the service and confirm the same DM thread still reuses transcript/session state.
+12. Simulate backend unavailability and confirm the user gets a readable fallback reply rather than silence.

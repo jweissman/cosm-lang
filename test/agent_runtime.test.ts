@@ -117,3 +117,14 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
   expect(calls).toHaveLength(1);
   expect(JSON.parse(calls[0].body ?? "{}")).toMatchObject({ channel: "DCLI", text: "smoke test" });
 });
+
+test("slack dm smoke helper usage describes channel ids clearly", () => {
+  expect(cosmEval(`
+    let slack_dm = require("agent/slack_dm.cosm")
+    slack_dm.usage()
+  `)).toContain("<channel_id>");
+  expect(cosmEval(`
+    let slack_dm = require("agent/slack_dm.cosm")
+    slack_dm.usage()
+  `)).toContain("usually starting with D");
+});

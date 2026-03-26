@@ -67,6 +67,17 @@ test("cli can evaluate a source file", () => {
   expect(result.stdout).toBe("");
 });
 
+test("cli passes trailing args through to Process.argv for script entry files", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-argv-"));
+  const sourcePath = join(tempDir, "argv.cosm");
+  writeFileSync(sourcePath, 'Kernel.puts(Process.argv().join("|"))\n');
+
+  const result = runCli([sourcePath, "alpha", "beta"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain(`${sourcePath}|alpha|beta`);
+});
+
 test("cli can write output through Kernel.puts", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "puts.cosm");

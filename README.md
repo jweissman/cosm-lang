@@ -164,6 +164,11 @@ For Slack config, the important distinction is:
 - `SLACK_BOT_TOKEN` authorizes outbound Slack API calls
 - `SLACK_APP_ID`, `SLACK_CLIENT_ID`, and `SLACK_CLIENT_SECRET` are app/OAuth management values and are not required for basic DM send/verify flows
 
+For the quickest outbound smoke test, `SLACK_BOT_TOKEN` is enough:
+
+- `./script/bunx bin/cosm agent/send_dm.cosm <channel_id> "<text>"`
+- `<channel_id>` here means a Slack conversation id such as a DM id beginning with `D`, not a username or app id
+
 You can also talk to the pure Cosm support loop directly:
 
 - `bun bin/cosm support/chat_cli.cosm`

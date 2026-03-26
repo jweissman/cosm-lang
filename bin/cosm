@@ -31,6 +31,7 @@ function usage(): string {
     "  cosm --version",
     "  cosm -e '<source>'",
     "  cosm <file.cosm>",
+    "  cosm <file.cosm> [args...]",
     "  cosm help",
     "  cosm --help",
     "  cosm <file.cosm> --test",
@@ -52,8 +53,8 @@ type CliMode =
   | { kind: "repl"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "help"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "eval"; source: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "run"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "test"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "run"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "test"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
 
 function parseArgs(args: string[]): CliMode {
@@ -78,6 +79,7 @@ function parseArgs(args: string[]): CliMode {
   const modes = new Set<"test" | "watch">();
   let filePath: string | undefined;
   let evalSource: string | undefined;
+  const scriptArgs: string[] = [];
 
   const takeFile = (value: string) => {
     if (filePath) {
@@ -161,6 +163,11 @@ function parseArgs(args: string[]): CliMode {
       throw new Error(`unknown option '${arg}'`);
     }
 
+    if (filePath) {
+      scriptArgs.push(arg);
+      continue;
+    }
+
     takeFile(arg);
   }
 
@@ -179,7 +186,7 @@ function parseArgs(args: string[]): CliMode {
     if (!filePath) {
       throw new Error("--test expects a file path");
     }
-    return { kind: "test", filePath, traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "test", filePath, scriptArgs, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (modes.has("watch")) {
@@ -193,7 +200,7 @@ function parseArgs(args: string[]): CliMode {
     return { kind: "repl", traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
-  return { kind: "run", filePath, traceSurface, traceCore, traceIr, traceSend, vm };
+  return { kind: "run", filePath, scriptArgs, traceSurface, traceCore, traceIr, traceSend, vm };
 }
 
 function watchFileRunner(filePath: string, traces: { traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }) {
@@ -377,10 +384,14 @@ if (require.main === module) {
   } else if (mode.kind === "watch") {
     watchFileRunner(mode.filePath, mode);
   } else {
+    const originalArgv = [...process.argv];
     try {
       const source = mode.kind === "eval"
         ? mode.source
         : readFileSync(mode.filePath, "utf8");
+      if (mode.kind === "run" || mode.kind === "test") {
+        process.argv = [originalArgv[0] ?? "bun", originalArgv[1] ?? "bin/cosm", mode.filePath, ...mode.scriptArgs];
+      }
       emitTraceFlags(source, mode);
       if (mode.traceSend) {
         RuntimeDispatch.installTraceHooks({
@@ -393,11 +404,14 @@ if (require.main === module) {
       const result = mode.vm ? Cosm.Interpreter.evalVm(source) : Cosm.Interpreter.eval(source);
       if (mode.kind === "test") {
         const summary = ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
+        process.argv = originalArgv;
         console.log(`${summary.passed} passed, ${summary.failed} failed, ${summary.total} total`);
         process.exit(summary.failed > 0 ? 1 : 0);
       }
+      process.argv = originalArgv;
       // console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {
+      process.argv = originalArgv;
       console.error("Error:", e.message);
       process.exit(1);
     }

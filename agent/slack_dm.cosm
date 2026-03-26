@@ -1,20 +1,24 @@
 let slack_client = require("agent/slack_client.cosm")
 
 def usage()
-  "Usage: bun bin/cosm agent/send_dm.cosm <target> <text>"
+  """Usage: bun bin/cosm agent/send_dm.cosm <channel_id> <text>
+
+<channel_id> is a Slack conversation id, usually starting with D for a DM.
+Example: bun bin/cosm agent/send_dm.cosm D01234567 "hello from Cosm"
+"""
 end
 
-def send(target, text)
-  slack_client.post_message(target, text)
+def send(channel_id, text)
+  slack_client.post_message(channel_id, text)
 end
 
 def args_from(argv)
   let text = argv.reduce(false, ->(_acc, entry) { entry })
-  let target = argv.take(argv.length - 1).reduce(false, ->(_acc, entry) { entry })
-  if target == false || text == false || target == text then
+  let channel_id = argv.take(argv.length - 1).reduce(false, ->(_acc, entry) { entry })
+  if channel_id == false || text == false || channel_id == text then
     false
   else
-    { target: target, text: text }
+    { channel_id: channel_id, text: text }
   end
 end
 
@@ -25,11 +29,11 @@ def run(argv = false)
     warn(usage())
     Process.exit(1)
   else
-    let result = send(parsed.target, parsed.text)
+    let result = send(parsed.channel_id, parsed.text)
     if result.ok then
       let ts_text = result.ts == false ? "(none)" : result.ts
       puts("ok")
-      puts("channel: " + result.channel)
+      puts("channel_id: " + result.channel)
       puts("ts: " + ts_text)
       result
     else

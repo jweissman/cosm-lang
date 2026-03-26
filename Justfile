@@ -34,8 +34,8 @@ agent-server:
 watch-agent-server:
   {{dev-bun}} bin/cosm --watch agent/server.cosm
 
-send-dm target text:
-  {{dev-bun}} bin/cosm agent/send_dm.cosm {{target}} {{text}}
+send-dm channel_id text:
+  {{dev-bun}} bin/cosm agent/send_dm.cosm {{channel_id}} {{text}}
 
 bench-vm:
   {{dev-bun}} run script/bench_vm.ts
