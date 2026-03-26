@@ -1,30 +1,26 @@
-require("cosm/ai.cosm")
-require("support/models.cosm")
-require("support/prompts.cosm")
-require("support/replies.cosm")
+let ai = require("cosm/ai.cosm")
+let models = require("support/models.cosm")
+let prompts = require("support/prompts.cosm")
+let replies = require("support/replies.cosm")
 
-def appendTranscript(transcript, role, text)
-  if transcript == "" then
-    role + ": " + text
-  else
-    transcript + "\n" + role + ": " + text
-  end
+def append_transcript(transcript, role, text)
+  transcript == "" ? role + ": " + text : transcript + "\n" + role + ": " + text
 end
 
-def replyForTranscript(transcript, latestText)
-  let reply = ai.reply(prompts.replyPromptFromTranscript(transcript, latestText), models.AgentReply)
+def reply_for_transcript(transcript, latest_text)
+  let reply = ai.reply(prompts.reply_prompt_from_transcript(transcript, latest_text), models.AgentReply)
   models.AgentReply.validate(reply)
   reply
 end
 
-def replyForContext(transcript, latestText, context)
-  let reply = ai.reply(prompts.replyPromptFromContext(transcript, latestText, context), models.AgentReply)
+def reply_for_context(transcript, latest_text, context)
+  let reply = ai.reply(prompts.reply_prompt_from_context(transcript, latest_text, context), models.AgentReply)
   models.AgentReply.validate(reply)
   reply
 end
 
-def streamReplyForTranscript(transcript, latestText)
-  let text = ai.stream(prompts.streamPromptFromTranscript(transcript, latestText)) do |event|
+def stream_reply_for_transcript(transcript, latest_text)
+  let text = ai.stream(prompts.stream_prompt_from_transcript(transcript, latest_text)) do |event|
     yield(event)
   end
   let reply = replies.text(text, "streamed")
@@ -32,8 +28,8 @@ def streamReplyForTranscript(transcript, latestText)
   reply
 end
 
-def streamReplyForContext(transcript, latestText, context)
-  let text = ai.stream(prompts.streamPromptFromContext(transcript, latestText, context)) do |event|
+def stream_reply_for_context(transcript, latest_text, context)
+  let text = ai.stream(prompts.stream_prompt_from_context(transcript, latest_text, context)) do |event|
     yield(event)
   end
   let reply = replies.text(text, "streamed")
@@ -41,46 +37,92 @@ def streamReplyForContext(transcript, latestText, context)
   reply
 end
 
-def stepTranscript(transcript, latestText)
-  let reply = replyForTranscript(transcript, latestText)
-  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", latestText), "assistant", reply.text)
-  let step = { transcript: nextTranscript, reply: reply }
+def step_transcript(transcript, latest_text)
+  let reply = reply_for_transcript(transcript, latest_text)
+  let next_transcript = append_transcript(append_transcript(transcript, "user", latest_text), "assistant", reply.text)
+  let step = { transcript: next_transcript, reply: reply }
   models.ChatStep.validate(step)
   step
 end
 
-def streamStepTranscript(transcript, latestText)
-  let reply = streamReplyForTranscript(transcript, latestText)
-  let nextTranscript = appendTranscript(appendTranscript(transcript, "user", latestText), "assistant", reply.text)
-  let step = { transcript: nextTranscript, reply: reply }
+def stream_step_transcript(transcript, latest_text)
+  let reply = stream_reply_for_transcript(transcript, latest_text)
+  let next_transcript = append_transcript(append_transcript(transcript, "user", latest_text), "assistant", reply.text)
+  let step = { transcript: next_transcript, reply: reply }
   models.ChatStep.validate(step)
   step
 end
 
-def transcriptFromConversation(conversation)
+def transcript_from_conversation(conversation)
   conversation.messages.map(->(entry) { entry.role + ": " + entry.text }).join("\n")
 end
 
 def handle(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  stepTranscript(transcriptFromConversation(conversation), inbound.text).reply
+  step_transcript(transcript_from_conversation(conversation), inbound.text).reply
 end
 
-def fallback(conversation, inbound, errorMessage)
+def fallback(conversation, inbound, error_message)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  replies.unavailable(errorMessage)
+  replies.unavailable(error_message)
 end
 
-def exampleConversation()
+def example_conversation()
   { key: "DDEMO:1710000000.000001", channel: "DDEMO", thread: "1710000000.000001", messages: [{ role: "user", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }], sessionName: "slack-demo", sessionLength: 1 }
 end
 
-def exampleInbound()
+def example_inbound()
   { channel: "DDEMO", thread: "1710000000.000001", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }
 end
 
 def preview()
-  prompts.replyPromptFromTranscript(transcriptFromConversation(exampleConversation()), exampleInbound().text)
+  prompts.reply_prompt_from_transcript(transcript_from_conversation(example_conversation()), example_inbound().text)
+end
+
+def appendTranscript(transcript, role, text)
+  append_transcript(transcript, role, text)
+end
+
+def replyForTranscript(transcript, latestText)
+  reply_for_transcript(transcript, latestText)
+end
+
+def replyForContext(transcript, latestText, context)
+  reply_for_context(transcript, latestText, context)
+end
+
+def streamReplyForTranscript(transcript, latestText)
+  stream_reply_for_transcript(transcript, latestText) do |event|
+    yield(event)
+  end
+end
+
+def streamReplyForContext(transcript, latestText, context)
+  stream_reply_for_context(transcript, latestText, context) do |event|
+    yield(event)
+  end
+end
+
+def stepTranscript(transcript, latestText)
+  step_transcript(transcript, latestText)
+end
+
+def streamStepTranscript(transcript, latestText)
+  stream_step_transcript(transcript, latestText) do |event|
+    yield(event)
+  end
+end
+
+def transcriptFromConversation(conversation)
+  transcript_from_conversation(conversation)
+end
+
+def exampleConversation()
+  example_conversation()
+end
+
+def exampleInbound()
+  example_inbound()
 end

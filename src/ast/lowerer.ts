@@ -57,8 +57,9 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             value: node.value,
           };
         case 'if_expr':
+        case 'ternary_expr':
           return {
-            kind: 'if',
+            kind: node.kind === 'ternary_expr' ? 'ternary' : 'if',
             value: '',
             left: this.lowerRequired(node.left, 'if_expr'),
             children: this.lowerChildren(node),

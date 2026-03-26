@@ -1,4 +1,4 @@
-require("support/models.cosm")
+let models = require("support/models.cosm")
 
 def text(text, rationale)
   let reply = { shouldReply: true, text: text, rationale: rationale, toolCalls: false, toolResults: false }
@@ -6,6 +6,6 @@ def text(text, rationale)
   reply
 end
 
-def unavailable(errorMessage)
-  text("I hit a support-agent hiccup while handling that DM. Please try again in a bit.", errorMessage)
+def unavailable(error_message)
+  text("I hit a support-agent hiccup while handling that DM. Please try again in a bit.", error_message)
 end

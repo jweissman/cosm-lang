@@ -139,7 +139,13 @@ Module objects currently support:
 - `.has(symbolOrString)`
 - `.get(symbolOrString)`
 
-`require("cosm/test")` still parses as a statement today, but it returns the same `Module` object exposed as `cosm.test` while also injecting bootstrap helpers like `test`, `describe`, and `expectEqual` into the current scope.
+`require("cosm/test")` now works both as a statement and as an expression. The preferred style is explicit binding:
+
+```cosm
+let test_module = require("cosm/test")
+```
+
+For one compatibility patch line, `require(...)` still also injects basename bindings like `examples`, `chat`, or `slack_dm` into the current scope, and `require("cosm/test")` still injects bootstrap helpers like `test`, `describe`, and `expectEqual`.
 
 Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.12.x`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` or `render(context, body)` entry point, which fits naturally with an `app/views/...` layout. `.ecosm` now supports both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation. Layout composition may provide template child content through `yield()` inside `.ecosm`, and in `0.3.12.x` that body now flows through renderer-owned metadata rather than hijacking ordinary context keys.
 
@@ -185,6 +191,12 @@ if true then
 else
   "no"
 end
+```
+
+Cosm also now supports a narrow ternary expression form:
+
+```cosm
+cosm.ai.config().configured ? "ready" : "missing"
 ```
 
 ### Functions

@@ -1,7 +1,7 @@
-require("support/agent.cosm")
-require("support/models.cosm")
+let agent = require("support/agent.cosm")
+let models = require("support/models.cosm")
 
-def appendMessage(conversation, role, text)
+def append_message(conversation, role, text)
   models.Conversation.validate(conversation)
   let entry = { role: role, text: text }
   let messages = conversation.messages.append(entry)
@@ -21,7 +21,7 @@ def appendMessage(conversation, role, text)
   value
 end
 
-def appendUserMessage(conversation, inbound)
+def append_user_message(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
   let entry = { role: "user", user: inbound.user, text: inbound.text, ts: inbound.ts }
@@ -42,7 +42,7 @@ def appendUserMessage(conversation, inbound)
   value
 end
 
-def cliConversation(messages)
+def cli_conversation(messages)
   let now = Time.isoNow()
   let value = {
     key: "cli:iapetus",
@@ -60,7 +60,7 @@ def cliConversation(messages)
   value
 end
 
-def pageConversation(key, transcript, context = false)
+def page_conversation(key, transcript, context = false)
   let now = Time.isoNow()
   let value = {
     key: key,
@@ -78,7 +78,7 @@ def pageConversation(key, transcript, context = false)
   value
 end
 
-def cliInbound(text)
+def cli_inbound(text)
   let value = {
     channel: "cli",
     thread: "cli",
@@ -90,7 +90,7 @@ def cliInbound(text)
   value
 end
 
-def pageInbound(key, text)
+def page_inbound(key, text)
   let value = {
     channel: "web",
     thread: key,
@@ -102,84 +102,64 @@ def pageInbound(key, text)
   value
 end
 
+def current_transcript(conversation)
+  conversation.transcript == false ? agent.transcript_from_conversation(conversation) : conversation.transcript
+end
+
 def reply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
-  if conversation.context == false then
-    agent.replyForTranscript(currentTranscript(conversation), inbound.text)
-  else
-    agent.replyForContext(currentTranscript(conversation), inbound.text, conversation.context)
-  end
+  conversation.context == false ? agent.reply_for_transcript(current_transcript(conversation), inbound.text) : agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context)
 end
 
-def streamReply(conversation, inbound)
+def stream_reply(conversation, inbound)
   models.Conversation.validate(conversation)
   models.InboundMessage.validate(inbound)
   if conversation.context == false then
-    agent.streamReplyForTranscript(currentTranscript(conversation), inbound.text) do |event|
+    agent.stream_reply_for_transcript(current_transcript(conversation), inbound.text) do |event|
       yield(event)
     end
   else
-    agent.streamReplyForContext(currentTranscript(conversation), inbound.text, conversation.context) do |event|
+    agent.stream_reply_for_context(current_transcript(conversation), inbound.text, conversation.context) do |event|
       yield(event)
     end
   end
 end
 
-def nextConversation(conversation, inbound, reply)
+def next_conversation(conversation, inbound, reply)
   if conversation.transcript == false then
-    let withUser = appendUserMessage(conversation, inbound)
-    appendMessage(withUser, "assistant", reply.text)
+    let with_user = append_user_message(conversation, inbound)
+    append_message(with_user, "assistant", reply.text)
   else
-    let nextTranscript = agent.appendTranscript(agent.appendTranscript(currentTranscript(conversation), "user", inbound.text), "assistant", reply.text)
-    pageConversation(conversation.key, nextTranscript, conversation.context)
+    let next_transcript = agent.append_transcript(agent.append_transcript(current_transcript(conversation), "user", inbound.text), "assistant", reply.text)
+    page_conversation(conversation.key, next_transcript, conversation.context)
   end
 end
 
-def currentTranscript(conversation)
-  if conversation.transcript == false then
-    agent.transcriptFromConversation(conversation)
-  else
-    conversation.transcript
-  end
+def display_transcript(conversation)
+  current_transcript(conversation)
 end
 
-def displayTranscript(conversation)
-  currentTranscript(conversation)
-end
-
-def commandReply(conversation, command)
+def command_reply(conversation, command)
   models.Conversation.validate(conversation)
-  let text = if command == "help" then
-    "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory."
-  else
-    if command == "reset" then
-      "Thread memory cleared. The next DM starts from a clean transcript and named session."
-    else
-      if command == "status" then
-        "This DM thread is using `" + conversation.sessionName + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread."
-      else
-        "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."
-      end
-    end
-  end
+  let text = command == "help" ? "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory." : (command == "reset" ? "Thread memory cleared. The next DM starts from a clean transcript and named session." : (command == "status" ? "This DM thread is using `" + conversation.sessionName + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread." : "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."))
   let value = { shouldReply: true, text: text, rationale: "meta", toolCalls: false, toolResults: false }
   models.AgentReply.validate(value)
   value
 end
 
 def turn(conversation, inbound)
-  let nextReply = reply(conversation, inbound)
-  let value = { conversation: nextConversation(conversation, inbound, nextReply), inbound: inbound, reply: nextReply }
+  let next_reply = reply(conversation, inbound)
+  let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
   models.ControllerTurn.validate(value)
   value
 end
 
-def streamTurn(conversation, inbound)
-  let nextReply = streamReply(conversation, inbound) do |event|
+def stream_turn(conversation, inbound)
+  let next_reply = stream_reply(conversation, inbound) do |event|
     yield(event)
   end
-  let value = { conversation: nextConversation(conversation, inbound, nextReply), inbound: inbound, reply: nextReply }
+  let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
   models.ControllerTurn.validate(value)
   value
 end
@@ -188,6 +168,58 @@ def handle(conversation, inbound)
   turn(conversation, inbound).reply
 end
 
-def fallback(conversation, inbound, errorMessage)
-  agent.fallback(conversation, inbound, errorMessage)
+def fallback(conversation, inbound, error_message)
+  agent.fallback(conversation, inbound, error_message)
+end
+
+def appendMessage(conversation, role, text)
+  append_message(conversation, role, text)
+end
+
+def appendUserMessage(conversation, inbound)
+  append_user_message(conversation, inbound)
+end
+
+def cliConversation(messages)
+  cli_conversation(messages)
+end
+
+def pageConversation(key, transcript, context = false)
+  page_conversation(key, transcript, context)
+end
+
+def cliInbound(text)
+  cli_inbound(text)
+end
+
+def pageInbound(key, text)
+  page_inbound(key, text)
+end
+
+def streamReply(conversation, inbound)
+  stream_reply(conversation, inbound) do |event|
+    yield(event)
+  end
+end
+
+def nextConversation(conversation, inbound, reply)
+  next_conversation(conversation, inbound, reply)
+end
+
+def currentTranscript(conversation)
+  current_transcript(conversation)
+end
+
+def displayTranscript(conversation)
+  display_transcript(conversation)
+end
+
+def commandReply(conversation, command)
+  command_reply(conversation, command)
+end
+
+def streamTurn(conversation, inbound)
+  stream_turn(conversation, inbound) do |event|
+    yield(event)
+  end
 end

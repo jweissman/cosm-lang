@@ -26,6 +26,7 @@ This is the main center of gravity.
 Current priorities:
 
 - keep shrinking interpreter-owned semantic policy
+- keep explicit module bindings and real `Module` objects legible in newer Cosm-authored code
 - keep runtime dispatch, lookup, invocation, and block forwarding aligned
 - keep reflection (`methods()`, `method(:name)`, `Kernel.dispatch(...)`, `yield(...)`) consistent with actual runtime behavior
 - keep `Schema`, `Data`, and `cosm.ai` explicit rather than ambient
@@ -76,6 +77,7 @@ This patch line is about hardening, not breadth:
 - a durable DM-first Slack assistant service with explicit per-thread local memory
 - a small transport-agnostic agent runtime so future tools and transports do not start life inside the Slack transport layer
 - more Cosm-authored support and harness code
+- staged cleanup away from basename-injected `require(...)` style toward explicit local module bindings
 
 Explicitly not the goal of `0.3.13.x`:
 

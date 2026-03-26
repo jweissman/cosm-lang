@@ -156,7 +156,7 @@ export class Parser {
       ) {
         return false;
       }
-      if (/[+\-*/^.,=<>!&|([{:]$/.test(trimmed)) {
+      if (/[+\-*/^.,=<>!&|?([{:]$/.test(trimmed)) {
         return false;
       }
       return true;
@@ -331,10 +331,24 @@ export class Parser {
             { kind: 'block_expr', value: '', children: Parser.listChildren(elseBody.ast()) },
           ],
         }),
+        CondExp_ternary: (condition, _question, onTrue, _colon, onFalse) => ({
+          kind: 'ternary_expr',
+          value: '',
+          left: condition.ast(),
+          children: [
+            { kind: 'block_expr', value: '', children: [onTrue.ast()] },
+            { kind: 'block_expr', value: '', children: [onFalse.ast()] },
+          ],
+        }),
         PriExp_block: (_do, body, _end) => ({
           kind: 'block_expr',
           value: '',
           children: Parser.listChildren(body.ast()),
+        }),
+        PriExp_require: (_require, _open, target, _close) => ({
+          kind: 'require_stmt',
+          value: '',
+          left: target.ast(),
         }),
         PriExp_super: (_super, _open, args, _close) => ({
           kind: 'super',

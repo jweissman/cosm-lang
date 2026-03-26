@@ -1,6 +1,6 @@
 # Slack DM Agent
 
-The Slack wedge is intentionally narrow in `0.3.13.10`:
+The Slack wedge is intentionally narrow in `0.3.13.11`:
 
 - DM-only
 - conversational only
@@ -21,6 +21,9 @@ The Slack wedge is intentionally narrow in `0.3.13.10`:
 
 - `SLACK_SIGNING_SECRET`
 - `SLACK_BOT_TOKEN`
+- `SLACK_APP_ID` optional, for status/docs clarity only
+- `SLACK_CLIENT_ID` optional, for status/docs clarity only
+- `SLACK_CLIENT_SECRET` optional, for status/docs clarity only
 - `SLACK_STORAGE_DIR` optional, defaults to `var/slack/threads`
 - `SLACK_API_URL` optional, defaults to `https://slack.com/api/chat.postMessage`
 - `AGENT_PORT` optional, defaults to `12456`
@@ -28,6 +31,12 @@ The Slack wedge is intentionally narrow in `0.3.13.10`:
 - normal AI env such as `COSM_AI_BACKEND`, `COSM_AI_BASE_URL`, and optionally `COSM_AI_MODEL`
 
 `SLACK_SIGNING_SECRET` is the Slack app's request signing secret used to verify inbound webhook deliveries. It is not the bot token and not the app id.
+
+For practical setup:
+
+- `SLACK_BOT_TOKEN` is enough for the one-shot outbound DM smoke tool
+- `SLACK_SIGNING_SECRET` is additionally required for inbound `/slack/events` verification
+- `SLACK_APP_ID`, `SLACK_CLIENT_ID`, and `SLACK_CLIENT_SECRET` belong to app/OAuth administration and are not required for the basic DM send/verify loop
 
 ## Manual DM-Only Checklist
 

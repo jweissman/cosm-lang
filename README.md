@@ -16,9 +16,10 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.13.10`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on turning the Slack-facing relay into a real persistent agent runtime with Slack as a thin transport while the persistent notebook remains the main proving wedge:
+The current tree is best read as **`0.3.13.11`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on making module usage more explicit, cleaning up the newer Cosm-authored agent/support layer, and keeping the Slack-facing runtime legible while the persistent notebook remains the main proving wedge:
 
 - keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
+- keep `require(...)` module-oriented, with explicit local bindings as the canonical style
 - keep a small send-first VM subset alive through `--trace-ir` and `--vm`
 - keep the support assistant explicit and small through a shared Cosm-authored core reused by the CLI chat, `/assistant`, notebook-attached assistant, and the separate Slack agent service
 - keep the agent runtime explicit through a small Cosm-owned control layer instead of treating Slack transport as the control plane
@@ -32,6 +33,7 @@ What already feels real:
 - object-first services through `HttpRouter`, `HttpRequest`, and `HttpResponse`
 - a narrow but real block story through trailing `do ... end` plus `yield(...)`
 - small functional collection helpers like `map`, `select`, `filter`, `find`, `take`, and `reduce`
+- compact ternary expressions through `condition ? left : right`
 - explicit `Session` runtime objects for notebook/server eval
 - a pure Cosm support-chat core through `require("support/chat.cosm")` and `support/chat_cli.cosm`
 - a tiny page-backed assistant wedge at `/assistant`
@@ -80,7 +82,7 @@ Kernel.tryValidate(42, Schema.number())
 ```
 
 ```cosm
-require("cosm/test")
+let test_module = require("cosm/test")
 describe("math", ->() {
   test("addition", ->() { assert(2 + 2 == 4) })
 })
@@ -100,7 +102,7 @@ Builder.new().render()
 ```
 
 ```cosm
-require("app/app.cosm")
+let app = require("app/app.cosm")
 let server = http.serve(3001, app.App.build())
 ```
 
@@ -155,6 +157,12 @@ end
 The demo app now exposes a persistent `/notebook` workbench with saved block pages, whole-page Cosm execution, one named session per page, and an attached assistant that reuses the shared support/controller core. The notebook actively demonstrates simplified receiver reflection, `Kernel.dispatch(...)`, `Kernel.tryValidate(...)`, explicit scalar casts like `to_i()` / `to_f()`, validation through `Schema` / `Data`, explicit `cosm.ai.cast(...)`, `require("app/examples.cosm")`, linear workflow helpers, and the same narrow assistant stack used by the CLI, `/assistant`, and the separate Slack agent service.
 
 Slack now lives in its own Cosm-owned service entrypoint instead of the demo app. `agent/service.cosm` owns `/slack/events`, `/health`, `/ready`, `/status`, and `/agent/status`, while `agent/server.cosm` is the simple server boot entry. The agent control plane now lives in `agent/runtime.cosm`, with Slack verification, DM-only filtering, dedupe, and outbound posting kept as thin transport concerns in `agent/slack.cosm`. The current Slack scope remains intentionally DM-only, with durable local per-thread memory plus `help`, `status`, and `reset` style meta interactions.
+
+For Slack config, the important distinction is:
+
+- `SLACK_SIGNING_SECRET` verifies inbound Slack requests
+- `SLACK_BOT_TOKEN` authorizes outbound Slack API calls
+- `SLACK_APP_ID`, `SLACK_CLIENT_ID`, and `SLACK_CLIENT_SECRET` are app/OAuth management values and are not required for basic DM send/verify flows
 
 You can also talk to the pure Cosm support loop directly:
 

@@ -56,6 +56,8 @@ namespace Cosm {
           return this.evalDef(ast, env);
         case 'if':
           return this.evalIf(ast, env);
+        case 'ternary':
+          return this.evalIf(ast, env);
         case 'lambda':
           return this.evalLambda(ast, env);
         case 'number':
@@ -508,6 +510,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.10";
+    export const version = "0.3.13.11";
 }
 export default Cosm;

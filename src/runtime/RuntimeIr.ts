@@ -145,6 +145,7 @@ export class RuntimeIr {
         this.compileStatements(ast.children ?? [], instructions, ast.kind === "block");
         return;
       case "if":
+      case "ternary":
         this.compileIf(ast, instructions);
         return;
       case "let":

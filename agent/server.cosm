@@ -1,5 +1,5 @@
-require("agent/service.cosm")
-require("agent/config.cosm")
+let service = require("agent/service.cosm")
+let config = require("agent/config.cosm")
 
-let listenPort = config.agentPort()
-let server = http.serve(listenPort, service.AgentService.build())
+let listen_port = config.agent_port()
+let server = http.serve(listen_port, service.AgentService.build())

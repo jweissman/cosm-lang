@@ -57,6 +57,7 @@ export type CoreNodeKind =
   | 'access'
   | 'call'
   | 'yield'
+  | 'ternary'
   | 'super';
 
 export type CoreNode = {
@@ -150,6 +151,7 @@ export type SurfaceNodeKind =
   | 'let_stmt'
   | 'require_stmt'
   | 'if_expr'
+  | 'ternary_expr'
   | 'block_expr'
   | 'lambda_expr'
   | 'number'

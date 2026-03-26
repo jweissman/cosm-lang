@@ -15,6 +15,7 @@ test("parser accepts narrow bare-call sugar", () => {
 
 test("parser accepts require and optional do elision", () => {
   expect(() => Parser.parse('require("cosm/test")')).not.toThrow();
+  expect(() => Parser.parse('let test_module = require("cosm/test"); test_module.name')).not.toThrow();
   expect(() => Parser.parse('def greet(name) "hi " + name end; greet("cosm")')).not.toThrow();
   expect(() => Parser.parse('def greet(name = "cosm") "hi " + name end; greet()')).not.toThrow();
   expect(() => Parser.parse('class Greeter def label() "hi" end end; Greeter.name')).not.toThrow();
@@ -45,6 +46,11 @@ test("parser accepts interpolated triple-quoted strings", () => {
   expect(() => Parser.parse("super(1, 2)")).not.toThrow();
   expect(() => Parser.parse("let yield = 1; yield + 1")).toThrow("Parse error:");
   expect(() => Parser.parse("let super = 1; super")).toThrow("Parse error:");
+});
+
+test("parser accepts ternary expressions", () => {
+  expect(() => Parser.parse('true ? "yes" : "no"')).not.toThrow();
+  expect(() => Parser.parse('let ai = require("cosm/ai.cosm"); ai.config().configured ? "ready" : "missing"')).not.toThrow();
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {

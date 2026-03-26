@@ -15,7 +15,7 @@ def methodLookup()
 end
 
 def mixinInclude()
-  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require(\"support/label_mixin.cosm\"); class Mixed do end; Mixed.include(label_mixin); Mixed.new().label()")
+  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "let label_mixin = require(\"support/label_mixin.cosm\"); class Mixed do end; Mixed.include(label_mixin); Mixed.new().label()")
 end
 
 def dispatchHelper()
@@ -55,19 +55,19 @@ def aiHealth()
 end
 
 def aiCastHelper()
-  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
+  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "let ai = require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
 end
 
 def supportAgentPreview()
-  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "require(\"support/agent.cosm\"); agent.preview()")
+  example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "let agent = require(\"support/agent.cosm\"); agent.preview()")
 end
 
 def promptData()
-  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require(\"support/prompt_data.cosm\"); prompt_data.iapetusSystem()")
+  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "let prompt_data = require(\"support/prompt_data.cosm\"); prompt_data.iapetus_system()")
 end
 
 def supportChatStep()
-  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
+  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "let chat = require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
 
 def supportStepModel()
@@ -75,15 +75,15 @@ def supportStepModel()
 end
 
 def supportPage()
-  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require(\"support/controller.cosm\"); controller.pageConversation(\"demo\", \"user: hello\")")
+  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "let controller = require(\"support/controller.cosm\"); controller.page_conversation(\"demo\", \"user: hello\")")
 end
 
 def notebookPage()
-  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require(\"app/notebook_store.cosm\"); notebook_store.createPage(\"Demo page\").title")
+  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "let notebook_store = require(\"app/notebook_store.cosm\"); notebook_store.createPage(\"Demo page\").title")
 end
 
 def workflowRun()
-  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "require(\"cosm/workflow.cosm\"); workflow.run([workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), workflow.step(\"status\", ->() { cosm.ai.config() })])")
+  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "let workflow = require(\"cosm/workflow.cosm\"); workflow.run([workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), workflow.step(\"status\", ->() { cosm.ai.config() })])")
 end
 
 def namedSession()

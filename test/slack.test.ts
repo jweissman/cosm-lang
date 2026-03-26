@@ -22,7 +22,7 @@ const originalLegacySlackApiUrl = process.env.COSM_SLACK_API_URL;
 const originalHttpHooks = CosmHttpValue.currentRuntimeHooks();
 
 const serviceSource = `
-  require("agent/service.cosm")
+  let service = require("agent/service.cosm")
   service.AgentService.build()
 `;
 
@@ -395,7 +395,7 @@ test("slack service exposes readiness and status surfaces", async () => {
   expect(JSON.parse(String(ValueAdapter.cosmToJS(ready.nativeProperty?.("body"))))).toMatchObject({
     ok: true,
     path: "/ready",
-    slack: { signingSecret: true, botToken: true, storageWritable: true },
+    slack: { signing_secret: true, bot_token: true, storage_writable: true },
     ai: { configured: true, health: true },
     agent: { name: "iapetus", mode: "single-turn" },
   });
@@ -405,7 +405,7 @@ test("slack service exposes readiness and status surfaces", async () => {
   expect(JSON.parse(String(ValueAdapter.cosmToJS(status.nativeProperty?.("body"))))).toMatchObject({
     ok: true,
     path: "/status",
-    slack: { transport: "slack", dmOnly: true },
+    slack: { transport: "slack", dm_only: true },
     agent: { name: "iapetus", mode: "single-turn" },
   });
 

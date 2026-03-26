@@ -72,6 +72,10 @@ Cosm {
 
   IfExp
     = kw_if Exp kw_then StatementList kw_else StatementList kw_end  -- full
+    | CondExp
+
+  CondExp
+    = OrExp "?" Exp ":" Exp  -- ternary
     | OrExp
 
   OrExp
@@ -119,6 +123,7 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
+    | kw_require "(" string ")"  -- require
     | kw_super "(" CallArgs? ")"  -- super
     | kw_yield "(" CallArgs? ")"  -- yield
     | kw_do StatementList kw_end  -- block

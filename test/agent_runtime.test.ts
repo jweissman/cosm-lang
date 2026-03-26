@@ -50,14 +50,14 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
   });
 
   expect(cosmEval(`
-    require("agent/runtime.cosm")
+    let agent_runtime = require("agent/runtime.cosm")
     let inbound = { channel: "D100", thread: "1710000100.000001", user: "U100", text: "How do I reset it?", ts: "1710000100.000001" }
-    let turn = runtime.executeStoredTurn(inbound)
+    let turn = agent_runtime.execute_stored_turn(inbound)
     {
       reply: turn.reply.text,
       sessionName: turn.conversation.sessionName,
       messages: turn.conversation.messages.length,
-      persisted: runtime.loadConversation(inbound).messages.length
+      persisted: agent_runtime.load_conversation(inbound).messages.length
     }
   `)).toEqual({
     reply: "Reset it from the notebook session controls.",
@@ -71,10 +71,10 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
 
 test("agent runtime handles commands transport-agnostically", () => {
   expect(cosmEval(`
-    require("agent/runtime.cosm")
+    let agent_runtime = require("agent/runtime.cosm")
     let inbound = { channel: "D200", thread: "1710000200.000001", user: "U200", text: "status", ts: "1710000200.000001" }
-    let conversation = runtime.conversationForInbound(inbound)
-    let turn = runtime.executeTurn(conversation, inbound)
+    let conversation = agent_runtime.conversation_for_inbound(inbound)
+    let turn = agent_runtime.execute_turn(conversation, inbound)
     {
       command: turn.command,
       shouldReply: turn.reply.shouldReply,
@@ -102,7 +102,7 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
   });
 
   expect(cosmEval(`
-    require("agent/slack_dm.cosm")
+    let slack_dm = require("agent/slack_dm.cosm")
     let result = slack_dm.send("DCLI", "smoke test")
     {
       ok: result.ok,

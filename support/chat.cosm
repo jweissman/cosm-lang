@@ -1,4 +1,4 @@
-require("support/agent.cosm")
+let agent = require("support/agent.cosm")
 
 def banner()
   "Iapetus is a tiny local-model Cosm support assistant. Press enter on an empty line to exit. Use /help for commands."
@@ -8,34 +8,26 @@ def help()
   "Commands: /help shows this message. /reset clears the current conversation transcript. Responses now stream incrementally when the local backend supports it. Press enter on an empty line to exit."
 end
 
-def appendTranscript(transcript, role, text)
-  agent.appendTranscript(transcript, role, text)
+def append_transcript(transcript, role, text)
+  agent.append_transcript(transcript, role, text)
 end
 
 def step(transcript, input)
-  agent.stepTranscript(transcript, input)
+  agent.step_transcript(transcript, input)
 end
 
-def streamStep(transcript, input)
-  agent.streamStepTranscript(transcript, input) do |event|
+def stream_step(transcript, input)
+  agent.stream_step_transcript(transcript, input) do |event|
     yield(event)
   end
 end
 
-def renderStreamEvent(event)
+def render_stream_event(event)
   if event.kind == "waiting" then
-    if event.text == false then
-      Kernel.print(Kernel.cr() + "iapetus> [thinking]")
-    else
-      Kernel.print(Kernel.cr() + event.text)
-    end
+    Kernel.print(Kernel.cr() + (event.text == false ? "iapetus> [thinking]" : event.text))
   else
     if event.kind == "chunk" then
-      if event.first then
-        Kernel.print(Kernel.clearLine() + "iapetus> " + event.text)
-      else
-        Kernel.print(event.text)
-      end
+      Kernel.print(event.first ? Kernel.clearLine() + "iapetus> " + event.text : event.text)
     else
       false
     end
@@ -60,12 +52,26 @@ def loop(transcript)
         Kernel.puts("iapetus> Conversation reset.")
         loop("")
       else
-        let result = streamStep(transcript, input) do |event|
-          renderStreamEvent(event)
+        let result = stream_step(transcript, input) do |event|
+          render_stream_event(event)
         end
         Kernel.puts("")
         loop(result.transcript)
       end
     end
   end
+end
+
+def appendTranscript(transcript, role, text)
+  append_transcript(transcript, role, text)
+end
+
+def streamStep(transcript, input)
+  stream_step(transcript, input) do |event|
+    yield(event)
+  end
+end
+
+def renderStreamEvent(event)
+  render_stream_event(event)
 end

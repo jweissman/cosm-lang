@@ -1,15 +1,14 @@
-require("support/controller.cosm")
-require("support/models.cosm")
-require("agent/config.cosm")
-require("agent/runtime.cosm")
-require("agent/store.cosm")
-require("agent/slack_client.cosm")
+let models = require("support/models.cosm")
+let config = require("agent/config.cosm")
+let runtime = require("agent/runtime.cosm")
+let store = require("agent/store.cosm")
+let slack_client = require("agent/slack_client.cosm")
 
-def slackConfig()
-  config.slackConfigStatus()
+def slack_config()
+  config.slack_config_status()
 end
 
-def healthPayload(path)
+def health_payload(path)
   {
     ok: true,
     path: path,
@@ -19,100 +18,93 @@ def healthPayload(path)
   }
 end
 
-def readyPayload(path)
-  let cfg = slackConfig()
-  let signingSecretOk = cfg.signingSecret != false
-  let botTokenOk = cfg.botToken != false
-  let storageOk = store.writable()
-  let aiConfig = cosm.ai.config()
-  let aiHealth = cosm.ai.health()
-  let ok = signingSecretOk && botTokenOk && storageOk && aiConfig.configured && aiHealth.ok
-  let slackPayload = {
-    signingSecret: signingSecretOk,
-    botToken: botTokenOk,
-    apiUrl: cfg.apiUrl,
-    storageDir: cfg.storageDir,
-    storageWritable: storageOk
-  }
-  let aiPayload = {
-    configured: aiConfig.configured,
-    health: aiHealth.ok
-  }
-  let agentPayload = runtime.status()
+def ready_payload(path)
+  let cfg = slack_config()
+  let signing_secret_ok = cfg.signing_secret != false
+  let bot_token_ok = cfg.bot_token != false
+  let storage_ok = store.writable()
+  let ai_config = cosm.ai.config()
+  let ai_health = cosm.ai.health()
+  let ok = signing_secret_ok && bot_token_ok && storage_ok && ai_config.configured && ai_health.ok
   {
     ok: ok,
     path: path,
-    slack: slackPayload,
-    ai: aiPayload,
-    agent: agentPayload
+    slack: {
+      signing_secret: signing_secret_ok,
+      bot_token: bot_token_ok,
+      app_id: cfg.app_id,
+      client_id: cfg.client_id,
+      client_secret: cfg.client_secret,
+      api_url: cfg.api_url,
+      storage_dir: cfg.storage_dir,
+      storage_writable: storage_ok
+    },
+    ai: {
+      configured: ai_config.configured,
+      health: ai_health.ok
+    },
+    agent: runtime.status()
   }
 end
 
-def statusPayload(path)
-  let aiPayload = {
-    config: cosm.ai.config(),
-    health: cosm.ai.health()
-  }
-  let slackPayload = {
-    transport: "slack",
-    dmOnly: true,
-    config: slackConfig(),
-    storageWritable: store.writable()
-  }
+def status_payload(path)
   {
     ok: true,
     path: path,
-    slack: slackPayload,
-    ai: aiPayload,
+    slack: {
+      transport: "slack",
+      dm_only: true,
+      config: slack_config(),
+      storage_writable: store.writable()
+    },
+    ai: {
+      config: cosm.ai.config(),
+      health: cosm.ai.health()
+    },
     agent: runtime.status()
   }
 end
 
 def health(req)
-  HttpResponse.json(healthPayload(req.path), 200)
+  HttpResponse.json(health_payload(req.path), 200)
 end
 
 def ready(req)
-  let payload = readyPayload(req.path)
-  HttpResponse.json(payload, if payload.ok then 200 else 503 end)
+  let payload = ready_payload(req.path)
+  HttpResponse.json(payload, payload.ok ? 200 : 503)
 end
 
 def status(req)
-  HttpResponse.json(statusPayload(req.path), 200)
+  HttpResponse.json(status_payload(req.path), 200)
 end
 
 def events(req)
-  let verification = verifyRequest(req)
+  let verification = verify_request(req)
   if verification.ok == false then
-    let verificationError = verification.error
-    let message = "[slack] verification failed: " + verificationError
-    puts message
+    puts("[slack] verification failed: " + verification.error)
     HttpResponse.json({ ok: false, error: verification.error }, verification.status)
   else
-    let payloadResult = Kernel.try(->() { Kernel.parseJson(req.bodyText()) })
-    if payloadResult.ok == false then
-      let message = "[slack] invalid json payload"
-      puts message
+    let payload_result = Kernel.try(->() { Kernel.parseJson(req.bodyText()) })
+    if payload_result.ok == false then
+      puts("[slack] invalid json payload")
       HttpResponse.json({ ok: false, error: "Slack request body must be valid JSON" }, 400)
     else
-      let payload = payloadResult.value
-      let urlChallenge = urlVerification(payload)
-      if urlChallenge != false then
-        HttpResponse.json({ challenge: urlChallenge }, 200)
+      let payload = payload_result.value
+      let challenge = url_verification(payload)
+      if challenge != false then
+        HttpResponse.json({ challenge: challenge }, 200)
       else
-        let inbound = extractInbound(payload)
+        let inbound = extract_inbound(payload)
         if inbound == false then
-          let message = "[slack] ignored non-dm or bot event"
-          puts message
+          puts("[slack] ignored non-dm or bot event")
           HttpResponse.json({ ok: true, ignored: true }, 200)
         else
-          let eventKey = eventKey(payload, inbound)
-          if runtime.processed(inbound, eventKey) then
-            let message = "[slack] deduped delivery " + eventKey
-            puts message
+          let event_key = event_key(payload, inbound)
+          if runtime.processed(inbound, event_key) then
+            puts("[slack] deduped delivery " + event_key)
             HttpResponse.json({ ok: true, deduped: true }, 200)
           else
-            handleInbound(payload, inbound, eventKey)
+            handle_inbound(inbound, event_key)
           end
         end
       end
@@ -120,36 +112,31 @@ def events(req)
   end
 end
 
-def handleInbound(payload, inbound, eventKey)
-  let turn = runtime.executeStoredTurn(inbound)
-  let posted = postReply(turn.conversation, turn.reply.text)
+def handle_inbound(inbound, event_key)
+  let turn = runtime.execute_stored_turn(inbound)
+  let posted = post_reply(turn.conversation, turn.reply.text)
   if posted.ok then
-    runtime.markProcessed(turn.conversation, eventKey)
+    runtime.mark_processed(turn.conversation, event_key)
     HttpResponse.json({
       ok: true,
       replied: true,
       command: turn.command,
-      sessionName: turn.conversation.sessionName
+      session_name: turn.conversation.sessionName
     }, 200)
   else
-    let postedError = posted.error
-    let message = if turn.command == false then
-      "[slack] outbound failure for thread " + inbound.thread + ": " + postedError
-    else
-      "[slack] outbound failure for command " + turn.command + ": " + postedError
-    end
-    puts message
+    let message = turn.command == false ? "[slack] outbound failure for thread " + inbound.thread + ": " + posted.error : "[slack] outbound failure for command " + turn.command + ": " + posted.error
+    puts(message)
     HttpResponse.json({ ok: false, error: posted.error }, 502)
   end
 end
 
-def postReply(conversation, text)
-  slack_client.postMessage(conversation.channel, text, conversation.thread)
+def post_reply(conversation, text)
+  slack_client.post_message(conversation.channel, text, conversation.thread)
 end
 
-def verifyRequest(req)
-  let signingSecret = config.slackSigningSecret()
-  if signingSecret == false then
+def verify_request(req)
+  let signing_secret = config.slack_signing_secret()
+  if signing_secret == false then
     { ok: false, status: 500, error: "Slack signing secret is not configured" }
   else
     let timestamp = header(req, "x-slack-request-timestamp")
@@ -157,63 +144,59 @@ def verifyRequest(req)
     if timestamp == false || signature == false then
       { ok: false, status: 401, error: "Invalid Slack signature" }
     else
-      let timestampSeconds = Kernel.try(->() { timestamp.to_i() })
-      if timestampSeconds.ok == false then
+      let timestamp_seconds = Kernel.try(->() { timestamp.to_i() })
+      if timestamp_seconds.ok == false then
         { ok: false, status: 401, error: "Invalid Slack signature" }
       else
-        if (Time.now() - (timestampSeconds.value * 1000)) > 300000 then
+        if (Time.now() - (timestamp_seconds.value * 1000)) > 300000 then
           { ok: false, status: 401, error: "Slack request timestamp is too old" }
         else
-          let expected = "v0=" + Kernel.hmacSha256(signingSecret, "v0:" + timestamp + ":" + req.bodyText())
-          if expected == signature then
-            { ok: true, status: 200, error: false }
-          else
-            { ok: false, status: 401, error: "Invalid Slack signature" }
-          end
+          let expected = "v0=" + Kernel.hmacSha256(signing_secret, "v0:" + timestamp + ":" + req.bodyText())
+          expected == signature ? { ok: true, status: 200, error: false } : { ok: false, status: 401, error: "Invalid Slack signature" }
         end
       end
     end
   end
 end
 
-def urlVerification(payload)
-  let typeValue = Kernel.try(->() { payload.type })
-  if typeValue.ok && typeValue.value == "url_verification" then
+def url_verification(payload)
+  let type_value = Kernel.try(->() { payload.type })
+  if type_value.ok && type_value.value == "url_verification" then
     let challenge = Kernel.try(->() { payload.challenge })
-    if challenge.ok then challenge.value else false end
+    challenge.ok ? challenge.value : false
   else
     false
   end
 end
 
-def extractInbound(payload)
-  let payloadType = Kernel.try(->() { payload.type })
-  if payloadType.ok == false || payloadType.value != "event_callback" then
+def extract_inbound(payload)
+  let payload_type = Kernel.try(->() { payload.type })
+  if payload_type.ok == false || payload_type.value != "event_callback" then
     false
   else
-    let eventResult = Kernel.try(->() { payload.event })
-    if eventResult.ok == false then
+    let event_result = Kernel.try(->() { payload.event })
+    if event_result.ok == false then
       false
     else
-      let event = eventResult.value
-      let typeValue = Kernel.try(->() { event.type })
-      let channelType = Kernel.try(->() { event.channel_type })
+      let event = event_result.value
+      let type_value = Kernel.try(->() { event.type })
+      let channel_type = Kernel.try(->() { event.channel_type })
       let channel = Kernel.try(->() { event.channel })
       let user = Kernel.try(->() { event.user })
       let text = Kernel.try(->() { event.text })
       let ts = Kernel.try(->() { event.ts })
-      let botId = Kernel.try(->() { event.bot_id })
+      let bot_id = Kernel.try(->() { event.bot_id })
       let subtype = Kernel.try(->() { event.subtype })
-      if typeValue.ok == false || channelType.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
+      if type_value.ok == false || channel_type.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
         false
       else
-        if typeValue.value != "message" || channelType.value != "im" || botId.ok || subtype.ok then
+        if type_value.value != "message" || channel_type.value != "im" || bot_id.ok || subtype.ok then
           false
         else
-          let threadValue = Kernel.try(->() { event.thread_ts })
+          let thread_value = Kernel.try(->() { event.thread_ts })
           let value = {
             channel: channel.value,
-            thread: if threadValue.ok then threadValue.value else ts.value end,
+            thread: thread_value.ok ? thread_value.value : ts.value,
             user: user.value,
             text: text.value,
             ts: ts.value
@@ -226,23 +209,59 @@ def extractInbound(payload)
   end
 end
 
-def eventKey(payload, inbound)
-  let topLevel = Kernel.try(->() { payload.event_id })
-  if topLevel.ok then
-    topLevel.value
-  else
-    inbound.channel + ":" + inbound.thread + ":" + inbound.user + ":" + inbound.ts
-  end
+def event_key(payload, inbound)
+  let top_level = Kernel.try(->() { payload.event_id })
+  top_level.ok ? top_level.value : inbound.channel + ":" + inbound.thread + ":" + inbound.user + ":" + inbound.ts
 end
 
 def header(req, name)
-  if req.headers.has(name) then
-    req.headers.get(name)
-  else
-    false
-  end
+  req.headers.has(name) ? req.headers.get(name) : false
+end
+
+def api_url()
+  config.slack_api_url()
+end
+
+def slackConfig()
+  slack_config()
+end
+
+def healthPayload(path)
+  health_payload(path)
+end
+
+def readyPayload(path)
+  ready_payload(path)
+end
+
+def statusPayload(path)
+  status_payload(path)
+end
+
+def verifyRequest(req)
+  verify_request(req)
+end
+
+def urlVerification(payload)
+  url_verification(payload)
+end
+
+def extractInbound(payload)
+  extract_inbound(payload)
+end
+
+def eventKey(payload, inbound)
+  event_key(payload, inbound)
+end
+
+def handleInbound(inbound, eventKey)
+  handle_inbound(inbound, eventKey)
+end
+
+def postReply(conversation, text)
+  post_reply(conversation, text)
 end
 
 def apiUrl()
-  config.slackApiUrl()
+  api_url()
 end
