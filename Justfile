@@ -55,4 +55,4 @@ chat:
 commit:
   git add .
   git commit -m "v$(cosm --version)"
-  git tag v$(cosm --version)
+  git tag "$(cosm --version)"
