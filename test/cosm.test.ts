@@ -147,8 +147,8 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require("cosm/data")')).toMatchObject({ kind: "module", name: "cosm/data" });
   expect(cosmEval('require("cosm/ai.cosm")')).toMatchObject({ kind: "module", name: "cosm/ai.cosm" });
   expect(cosmEval('let examples = require("app/examples.cosm"); examples.class.name')).toBe("Module");
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.receiverReflection().code')).toBe("Object.new().methods()");
-  expect(cosmEval('let examples = require("app/examples.cosm"); examples.dispatchHelper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
+  expect(cosmEval('let examples = require("app/examples.cosm"); examples.receiver_reflection().code')).toBe("Object.new().methods()");
+  expect(cosmEval('let examples = require("app/examples.cosm"); examples.dispatch_helper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
   expect(cosmEval('let examples = require("app/examples.cosm"); examples.catalog().length')).toBe(23);
   expect(cosmEval('let app = require("app/app.cosm"); app.class.name')).toBe("Module");
   expect(cosmEval('let views = require("app/views/index.cosm"); views.class.name')).toBe("Module");
@@ -160,13 +160,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("cosm.length >= 3")).toBe(true);
   expect(cosmEval("cosm.has(:version)")).toBe(true);
   expect(cosmEval("cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.11");
+  expect(cosmEval('cosm.get(:version)')).toBe("0.3.13.12");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("cosm.values().length >= cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("cosm.class.name")).toBe("Namespace");
-  expect(cosmEval("cosm.version")).toBe("0.3.13.11");
+  expect(cosmEval("cosm.version")).toBe("0.3.13.12");
   expect(cosmEval("cosm.Data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.data.class.name")).toBe("Module");
   expect(cosmEval("cosm.modules.ai.class.name")).toBe("Module");
@@ -183,6 +183,12 @@ test("ternary is a compact expression form", () => {
   expect(cosmEval('true ? "yes" : "no"')).toBe("yes");
   expect(cosmEval('false ? "yes" : "no"')).toBe("no");
   expect(cosmEval('let value = 4; value > 3 ? "big" : "small"')).toBe("big");
+});
+
+test("one-line defs are a compact callable form", () => {
+  expect(cosmEval('def status = "ok"; status()')).toBe("ok");
+  expect(cosmEval('def add(x, y) = x + y; add(20, 22)')).toBe(42);
+  expect(cosmEval('class Greeter do def label = "hi" end; Greeter.new().label()')).toBe("hi");
 });
 
 test("Kernel, Process, Time, and Random expose tie-your-shoes runtime helpers", () => {

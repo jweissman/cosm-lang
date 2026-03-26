@@ -2,30 +2,24 @@ let controller = require("support/controller.cosm")
 let models = require("support/models.cosm")
 let store = require("agent/store.cosm")
 
-let AgentTurn = Data.model("AgentTurn", {
-  conversation: models.Conversation,
-  inbound: models.InboundMessage,
-  reply: models.AgentReply,
+let agent_turn = Data.model("agent_turn", {
+  conversation: models.conversation,
+  inbound: models.inbound_message,
+  reply: models.agent_reply,
   command: Data.optional(Data.string())
 })
 
-def identity()
-  {
-    name: "iapetus",
-    mode: "single-turn",
-    control: "cosm",
-    session_prefix: "agent:",
-    persistence: "file-backed-thread"
-  }
-end
+def identity = {
+  name: "iapetus",
+  mode: "single-turn",
+  control: "cosm",
+  session_prefix: "agent:",
+  persistence: "file-backed-thread"
+};
 
-def conversation_key(channel, thread)
-  channel + ":" + thread
-end
+def conversation_key(channel, thread) = channel + ":" + thread;
 
-def session_name(key)
-  identity().session_prefix + key
-end
+def session_name(key) = identity().session_prefix + key;
 
 def conversation_for_inbound(inbound, transcript = false, context = false)
   let now = Time.isoNow()
@@ -35,85 +29,64 @@ def conversation_for_inbound(inbound, transcript = false, context = false)
     channel: inbound.channel,
     thread: inbound.thread,
     messages: [],
-    sessionName: session_name(key),
-    sessionLength: 0,
+    session_name: session_name(key),
+    session_length: 0,
     transcript: transcript,
     context: context,
-    createdAt: now,
-    updatedAt: now
+    created_at: now,
+    updated_at: now
   }
-  models.Conversation.validate(value)
+  models.conversation.validate(value)
   value
 end
 
 def load_conversation(inbound, transcript = false, context = false)
   let key = conversation_key(inbound.channel, inbound.thread)
-  let loaded = store.loadRecord(key)
+  let loaded = store.load_record(key)
   loaded == false ? conversation_for_inbound(inbound, transcript, context) : loaded.conversation
 end
 
-def save_conversation(conversation)
-  store.saveConversation(conversation).conversation
-end
+def save_conversation(conversation) = store.save_conversation(conversation).conversation;
 
-def processed(inbound, event_key)
-  store.processed(conversation_key(inbound.channel, inbound.thread), event_key)
-end
+def processed(inbound, event_key) = store.processed(conversation_key(inbound.channel, inbound.thread), event_key);
 
-def mark_processed(conversation, event_key)
-  store.markProcessed(conversation, event_key)
-end
+def mark_processed(conversation, event_key) = store.mark_processed(conversation, event_key);
 
 def reset_conversation(inbound, transcript = false, context = false)
   let fresh = conversation_for_inbound(inbound, transcript, context)
   save_conversation(fresh)
 end
 
-def command_name(text)
-  text == "help" || text == "/help" ? "help" : (text == "reset" || text == "/reset" ? "reset" : (text == "status" || text == "/status" ? "status" : false))
-end
+def command_name(text) = text == "help" || text == "/help" ? "help" : (text == "reset" || text == "/reset" ? "reset" : (text == "status" || text == "/status" ? "status" : false));
 
 def from_command(conversation, inbound, command)
   if command == "reset" then
     let fresh = conversation_for_inbound(inbound, conversation.transcript, conversation.context)
-    Session.named(fresh.sessionName).reset()
+    Session.named(fresh.session_name).reset()
     let reply = controller.command_reply(fresh, command)
-    let value = {
-      conversation: fresh,
-      inbound: inbound,
-      reply: reply,
-      command: command
-    }
-    AgentTurn.validate(value)
+    let value = { conversation: fresh, inbound: inbound, reply: reply, command: command }
+    agent_turn.validate(value)
     value
   else
     let reply = controller.command_reply(conversation, command)
     let updated = controller.next_conversation(conversation, inbound, reply)
-    let value = {
-      conversation: updated,
-      inbound: inbound,
-      reply: reply,
-      command: command
-    }
-    AgentTurn.validate(value)
+    let value = { conversation: updated, inbound: inbound, reply: reply, command: command }
+    agent_turn.validate(value)
     value
   end
 end
 
+def fallback_reply(conversation, inbound, error_message) = controller.fallback(conversation, inbound, error_message);
+
 def from_controller_turn(conversation, inbound)
   let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
   let turn = outcome.ok ? outcome.value : {
-    conversation: controller.next_conversation(conversation, inbound, controller.fallback(conversation, inbound, outcome.error.message)),
+    conversation: controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
     inbound: inbound,
-    reply: controller.fallback(conversation, inbound, outcome.error.message)
+    reply: fallback_reply(conversation, inbound, outcome.error.message)
   }
-  let value = {
-    conversation: turn.conversation,
-    inbound: inbound,
-    reply: turn.reply,
-    command: false
-  }
-  AgentTurn.validate(value)
+  let value = { conversation: turn.conversation, inbound: inbound, reply: turn.reply, command: false }
+  agent_turn.validate(value)
   value
 end
 
@@ -126,64 +99,9 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   let conversation = load_conversation(inbound, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
-  let value = {
-    conversation: saved,
-    inbound: turn.inbound,
-    reply: turn.reply,
-    command: turn.command
-  }
-  AgentTurn.validate(value)
+  let value = { conversation: saved, inbound: turn.inbound, reply: turn.reply, command: turn.command }
+  agent_turn.validate(value)
   value
 end
 
-def status()
-  identity()
-end
-
-def conversationKey(channel, thread)
-  conversation_key(channel, thread)
-end
-
-def sessionName(key)
-  session_name(key)
-end
-
-def conversationForInbound(inbound, transcript = false, context = false)
-  conversation_for_inbound(inbound, transcript, context)
-end
-
-def loadConversation(inbound, transcript = false, context = false)
-  load_conversation(inbound, transcript, context)
-end
-
-def saveConversation(conversation)
-  save_conversation(conversation)
-end
-
-def markProcessed(conversation, eventKey)
-  mark_processed(conversation, eventKey)
-end
-
-def resetConversation(inbound, transcript = false, context = false)
-  reset_conversation(inbound, transcript, context)
-end
-
-def commandName(text)
-  command_name(text)
-end
-
-def fromCommand(conversation, inbound, command)
-  from_command(conversation, inbound, command)
-end
-
-def fromControllerTurn(conversation, inbound)
-  from_controller_turn(conversation, inbound)
-end
-
-def executeTurn(conversation, inbound)
-  execute_turn(conversation, inbound)
-end
-
-def executeStoredTurn(inbound, transcript = false, context = false)
-  execute_stored_turn(inbound, transcript, context)
-end
+def status = identity();

@@ -3,15 +3,15 @@ require("cosm/spec.cosm")
 spec.suite("Kernel", ->() {
   spec.it("ambient assertions and dispatch stay available", ->() {
     assert(Kernel.assert(true) == true)
-    spec.assertEqual(Kernel.dispatch(1, :plus, 2), 3)
+    spec.assert_equal(Kernel.dispatch(1, :plus, 2), 3)
   })
   spec.it("explicit scalar helpers stay available", ->() {
-    spec.assertEqual("42".to_i(), 42)
-    spec.assertEqual("3.5".to_f(), 3.5)
-    spec.assertEqual(:status.to_s(), "status")
+    spec.assert_equal("42".to_i(), 42)
+    spec.assert_equal("3.5".to_f(), 3.5)
+    spec.assert_equal(:status.to_s(), "status")
   })
   spec.it("trace and validation helpers stay available", ->() {
-    spec.assertEqual(Kernel.trace("kernel spec", 41), 41)
+    spec.assert_equal(Kernel.trace("kernel spec", 41), 41)
     assert(Kernel.tryValidate(42, Schema.number()).ok == true)
   })
 })

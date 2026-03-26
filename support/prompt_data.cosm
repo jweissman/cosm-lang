@@ -1,7 +1,3 @@
 def iapetus_system()
   Kernel.readText("data/prompts/iapetus_system.md")
 end
-
-def iapetusSystem()
-  iapetus_system()
-end

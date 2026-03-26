@@ -1,7 +1,7 @@
 let state = { transcript: "user: hello", replies: ["Try the Reset Session button."], replyText: "Try the Reset Session button." }
 let reply = if state.replies.length == 1 then
-  let assistantLine = "\nassistant: "
-  let rendered = Kernel.dispatch(assistantLine, :plus, state.replyText)
+  let assistant_line = "\nassistant: "
+  let rendered = Kernel.dispatch(assistant_line, :plus, state.replyText)
   { text: Kernel.dispatch(state.transcript, :plus, rendered), ok: true }
 else
   { text: "Unexpected state", ok: false }

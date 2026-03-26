@@ -1,11 +1,11 @@
-require("app/rendering.cosm")
-require("app/notebook.cosm")
-require("app/assistant.cosm")
+let rendering = require("app/rendering.cosm")
+let notebook = require("app/notebook.cosm")
+let assistant = require("app/assistant.cosm")
 
-let HtmlView = rendering.HtmlView
-let NotebookView = notebook.NotebookView
-let NotebookExamples = notebook.NotebookExamples
-let AssistantView = assistant.AssistantView
+let html_view = rendering.HtmlView
+let notebook_view = notebook.NotebookView
+let notebook_examples = notebook.NotebookExamples
+let assistant_view = assistant.AssistantView
 
 class HomeView
   class << self
@@ -14,7 +14,7 @@ class HomeView
     end
 
     def page(req)
-      HtmlView.renderLayout("Cosm " + cosm.version, template(), { version: cosm.version, method: HtmlView.escape(req.method), path: HtmlView.escape(req.path), pid: Process.pid(), platform: HtmlView.escape(Process.platform()), arch: HtmlView.escape(Process.arch()) }, HtmlView.head(), "")
+      html_view.render_layout("Cosm " + cosm.version, template(), { version: cosm.version, method: html_view.escape(req.method), path: html_view.escape(req.path), pid: Process.pid(), platform: html_view.escape(Process.platform()), arch: html_view.escape(Process.arch()) }, html_view.head(), "")
     end
   end
 end

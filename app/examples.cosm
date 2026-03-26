@@ -2,126 +2,126 @@ def example(category, title, description, code)
   { category: category, title: title, description: description, code: code }
 end
 
-def mathReflection()
+def math_reflection()
   example("Reflection", "Math + reflection", "Tiny arithmetic and runtime reflection smoke.", "1 + 2; Kernel.inspect(classes.Number)")
 end
 
-def receiverReflection()
+def receiver_reflection()
   example("Reflection", "Receiver reflection", "See the simplified receiver-side symbol list.", "Object.new().methods()")
 end
 
-def methodLookup()
+def method_lookup()
   example("Reflection", "Method lookup", "Use method(:name) for the actual method object.", "Object.new().method(:send).name")
 end
 
-def mixinInclude()
+def mixin_include()
   example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "let label_mixin = require(\"support/label_mixin.cosm\"); class Mixed do end; Mixed.include(label_mixin); Mixed.new().label()")
 end
 
-def dispatchHelper()
+def dispatch_helper()
   example("Dispatch", "Kernel.dispatch", "Use the explicit helper-form dispatch API when you already have a receiver.", "Kernel.dispatch(1, :plus, 2)")
 end
 
-def dataModel()
+def data_model()
   example("Data", "Data model", "Define a model on top of Schema and validate a structured value through it.", "let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); Reason.validate({ answer: \"hi\", choice: \"yes\" })")
 end
 
-def schemaExport()
+def schema_export()
   example("Data", "Schema export", "Inspect a raw structural schema.", "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()")
 end
 
-def scalarCasts()
+def scalar_casts()
   example("Data", "Scalar casts", "Core scalar values expose explicit conversion helpers.", "\"42\".to_i(); \"3.5\".to_f(); :answer.to_s()")
 end
 
-def enumerableReduce()
+def enumerable_reduce()
   example("Collections", "Enumerable reduce", "Use the small functional collection surface from Cosm itself.", "[1, 2, 3].reduce(0, ->(acc, value) { acc + value })")
 end
 
-def enumerableFilter()
+def enumerable_filter()
   example("Collections", "Enumerable filter", "Collection helpers stay explicit and runtime-backed through include plus Enumerable.", "{ reset: true, note: false }.filter(->(key, value) { value })")
 end
 
-def promptObject()
+def prompt_object()
   example("AI", "Prompt object", "Inspect the explicit prompt runtime object.", "Prompt.text(\"Summarize Cosm in one sentence.\")")
 end
 
-def aiStatus()
+def ai_status()
   example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "cosm.ai.config()")
 end
 
-def aiHealth()
+def ai_health()
   example("AI", "AI health", "Probe whether the local backend is actually reachable.", "cosm.ai.health()")
 end
 
-def aiCastHelper()
+def ai_cast_helper()
   example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "let ai = require(\"cosm/ai.cosm\"); let Reason = Data.model(\"Reason\", { answer: Data.string(), choice: Data.enum(\"yes\", \"no\") }); ai.cast(\"Return a Reason object.\", Reason)")
 end
 
-def supportAgentPreview()
+def support_agent_preview()
   example("AI", "Support agent prompt", "Preview the shared support prompt used by the pure Cosm chatbot and the Slack service.", "let agent = require(\"support/agent.cosm\"); agent.preview()")
 end
 
-def promptData()
+def prompt_data()
   example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "let prompt_data = require(\"support/prompt_data.cosm\"); prompt_data.iapetus_system()")
 end
 
-def supportChatStep()
+def support_chat_step()
   example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "let chat = require(\"support/chat.cosm\"); chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
 
-def supportStepModel()
-  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require(\"support/models.cosm\"); models.ChatStep.jsonSchema()")
+def support_step_model()
+  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "let models = require(\"support/models.cosm\"); models.chat_step.jsonSchema()")
 end
 
-def supportPage()
+def support_page()
   example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "let controller = require(\"support/controller.cosm\"); controller.page_conversation(\"demo\", \"user: hello\")")
 end
 
-def notebookPage()
-  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "let notebook_store = require(\"app/notebook_store.cosm\"); notebook_store.createPage(\"Demo page\").title")
+def notebook_page()
+  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "let notebook_store = require(\"app/notebook_store.cosm\"); notebook_store.create_page(\"Demo page\").title")
 end
 
-def workflowRun()
+def workflow_run()
   example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "let workflow = require(\"cosm/workflow.cosm\"); workflow.run([workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), workflow.step(\"status\", ->() { cosm.ai.config() })])")
 end
 
-def namedSession()
+def named_session()
   example("Notebook", "Named session", "Page execution now reuses a stable named Session for the current page.", "let page = Session.named(\"notebook:demo\"); page.eval(\"let answer = 41\"); page.eval(\"answer + 1\")")
 end
 
-def routerSketch()
+def router_sketch()
   example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
 end
 
 def reflection()
-  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude()]
+  [math_reflection(), receiver_reflection(), method_lookup(), mixin_include()]
 end
 
 def dispatch()
-  [dispatchHelper()]
+  [dispatch_helper()]
 end
 
 def data()
-  [dataModel(), schemaExport(), scalarCasts()]
+  [data_model(), schema_export(), scalar_casts()]
 end
 
 def collections()
-  [enumerableReduce(), enumerableFilter()]
+  [enumerable_reduce(), enumerable_filter()]
 end
 
 def ai()
-  [promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData()]
+  [prompt_object(), ai_status(), ai_health(), ai_cast_helper(), support_agent_preview(), prompt_data()]
 end
 
 def services()
-  [routerSketch()]
+  [router_sketch()]
 end
 
 def support()
-  [supportChatStep(), supportStepModel(), supportPage()]
+  [support_chat_step(), support_step_model(), support_page()]
 end
 
 def catalog()
-  [mathReflection(), receiverReflection(), methodLookup(), mixinInclude(), dispatchHelper(), dataModel(), schemaExport(), scalarCasts(), enumerableReduce(), enumerableFilter(), promptObject(), aiStatus(), aiHealth(), aiCastHelper(), supportAgentPreview(), promptData(), supportChatStep(), supportStepModel(), supportPage(), notebookPage(), workflowRun(), namedSession(), routerSketch()]
+  [math_reflection(), receiver_reflection(), method_lookup(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), support_agent_preview(), prompt_data(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
 end

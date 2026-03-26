@@ -1,11 +1,11 @@
 let config = require("agent/config.cosm")
 
-def post_message(target, text, thread = false)
+def post_message(channel_id, text, thread_ts = false)
   let bot_token = config.slack_bot_token()
   if bot_token == false then
     { ok: false, error: "Slack bot token is not configured" }
   else
-    let payload = thread == false ? { channel: target, text: text } : { channel: target, text: text, thread_ts: thread }
+    let payload = thread_ts == false ? { channel: channel_id, text: text } : { channel: channel_id, text: text, thread_ts: thread_ts }
     let request = Kernel.try(->() {
       http.request("POST", config.slack_api_url(), {
         headers: Kernel.parseJson("{\"authorization\":\"Bearer " + bot_token + "\",\"content-type\":\"application/json; charset=utf-8\"}"),
@@ -20,24 +20,20 @@ def post_message(target, text, thread = false)
         { ok: false, error: "Slack API returned invalid JSON" }
       else
         if parsed.value.ok == true then
-          let channel_value = Kernel.try(->() { parsed.value.channel })
-          let ts_value = Kernel.try(->() { parsed.value.ts })
+          let returned_channel = Kernel.try(->() { parsed.value.channel })
+          let returned_ts = Kernel.try(->() { parsed.value.ts })
           {
             ok: true,
             status: request.value.status,
-            channel: channel_value.ok ? channel_value.value : target,
-            ts: ts_value.ok ? ts_value.value : false,
+            channel_id: returned_channel.ok ? returned_channel.value : channel_id,
+            ts: returned_ts.ok ? returned_ts.value : false,
             body: parsed.value
           }
         else
-          let error_value = Kernel.try(->() { parsed.value.error })
-          { ok: false, error: error_value.ok ? error_value.value : "unknown_error" }
+          let api_error = Kernel.try(->() { parsed.value.error })
+          { ok: false, error: api_error.ok ? api_error.value : "unknown_error" }
         end
       end
     end
   end
-end
-
-def postMessage(target, text, thread = false)
-  post_message(target, text, thread)
 end

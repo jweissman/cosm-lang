@@ -23,6 +23,13 @@ test("parser accepts require and optional do elision", () => {
   expect(() => Parser.parse('class Greeter\n  class << self\n    def label()\n      "hi"\n    end\n  end\nend\nGreeter.label()')).not.toThrow();
 });
 
+test("parser requires CamelCased class names", () => {
+  expect(() => Parser.parse("class Greeter end")).not.toThrow();
+  expect(() => Parser.parse("class Greeter < Object end")).not.toThrow();
+  expect(() => Parser.parse("class greeter end")).toThrow("Parse error:");
+  expect(() => Parser.parse("class Greeter < object end")).toThrow("Parse error:");
+});
+
 test("parser treats significant newlines like semicolons", () => {
   expect(() => Parser.parse("let a = 1\nlet b = 2\nb")).not.toThrow();
   expect(() => Parser.parse("class A\nend\nA.name")).not.toThrow();
@@ -51,6 +58,12 @@ test("parser accepts interpolated triple-quoted strings", () => {
 test("parser accepts ternary expressions", () => {
   expect(() => Parser.parse('true ? "yes" : "no"')).not.toThrow();
   expect(() => Parser.parse('let ai = require("cosm/ai.cosm"); ai.config().configured ? "ready" : "missing"')).not.toThrow();
+});
+
+test("parser accepts one-line defs", () => {
+  expect(() => Parser.parse('def status = cosm.ai.status(); status()')).not.toThrow();
+  expect(() => Parser.parse('def add(x, y) = x + y; add(1, 2)')).not.toThrow();
+  expect(() => Parser.parse('class Greeter do def label = "hi" end; Greeter.new().label()')).not.toThrow();
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {

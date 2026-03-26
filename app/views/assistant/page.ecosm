@@ -43,9 +43,9 @@
       <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
         <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">AI Runtime</p>
         <dl class="mt-4 grid gap-3 text-sm text-slate-300">
-          <div><dt class="font-semibold text-slate-100">Config</dt><dd><code class="text-emerald-300"><%= aiConfig %></code></dd></div>
-          <div><dt class="font-semibold text-slate-100">Health</dt><dd><code class="text-emerald-300"><%= aiHealth %></code></dd></div>
-          <div><dt class="font-semibold text-slate-100">Transcript</dt><dd><%= transcriptSize %> character(s) on this page.</dd></div>
+          <div><dt class="font-semibold text-slate-100">Config</dt><dd><code class="text-emerald-300"><%= ai_config %></code></dd></div>
+          <div><dt class="font-semibold text-slate-100">Health</dt><dd><code class="text-emerald-300"><%= ai_health %></code></dd></div>
+          <div><dt class="font-semibold text-slate-100">Transcript</dt><dd><%= transcript_size %> character(s) on this page.</dd></div>
           <div><dt class="font-semibold text-slate-100">Streaming</dt><dd>The support core uses explicit stream events and now prefers real transport chunks when the local backend supports OpenAI-compatible streaming.</dd></div>
         </dl>
       </div>

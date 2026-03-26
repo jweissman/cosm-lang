@@ -1,25 +1,22 @@
 let models = require("support/models.cosm")
 let prompt_data = require("support/prompt_data.cosm")
 
-def reply_prompt_from_transcript(transcript, latest_text)
-  Prompt.text("""
+def reply_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
 #{prompt_data.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(models.AgentReply.jsonSchema())}
+#{Kernel.inspect(models.agent_reply.jsonSchema())}
 
 Transcript so far:
 #{transcript}
 
 Latest user message:
 #{latest_text}
-""")
-end
+""");
 
-def reply_prompt_from_context(transcript, latest_text, context)
-  Prompt.text("""
+def reply_prompt_from_context(transcript, latest_text, context) = Prompt.text("""
 #{prompt_data.iapetus_system()}
 Return JSON matching this schema:
-#{Kernel.inspect(models.AgentReply.jsonSchema())}
+#{Kernel.inspect(models.agent_reply.jsonSchema())}
 
 Attached page context:
 #{context}
@@ -29,11 +26,9 @@ Transcript so far:
 
 Latest user message:
 #{latest_text}
-""")
-end
+""");
 
-def stream_prompt_from_transcript(transcript, latest_text)
-  Prompt.text("""
+def stream_prompt_from_transcript(transcript, latest_text) = Prompt.text("""
 #{prompt_data.iapetus_system()}
 Do not describe hidden tools or hidden runtime capabilities.
 Return only the user-facing reply text, with no JSON wrapper.
@@ -43,11 +38,9 @@ Transcript so far:
 
 Latest user message:
 #{latest_text}
-""")
-end
+""");
 
-def stream_prompt_from_context(transcript, latest_text, context)
-  Prompt.text("""
+def stream_prompt_from_context(transcript, latest_text, context) = Prompt.text("""
 #{prompt_data.iapetus_system()}
 Do not describe hidden tools or hidden runtime capabilities.
 Return only the user-facing reply text, with no JSON wrapper.
@@ -60,29 +53,6 @@ Transcript so far:
 
 Latest user message:
 #{latest_text}
-""")
-end
+""");
 
-def reply_prompt(conversation, inbound)
-  reply_prompt_from_transcript(Kernel.inspect(conversation.messages), inbound.text)
-end
-
-def replyPromptFromTranscript(transcript, latestText)
-  reply_prompt_from_transcript(transcript, latestText)
-end
-
-def replyPromptFromContext(transcript, latestText, context)
-  reply_prompt_from_context(transcript, latestText, context)
-end
-
-def streamPromptFromTranscript(transcript, latestText)
-  stream_prompt_from_transcript(transcript, latestText)
-end
-
-def streamPromptFromContext(transcript, latestText, context)
-  stream_prompt_from_context(transcript, latestText, context)
-end
-
-def replyPrompt(conversation, inbound)
-  reply_prompt(conversation, inbound)
-end
+def reply_prompt(conversation, inbound) = reply_prompt_from_transcript(Kernel.inspect(conversation.messages), inbound.text);

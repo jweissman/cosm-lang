@@ -3,25 +3,15 @@ def env(primary, legacy = false)
   current != false ? current : (legacy == false ? false : Process.env(legacy))
 end
 
-def slack_signing_secret()
-  env("SLACK_SIGNING_SECRET", "COSM_SLACK_SIGNING_SECRET")
-end
+def slack_signing_secret = env("SLACK_SIGNING_SECRET", "COSM_SLACK_SIGNING_SECRET");
 
-def slack_bot_token()
-  env("SLACK_BOT_TOKEN", "COSM_SLACK_BOT_TOKEN")
-end
+def slack_bot_token = env("SLACK_BOT_TOKEN", "COSM_SLACK_BOT_TOKEN");
 
-def slack_app_id()
-  env("SLACK_APP_ID")
-end
+def slack_app_id = env("SLACK_APP_ID");
 
-def slack_client_id()
-  env("SLACK_CLIENT_ID")
-end
+def slack_client_id = env("SLACK_CLIENT_ID");
 
-def slack_client_secret()
-  env("SLACK_CLIENT_SECRET")
-end
+def slack_client_secret = env("SLACK_CLIENT_SECRET");
 
 def slack_api_url()
   let configured = env("SLACK_API_URL", "COSM_SLACK_API_URL")
@@ -48,40 +38,4 @@ def slack_config_status()
     api_url: slack_api_url(),
     storage_dir: slack_storage_dir()
   }
-end
-
-def slackSigningSecret()
-  slack_signing_secret()
-end
-
-def slackBotToken()
-  slack_bot_token()
-end
-
-def slackAppId()
-  slack_app_id()
-end
-
-def slackClientId()
-  slack_client_id()
-end
-
-def slackClientSecret()
-  slack_client_secret()
-end
-
-def slackApiUrl()
-  slack_api_url()
-end
-
-def slackStorageDir()
-  slack_storage_dir()
-end
-
-def agentPort()
-  agent_port()
-end
-
-def slackConfigStatus()
-  slack_config_status()
 end

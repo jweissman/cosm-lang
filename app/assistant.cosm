@@ -1,22 +1,22 @@
-require("app/rendering.cosm")
-require("support/controller.cosm")
+let rendering = require("app/rendering.cosm")
+let controller = require("support/controller.cosm")
 
 class AssistantView
   class << self
-    def pageTemplate()
+    def page_template()
       require("app/views/assistant/page.ecosm")
     end
 
     def page(conversation, reply)
-      let transcript = controller.displayTranscript(conversation)
-      let replyText = if reply == false then false else reply.text end
-      rendering.HtmlView.renderLayout("Iapetus Assistant", pageTemplate(), {
+      let transcript = controller.display_transcript(conversation)
+      let reply_text = if reply == false then false else reply.text end
+      rendering.HtmlView.render_layout("Iapetus Assistant", page_template(), {
         key: rendering.HtmlView.escape(conversation.key),
         transcript: rendering.HtmlView.escape(transcript),
-        reply: if replyText == false then false else rendering.HtmlView.escape(replyText) end,
-        transcriptSize: transcript.length,
-        aiConfig: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.config())),
-        aiHealth: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.health()))
+        reply: if reply_text == false then false else rendering.HtmlView.escape(reply_text) end,
+        transcript_size: transcript.length,
+        ai_config: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.config())),
+        ai_health: rendering.HtmlView.escape(Kernel.inspect(cosm.ai.health()))
       }, rendering.HtmlView.head(), "")
     end
   end

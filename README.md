@@ -16,7 +16,7 @@ Cosm currently emphasizes:
 
 ## Current Focus
 
-The current tree is best read as **`0.3.13.11`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on making module usage more explicit, cleaning up the newer Cosm-authored agent/support layer, and keeping the Slack-facing runtime legible while the persistent notebook remains the main proving wedge:
+The current tree is best read as **`0.3.13.12`**. The main job of this patch line is still language/runtime hardening, with the current slice focused on making the Cosm-authored layer sharper: snake_case cleanup through the agent/support/notebook surfaces, explicit module binding as the taught style, compact one-line defs, and a tighter structured-reply path while the persistent notebook remains the main proving wedge:
 
 - keep shrinking interpreter-owned semantic policy and push more behavior toward explicit runtime/message-passing seams
 - keep `require(...)` module-oriented, with explicit local bindings as the canonical style

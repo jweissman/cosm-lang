@@ -1,20 +1,20 @@
-let Message = Data.object({ role: Data.string(), user: Data.optional(Data.string()), text: Data.string(), ts: Data.optional(Data.string()) })
-let Conversation = Data.model("Conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(Message), sessionName: Data.optional(Data.string()), sessionLength: Data.optional(Data.number()), transcript: Data.optional(Data.string()), context: Data.optional(Data.string()), createdAt: Data.optional(Data.string()), updatedAt: Data.optional(Data.string()) })
-let InboundMessage = Data.model("InboundMessage", { channel: Data.string(), thread: Data.string(), user: Data.string(), text: Data.string(), ts: Data.string() })
-let ToolCall = Data.model("ToolCall", { name: Data.string(), inputSummary: Data.optional(Data.string()) })
-let ToolResult = Data.model("ToolResult", { ok: Data.boolean(), summary: Data.string() })
-let AgentReply = Data.model("AgentReply", { shouldReply: Data.boolean(), text: Data.string(), rationale: Data.optional(Data.string()), toolCalls: Data.optional(Data.array(ToolCall)), toolResults: Data.optional(Data.array(ToolResult)) })
-let ChatStep = Data.model("ChatStep", { transcript: Data.string(), reply: AgentReply })
-let ControllerTurn = Data.model("ControllerTurn", { conversation: Conversation, inbound: InboundMessage, reply: AgentReply })
+let message = Data.object({ role: Data.string(), user: Data.optional(Data.string()), text: Data.string(), ts: Data.optional(Data.string()) })
+let conversation = Data.model("conversation", { key: Data.string(), channel: Data.string(), thread: Data.string(), messages: Data.array(message), session_name: Data.optional(Data.string()), session_length: Data.optional(Data.number()), transcript: Data.optional(Data.string()), context: Data.optional(Data.string()), created_at: Data.optional(Data.string()), updated_at: Data.optional(Data.string()) })
+let inbound_message = Data.model("inbound_message", { channel: Data.string(), thread: Data.string(), user: Data.string(), text: Data.string(), ts: Data.string() })
+let tool_call = Data.model("tool_call", { name: Data.string(), input_summary: Data.optional(Data.string()) })
+let tool_result = Data.model("tool_result", { ok: Data.boolean(), summary: Data.string() })
+let agent_reply = Data.model("agent_reply", { should_reply: Data.boolean(), text: Data.string(), rationale: Data.optional(Data.string()), tool_calls: Data.optional(Data.array(tool_call)), tool_results: Data.optional(Data.array(tool_result)) })
+let chat_step = Data.model("chat_step", { transcript: Data.string(), reply: agent_reply })
+let controller_turn = Data.model("controller_turn", { conversation: conversation, inbound: inbound_message, reply: agent_reply })
 
-let NotebookBlock = Data.model("NotebookBlock", { kind: Data.enum("markdown", "cosm"), content: Data.string() })
-let NotebookPage = Data.model("NotebookPage", {
+let notebook_block = Data.model("notebook_block", { kind: Data.enum("markdown", "cosm"), content: Data.string() })
+let notebook_page = Data.model("notebook_page", {
   id: Data.string(),
   title: Data.string(),
-  blocks: Data.array(NotebookBlock),
-  agentKey: Data.string(),
-  agentTranscript: Data.optional(Data.string()),
-  lastExecutionSummary: Data.optional(Data.string()),
-  createdAt: Data.string(),
-  updatedAt: Data.string()
+  blocks: Data.array(notebook_block),
+  agent_key: Data.string(),
+  agent_transcript: Data.optional(Data.string()),
+  last_execution_summary: Data.optional(Data.string()),
+  created_at: Data.string(),
+  updated_at: Data.string()
 })

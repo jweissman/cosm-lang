@@ -8,7 +8,7 @@ import { ValueAdapter as Adapter } from "../../src/ValueAdapter";
 import { dispatchService } from "../support/request_spec";
 
 const appSource = `
-  require("app/app.cosm")
+  let app = require("app/app.cosm")
   app.App.build()
 `;
 
@@ -77,11 +77,11 @@ test("notebook attached assistant persists transcript across requests", () => {
   withNotebookDir(() => {
     CosmAiValue.installRuntimeHooks({
       cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
-        shouldReply: true,
+        should_reply: true,
         text: "I can see this notebook page and its recent execution summary.",
         rationale: "mocked notebook assistant reply",
-        toolCalls: false,
-        toolResults: false,
+        tool_calls: false,
+        tool_results: false,
       })),
     });
 
@@ -124,11 +124,11 @@ test("web-layer request specs render notebook execution errors without leaking T
 test("assistant page can still reuse the shared controller core through the app wedge", () => {
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "Use the Reset Session button in the notebook.",
       rationale: "mocked assistant page reply",
-      toolCalls: false,
-      toolResults: false,
+      tool_calls: false,
+      tool_results: false,
     })),
   });
 

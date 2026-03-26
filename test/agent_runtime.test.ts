@@ -41,11 +41,11 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
 
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "Reset it from the notebook session controls.",
       rationale: "mocked",
-      toolCalls: false,
-      toolResults: false,
+      tool_calls: false,
+      tool_results: false,
     })),
   });
 
@@ -55,13 +55,13 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
     let turn = agent_runtime.execute_stored_turn(inbound)
     {
       reply: turn.reply.text,
-      sessionName: turn.conversation.sessionName,
+      session_name: turn.conversation.session_name,
       messages: turn.conversation.messages.length,
       persisted: agent_runtime.load_conversation(inbound).messages.length
     }
   `)).toEqual({
     reply: "Reset it from the notebook session controls.",
-    sessionName: "agent:D100:1710000100.000001",
+    session_name: "agent:D100:1710000100.000001",
     messages: 2,
     persisted: 2,
   });
@@ -77,13 +77,13 @@ test("agent runtime handles commands transport-agnostically", () => {
     let turn = agent_runtime.execute_turn(conversation, inbound)
     {
       command: turn.command,
-      shouldReply: turn.reply.shouldReply,
-      sessionName: turn.conversation.sessionName
+      should_reply: turn.reply.should_reply,
+      session_name: turn.conversation.session_name
     }
   `)).toEqual({
     command: "status",
-    shouldReply: true,
-    sessionName: "agent:D200:1710000200.000001",
+    should_reply: true,
+    session_name: "agent:D200:1710000200.000001",
   });
 });
 
@@ -106,12 +106,12 @@ test("slack dm smoke helper sends one outbound message through the shared slack 
     let result = slack_dm.send("DCLI", "smoke test")
     {
       ok: result.ok,
-      channel: result.channel,
+      channel_id: result.channel_id,
       ts: result.ts
     }
   `)).toEqual({
     ok: true,
-    channel: "DCLI",
+    channel_id: "DCLI",
     ts: "1710000300.000001",
   });
   expect(calls).toHaveLength(1);

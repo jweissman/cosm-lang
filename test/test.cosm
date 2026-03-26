@@ -4,14 +4,14 @@ require("cosm/test");
 
 expectEqual(Kernel.inspect(Kernel), "#<Kernel>");
 
-def kernelExamples()
+def kernel_examples()
   test("math smoke", ->() { assert(1 + 1 == 2) });
   test("expectEqual smoke", ->() { expectEqual([1, 2], [1, 2]) });
   test("inspect smoke", ->() { assert(Kernel.inspect(Kernel) == "#<Kernel>") });
   test("explicit send smoke", ->() { assert(Kernel.dispatch(1, :plus, 2) == 3) })
 end;
 
-def callableExamples()
+def callable_examples()
   let id = ->(x) { x };
   test("function call smoke", ->() { assert(id.call(4) == 4) });
   test("method call smoke", ->() { assert(Kernel.method(:assert).call(true, "ok") == true) })
@@ -23,13 +23,13 @@ class HarnessThing
   end
 end;
 
-def objectExamples()
+def object_examples()
   test("class smoke", ->() { assert(HarnessThing.new(3).value == 3) });
   test("sad path", ->() { assert(false, "boom") })
 end;
 
-describe("kernel basics", kernelExamples);
-describe("callables", callableExamples);
-describe("objects", objectExamples);
+describe("kernel basics", kernel_examples);
+describe("callables", callable_examples);
+describe("objects", object_examples);
 
 "test harness complete"

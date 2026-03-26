@@ -1,2 +1,2 @@
-require("app/app.cosm")
-let server = http.serve(12345, app.App.build())
+let app_module = require("app/app.cosm")
+let server = http.serve(12345, app_module.App.build())

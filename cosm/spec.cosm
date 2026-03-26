@@ -1,27 +1,17 @@
 require("cosm/test")
 
-def suite(name, body)
-  describe(name, body)
-end
+def suite(name, body) = describe(name, body);
 
-def it(name, body)
-  test(name, body)
-end
+def it(name, body) = test(name, body);
 
-def assertEqual(actual, expected)
-  expectEqual(actual, expected)
-end
+def assert_equal(actual, expected) = expectEqual(actual, expected);
 
-def refute(value)
-  assert(value == false)
-end
+def refute(value) = assert(value == false);
 
-def expectRaises(body)
+def expect_raises(body)
   let result = Kernel.try(body)
   assert(result.ok == false)
   result.error
 end
 
-def finish()
-  testSummary()
-end
+def finish() = testSummary();

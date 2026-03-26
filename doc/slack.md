@@ -1,6 +1,6 @@
 # Slack DM Agent
 
-The Slack wedge is intentionally narrow in `0.3.13.11`:
+The Slack wedge is intentionally narrow in `0.3.13.12`:
 
 - DM-only
 - conversational only

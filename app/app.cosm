@@ -1,7 +1,7 @@
-require("app/views/index.cosm")
-require("app/notebook_store.cosm")
-require("app/notebook_runtime.cosm")
-require("support/controller.cosm")
+let views = require("app/views/index.cosm")
+let notebook_store = require("app/notebook_store.cosm")
+let notebook_runtime = require("app/notebook_runtime.cosm")
+let controller = require("support/controller.cosm")
 
 class App
   def init(router)
@@ -23,47 +23,47 @@ class App
 
       router.draw do
         get "/" do |req|
-          HttpResponse.html(views.HomeView.page(req), 200)
+          HttpResponse.html(views.home_view.page(req), 200)
         end
 
         get "/health" do |req|
-          App.healthResponse(req)
+          App.health_response(req)
         end
 
         get "/assistant" do |req|
-          App.assistantPage(req)
+          App.assistant_page(req)
         end
 
         post "/assistant" do |req|
-          App.assistantTurn(req)
+          App.assistant_turn(req)
         end
 
         get "/notebook" do |req|
-          App.notebookPage(req)
+          App.notebook_page(req)
         end
 
         post "/notebook/create" do |req|
-          App.notebookCreate(req)
+          App.notebook_create(req)
         end
 
         post "/notebook/save" do |req|
-          App.notebookSave(req)
+          App.notebook_save(req)
         end
 
         post "/notebook/run" do |req|
-          App.notebookRun(req)
+          App.notebook_run(req)
         end
 
         post "/notebook/reset" do |req|
-          App.notebookReset(req)
+          App.notebook_reset(req)
         end
 
         post "/notebook/agent" do |req|
-          App.notebookAgent(req)
+          App.notebook_agent(req)
         end
 
         post "/notebook/agent/reset" do |req|
-          App.notebookAgentReset(req)
+          App.notebook_agent_reset(req)
         end
       end
 
@@ -74,7 +74,7 @@ class App
       puts "[#{Time.isoNow()}] #{req.method} #{req.path}"
     end
 
-    def healthResponse(req)
+    def health_response(req)
       HttpResponse.json({
         ok: true,
         path: req.path,
@@ -83,98 +83,98 @@ class App
         arch: Process.arch() }, 200)
     end
 
-    def assistantPage(req)
+    def assistant_page(req)
       let key = Kernel.uuid()
-      HttpResponse.html(views.AssistantView.page(controller.pageConversation(key, ""), false), 200)
+      HttpResponse.html(views.assistant_view.page(controller.page_conversation(key, ""), false), 200)
     end
 
-    def assistantTurn(req)
+    def assistant_turn(req)
       let form = req.form()
-      let keyValue = form.get("key")
-      let transcriptValue = form.get("transcript")
-      let messageValue = form.get("message")
-      let key = if keyValue == false then Kernel.uuid() else keyValue end
-      let transcript = if transcriptValue == false then "" else transcriptValue end
-      let message = if messageValue == false then "" else messageValue end
-      let conversation = controller.pageConversation(key, transcript)
-      let inbound = controller.pageInbound(key, message)
+      let key_value = form.get("key")
+      let transcript_value = form.get("transcript")
+      let message_value = form.get("message")
+      let key = if key_value == false then Kernel.uuid() else key_value end
+      let transcript = if transcript_value == false then "" else transcript_value end
+      let message = if message_value == false then "" else message_value end
+      let conversation = controller.page_conversation(key, transcript)
+      let inbound = controller.page_inbound(key, message)
       let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
       if outcome.ok then
-        HttpResponse.html(views.AssistantView.page(outcome.value.conversation, outcome.value.reply), 200)
+        HttpResponse.html(views.assistant_view.page(outcome.value.conversation, outcome.value.reply), 200)
       else
         let fallback = controller.fallback(conversation, inbound, outcome.error.message)
-        let recovered = controller.nextConversation(conversation, inbound, fallback)
-        HttpResponse.html(views.AssistantView.page(recovered, fallback), 200)
+        let recovered = controller.next_conversation(conversation, inbound, fallback)
+        HttpResponse.html(views.assistant_view.page(recovered, fallback), 200)
       end
     end
 
-    def notebookPage(req)
-      HttpResponse.html(views.NotebookView.page(App.currentNotebookPage(req), notebook_store.listPages(), false, false), 200)
+    def notebook_page(req)
+      HttpResponse.html(views.notebook_view.page(App.current_notebook_page(req), notebook_store.list_pages(), false, false), 200)
     end
 
-    def notebookCreate(req)
+    def notebook_create(req)
       let form = req.form()
-      let titleValue = Kernel.try(->() { form.get("title") })
-      let page = notebook_store.createPage(if titleValue.ok then titleValue.value else "Untitled notebook page" end)
-      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+      let title_value = Kernel.try(->() { form.get("title") })
+      let page = notebook_store.create_page(if title_value.ok then title_value.value else "Untitled notebook page" end)
+      HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
     end
 
-    def notebookSave(req)
-      let page = App.notebookDraft(req)
-      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    def notebook_save(req)
+      let page = App.notebook_draft(req)
+      HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
     end
 
-    def notebookRun(req)
-      let draft = App.notebookDraft(req)
-      let execution = notebook_runtime.runPage(draft)
-      HttpResponse.html(views.NotebookView.page(execution.page, notebook_store.listPages(), execution, false), 200)
+    def notebook_run(req)
+      let draft = App.notebook_draft(req)
+      let execution = notebook_runtime.run_page(draft)
+      HttpResponse.html(views.notebook_view.page(execution.page, notebook_store.list_pages(), execution, false), 200)
     end
 
-    def notebookReset(req)
-      let draft = App.notebookDraft(req)
-      let page = notebook_runtime.resetPageSession(draft)
-      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    def notebook_reset(req)
+      let draft = App.notebook_draft(req)
+      let page = notebook_runtime.reset_page_session(draft)
+      HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
     end
 
-    def notebookAgent(req)
-      let draft = App.notebookDraft(req)
+    def notebook_agent(req)
+      let draft = App.notebook_draft(req)
       let form = req.form()
-      let messageValue = Kernel.try(->() { form.get("message") })
-      let outcome = notebook_runtime.agentTurn(draft, if messageValue.ok then messageValue.value else "" end)
-      HttpResponse.html(views.NotebookView.page(outcome.page, notebook_store.listPages(), false, outcome.reply), 200)
+      let message_value = Kernel.try(->() { form.get("message") })
+      let outcome = notebook_runtime.agent_turn(draft, if message_value.ok then message_value.value else "" end)
+      HttpResponse.html(views.notebook_view.page(outcome.page, notebook_store.list_pages(), false, outcome.reply), 200)
     end
 
-    def notebookAgentReset(req)
-      let draft = App.notebookDraft(req)
-      let page = notebook_runtime.resetAgent(draft)
-      HttpResponse.html(views.NotebookView.page(page, notebook_store.listPages(), false, false), 200)
+    def notebook_agent_reset(req)
+      let draft = App.notebook_draft(req)
+      let page = notebook_runtime.reset_agent(draft)
+      HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
     end
 
-    def notebookDraft(req)
+    def notebook_draft(req)
       let form = req.form()
-      notebook_store.saveDraft(App.notebookIdFromForm(form), App.notebookTitle(form), App.notebookBlocks(form))
+      notebook_store.save_draft(App.notebook_id_from_form(form), App.notebook_title(form), App.notebook_blocks(form))
     end
 
-    def currentNotebookPage(req)
-      let maybeId = Kernel.try(->() { req.query.get("id") })
-      if maybeId.ok then
-        notebook_store.currentPage(maybeId.value)
+    def current_notebook_page(req)
+      let maybe_id = Kernel.try(->() { req.query.get("id") })
+      if maybe_id.ok then
+        notebook_store.current_page(maybe_id.value)
       else
-        notebook_store.currentPage()
+        notebook_store.current_page()
       end
     end
 
-    def notebookIdFromForm(form)
+    def notebook_id_from_form(form)
       let value = Kernel.try(->() { form.get("id") })
       if value.ok then value.value else false end
     end
 
-    def notebookTitle(form)
+    def notebook_title(form)
       let value = Kernel.try(->() { form.get("title") })
       if value.ok then value.value else "Untitled notebook page" end
     end
 
-    def notebookBlocks(form)
+    def notebook_blocks(form)
       let value = Kernel.try(->() { form.get("blocks") })
       if value.ok then value.value else false end
     end

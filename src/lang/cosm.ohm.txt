@@ -27,10 +27,10 @@ Cosm {
     = "." name
 
   ClassStmt
-    = kw_class ident ClassSuper? DoOpt ClassBody kw_end
+    = kw_class const_name ClassSuper? DoOpt ClassBody kw_end
 
   ClassSuper
-    = "<" ident
+    = "<" const_name
 
   ClassBody
     = ClassMember*
@@ -49,14 +49,22 @@ Cosm {
     = ClassMetaDefStmt ";"?
 
   ClassMetaDefStmt
-    = kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end
+    = kw_def ident "(" ParamList? ")" "=" Exp                       -- inline_params
+    | kw_def ident "=" Exp                                          -- inline
+    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end   -- block
 
   ClassDefStmt
-    = kw_def kw_self "." ident "(" ParamList? ")" DoOpt StatementList kw_end  -- class
+    = kw_def kw_self "." ident "(" ParamList? ")" "=" Exp                     -- class_inline_params
+    | kw_def kw_self "." ident "=" Exp                                        -- class_inline
+    | kw_def kw_self "." ident "(" ParamList? ")" DoOpt StatementList kw_end  -- class
+    | kw_def ident "(" ParamList? ")" "=" Exp                                 -- instance_inline_params
+    | kw_def ident "=" Exp                                                    -- instance_inline
     | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end              -- instance
 
   DefStmt
-    = kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end
+    = kw_def ident "(" ParamList? ")" "=" Exp   -- inline_params
+    | kw_def ident "=" Exp                      -- inline
+    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end  -- block
 
   LetStmt
     = kw_let ident "=" Exp
@@ -286,6 +294,9 @@ Cosm {
 
   name
     = identStart identRest*
+
+  const_name
+    = upper identRest*
 
   identStart
     = letter

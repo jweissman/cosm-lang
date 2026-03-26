@@ -121,7 +121,7 @@ def handle_inbound(inbound, event_key)
       ok: true,
       replied: true,
       command: turn.command,
-      session_name: turn.conversation.sessionName
+      session_name: turn.conversation.session_name
     }, 200)
   else
     let message = turn.command == false ? "[slack] outbound failure for thread " + inbound.thread + ": " + posted.error : "[slack] outbound failure for command " + turn.command + ": " + posted.error
@@ -201,7 +201,7 @@ def extract_inbound(payload)
             text: text.value,
             ts: ts.value
           }
-          models.InboundMessage.validate(value)
+          models.inbound_message.validate(value)
           value
         end
       end
@@ -220,48 +220,4 @@ end
 
 def api_url()
   config.slack_api_url()
-end
-
-def slackConfig()
-  slack_config()
-end
-
-def healthPayload(path)
-  health_payload(path)
-end
-
-def readyPayload(path)
-  ready_payload(path)
-end
-
-def statusPayload(path)
-  status_payload(path)
-end
-
-def verifyRequest(req)
-  verify_request(req)
-end
-
-def urlVerification(payload)
-  url_verification(payload)
-end
-
-def extractInbound(payload)
-  extract_inbound(payload)
-end
-
-def eventKey(payload, inbound)
-  event_key(payload, inbound)
-end
-
-def handleInbound(inbound, eventKey)
-  handle_inbound(inbound, eventKey)
-end
-
-def postReply(conversation, text)
-  post_reply(conversation, text)
-end
-
-def apiUrl()
-  api_url()
 end

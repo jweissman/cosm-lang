@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.11
+## Current Release Target: 0.3.13.12
 
-`0.3.13.11` is now best read as a cleanup-and-legibility slice on top of the persistent notebook, OO cleanup, and separate Slack DM service work:
+`0.3.13.12` is now best read as a cleanup-and-legibility slice on top of the persistent notebook, OO cleanup, and separate Slack DM service work:
 
 - keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
 - make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
@@ -62,7 +62,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Reflective class access through `classes`.
 - Ambient reflective service objects through `Kernel` and `cosm`, with `Kernel` backed by its own reflective class and reflective roots like `cosm` / `classes` using a named `Namespace` class.
 - A first reflective `Module` runtime object, with `cosm.test` and `cosm.modules.test` now modeled as real module objects rather than loose namespaces.
-- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`, and `require(...)` may now be used as an expression so explicit bindings like `let slack = require("agent/slack.cosm")` are the preferred style. In `0.3.13.11`, basename auto-injection remains only as a compatibility path for one patch line. `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
+- Local `.cosm` files can now be loaded as reflective `Module` objects through `require("path/to/file.cosm")`, and `require(...)` may now be used as an expression so explicit bindings like `let slack = require("agent/slack.cosm")` are the preferred style. In `0.3.13.12`, basename auto-injection remains only as a compatibility path for one patch line. `.ecosm` files also load through `require(...)` as renderable module objects, which gives the app layer a cleaner `app/views/...` template boundary without introducing a framework.
 - `.ecosm` templates now support both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation, plus a narrow single-slot layout composition path through `yield()`, aligned with the same narrow block-invocation concept now available in ordinary Cosm code.
 - A minimal `cosm --watch <file>` / `cosm watch <file>` CLI loop for restarting long-running entry files like `app/server.cosm` when the target file changes, plus clearer CLI usage/help and loud failures on unknown switches.
 - Class-table reflective method surfaces still appear as `Namespace`-style objects rather than anonymous bags, which keeps class reflection consistent with the rest of the runtime while receiver-side `methods()` stays simpler.
@@ -114,7 +114,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.13.11 Definition Of Done
+## v0.3.13.12 Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.

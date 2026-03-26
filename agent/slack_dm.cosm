@@ -33,7 +33,7 @@ def run(argv = false)
     if result.ok then
       let ts_text = result.ts == false ? "(none)" : result.ts
       puts("ok")
-      puts("channel_id: " + result.channel)
+      puts("channel_id: " + result.channel_id)
       puts("ts: " + ts_text)
       result
     else
@@ -41,8 +41,4 @@ def run(argv = false)
       Process.exit(1)
     end
   end
-end
-
-def argsFrom(argv)
-  args_from(argv)
 end

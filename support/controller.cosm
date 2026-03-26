@@ -2,7 +2,7 @@ let agent = require("support/agent.cosm")
 let models = require("support/models.cosm")
 
 def append_message(conversation, role, text)
-  models.Conversation.validate(conversation)
+  models.conversation.validate(conversation)
   let entry = { role: role, text: text }
   let messages = conversation.messages.append(entry)
   let value = {
@@ -10,20 +10,20 @@ def append_message(conversation, role, text)
     channel: conversation.channel,
     thread: conversation.thread,
     messages: messages,
-    sessionName: conversation.sessionName,
-    sessionLength: messages.length,
+    session_name: conversation.session_name,
+    session_length: messages.length,
     transcript: conversation.transcript,
     context: conversation.context,
-    createdAt: conversation.createdAt,
-    updatedAt: Time.isoNow()
+    created_at: conversation.created_at,
+    updated_at: Time.isoNow()
   }
-  models.Conversation.validate(value)
+  models.conversation.validate(value)
   value
 end
 
 def append_user_message(conversation, inbound)
-  models.Conversation.validate(conversation)
-  models.InboundMessage.validate(inbound)
+  models.conversation.validate(conversation)
+  models.inbound_message.validate(inbound)
   let entry = { role: "user", user: inbound.user, text: inbound.text, ts: inbound.ts }
   let messages = conversation.messages.append(entry)
   let value = {
@@ -31,14 +31,14 @@ def append_user_message(conversation, inbound)
     channel: conversation.channel,
     thread: conversation.thread,
     messages: messages,
-    sessionName: conversation.sessionName,
-    sessionLength: messages.length,
+    session_name: conversation.session_name,
+    session_length: messages.length,
     transcript: conversation.transcript,
     context: conversation.context,
-    createdAt: conversation.createdAt,
-    updatedAt: Time.isoNow()
+    created_at: conversation.created_at,
+    updated_at: Time.isoNow()
   }
-  models.Conversation.validate(value)
+  models.conversation.validate(value)
   value
 end
 
@@ -49,14 +49,14 @@ def cli_conversation(messages)
     channel: "cli",
     thread: "cli",
     messages: messages,
-    sessionName: "iapetus-cli",
-    sessionLength: messages.length,
+    session_name: "iapetus-cli",
+    session_length: messages.length,
     transcript: false,
     context: false,
-    createdAt: now,
-    updatedAt: now
+    created_at: now,
+    updated_at: now
   }
-  models.Conversation.validate(value)
+  models.conversation.validate(value)
   value
 end
 
@@ -67,54 +67,40 @@ def page_conversation(key, transcript, context = false)
     channel: "web",
     thread: key,
     messages: [],
-    sessionName: "iapetus-page",
-    sessionLength: 0,
+    session_name: "iapetus-page",
+    session_length: 0,
     transcript: transcript,
     context: context,
-    createdAt: now,
-    updatedAt: now
+    created_at: now,
+    updated_at: now
   }
-  models.Conversation.validate(value)
+  models.conversation.validate(value)
   value
 end
 
 def cli_inbound(text)
-  let value = {
-    channel: "cli",
-    thread: "cli",
-    user: "you",
-    text: text,
-    ts: "cli"
-  }
-  models.InboundMessage.validate(value)
+  let value = { channel: "cli", thread: "cli", user: "you", text: text, ts: "cli" }
+  models.inbound_message.validate(value)
   value
 end
 
 def page_inbound(key, text)
-  let value = {
-    channel: "web",
-    thread: key,
-    user: "visitor",
-    text: text,
-    ts: key
-  }
-  models.InboundMessage.validate(value)
+  let value = { channel: "web", thread: key, user: "visitor", text: text, ts: key }
+  models.inbound_message.validate(value)
   value
 end
 
-def current_transcript(conversation)
-  conversation.transcript == false ? agent.transcript_from_conversation(conversation) : conversation.transcript
-end
+def current_transcript(conversation) = conversation.transcript == false ? agent.transcript_from_conversation(conversation) : conversation.transcript;
 
 def reply(conversation, inbound)
-  models.Conversation.validate(conversation)
-  models.InboundMessage.validate(inbound)
+  models.conversation.validate(conversation)
+  models.inbound_message.validate(inbound)
   conversation.context == false ? agent.reply_for_transcript(current_transcript(conversation), inbound.text) : agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context)
 end
 
 def stream_reply(conversation, inbound)
-  models.Conversation.validate(conversation)
-  models.InboundMessage.validate(inbound)
+  models.conversation.validate(conversation)
+  models.inbound_message.validate(inbound)
   if conversation.context == false then
     agent.stream_reply_for_transcript(current_transcript(conversation), inbound.text) do |event|
       yield(event)
@@ -136,22 +122,20 @@ def next_conversation(conversation, inbound, reply)
   end
 end
 
-def display_transcript(conversation)
-  current_transcript(conversation)
-end
+def display_transcript(conversation) = current_transcript(conversation);
 
 def command_reply(conversation, command)
-  models.Conversation.validate(conversation)
-  let text = command == "help" ? "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory." : (command == "reset" ? "Thread memory cleared. The next DM starts from a clean transcript and named session." : (command == "status" ? "This DM thread is using `" + conversation.sessionName + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread." : "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."))
-  let value = { shouldReply: true, text: text, rationale: "meta", toolCalls: false, toolResults: false }
-  models.AgentReply.validate(value)
+  models.conversation.validate(conversation)
+  let text = command == "help" ? "Iapetus is a DM-first persistent support assistant. Send a normal message to chat, `reset` to clear this thread, or `status` to inspect the current thread memory." : (command == "reset" ? "Thread memory cleared. The next DM starts from a clean transcript and named session." : (command == "status" ? "This DM thread is using `" + conversation.session_name + "` with " + conversation.messages.length.to_s() + " stored messages. Send `reset` to clear just this thread." : "I can chat in this DM and keep thread-local memory. Send `help`, `status`, or `reset`."))
+  let value = { should_reply: true, text: text, rationale: "meta", tool_calls: false, tool_results: false }
+  models.agent_reply.validate(value)
   value
 end
 
 def turn(conversation, inbound)
   let next_reply = reply(conversation, inbound)
   let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
-  models.ControllerTurn.validate(value)
+  models.controller_turn.validate(value)
   value
 end
 
@@ -160,66 +144,10 @@ def stream_turn(conversation, inbound)
     yield(event)
   end
   let value = { conversation: next_conversation(conversation, inbound, next_reply), inbound: inbound, reply: next_reply }
-  models.ControllerTurn.validate(value)
+  models.controller_turn.validate(value)
   value
 end
 
-def handle(conversation, inbound)
-  turn(conversation, inbound).reply
-end
+def handle(conversation, inbound) = turn(conversation, inbound).reply;
 
-def fallback(conversation, inbound, error_message)
-  agent.fallback(conversation, inbound, error_message)
-end
-
-def appendMessage(conversation, role, text)
-  append_message(conversation, role, text)
-end
-
-def appendUserMessage(conversation, inbound)
-  append_user_message(conversation, inbound)
-end
-
-def cliConversation(messages)
-  cli_conversation(messages)
-end
-
-def pageConversation(key, transcript, context = false)
-  page_conversation(key, transcript, context)
-end
-
-def cliInbound(text)
-  cli_inbound(text)
-end
-
-def pageInbound(key, text)
-  page_inbound(key, text)
-end
-
-def streamReply(conversation, inbound)
-  stream_reply(conversation, inbound) do |event|
-    yield(event)
-  end
-end
-
-def nextConversation(conversation, inbound, reply)
-  next_conversation(conversation, inbound, reply)
-end
-
-def currentTranscript(conversation)
-  current_transcript(conversation)
-end
-
-def displayTranscript(conversation)
-  display_transcript(conversation)
-end
-
-def commandReply(conversation, command)
-  command_reply(conversation, command)
-end
-
-def streamTurn(conversation, inbound)
-  stream_turn(conversation, inbound) do |event|
-    yield(event)
-  end
-end
+def fallback(conversation, inbound, error_message) = agent.fallback(conversation, inbound, error_message);

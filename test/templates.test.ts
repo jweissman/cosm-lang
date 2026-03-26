@@ -44,8 +44,8 @@ test(".ecosm templates still interpolate explicit context bindings", () => {
 });
 
 test(".ecosm templates support preferred <%= ... %> interpolation while keeping #{...}", () => {
-  expect(cosmEval('require("app/views/layout/page.ecosm"); page.render({ title: "Demo", extraHead: "<meta name=\\"x\\" content=\\"1\\">", extraScript: "<script>ok</script>" }, "<main>Body</main>")')).toContain("<title>Demo</title>");
-  expect(cosmEval('require("app/notebook.cosm"); require("app/examples.cosm"); notebook.NotebookExamples.card(examples.receiverReflection())')).toContain("Receiver reflection");
+  expect(cosmEval('require("app/views/layout/page.ecosm"); page.render({ title: "Demo", extra_head: "<meta name=\\"x\\" content=\\"1\\">", extra_script: "<script>ok</script>" }, "<main>Body</main>")')).toContain("<title>Demo</title>");
+  expect(cosmEval('require("app/notebook.cosm"); require("app/examples.cosm"); notebook.NotebookExamples.card(examples.receiver_reflection())')).toContain("Receiver reflection");
   expect(cosmEval('require("app/notebook.cosm"); notebook.NotebookExamples.markup()')).toContain("Method names first");
 });
 
@@ -53,7 +53,7 @@ test(".ecosm layout templates can render child content through yield", () => {
   const rendered = cosmEval(`
     require("app/views/index.cosm")
     require("app/views/notebook/result.ecosm")
-    views.HtmlView.renderLayout("Demo", result, { inspect: "42" }, "", "")
+    views.html_view.render_layout("Demo", result, { inspect: "42" }, "", "")
   `);
   expect(rendered).toContain("<!doctype html>");
   expect(rendered).toContain("<title>Demo</title>");
@@ -63,13 +63,13 @@ test(".ecosm layout templates can render child content through yield", () => {
 test(".ecosm layout yield no longer hijacks ordinary context keys", () => {
   expect(cosmEval(`
     require("app/views/layout/page.ecosm")
-    page.render({ title: "Demo", extraHead: "", extraScript: "", bodyLabel: "context-body" }, "<div>body</div>")
+    page.render({ title: "Demo", extra_head: "", extra_script: "", body_label: "context-body" }, "<div>body</div>")
   `)).toContain("body");
 
   expect(cosmEval(`
     require("test/fixtures/template_context.ecosm")
     class TemplateContext
-      def init(bodyLabel, __yield__)
+      def init(body_label, __yield__)
         true
       end
     end

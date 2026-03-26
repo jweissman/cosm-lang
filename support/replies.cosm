@@ -1,11 +1,9 @@
 let models = require("support/models.cosm")
 
 def text(text, rationale)
-  let reply = { shouldReply: true, text: text, rationale: rationale, toolCalls: false, toolResults: false }
-  models.AgentReply.validate(reply)
-  reply
+  let value = { should_reply: true, text: text, rationale: rationale, tool_calls: false, tool_results: false }
+  models.agent_reply.validate(value)
+  value
 end
 
-def unavailable(error_message)
-  text("I hit a support-agent hiccup while handling that DM. Please try again in a bit.", error_message)
-end
+def unavailable(error_message) = text("I hit a support-agent hiccup while handling that DM. Please try again in a bit.", error_message);

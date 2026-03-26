@@ -20,17 +20,17 @@ let assistant = {
   text: inbound.text
 }
 
-let nextMessages = conversation.messages.append(assistant)
-let nextConversation = {
+let next_messages = conversation.messages.append(assistant)
+let next_conversation = {
   key: conversation.key,
   channel: conversation.channel,
   thread: conversation.thread,
-  messages: nextMessages,
+  messages: next_messages,
   sessionName: conversation.sessionName,
-  sessionLength: nextMessages.length
+  sessionLength: next_messages.length
 }
 
-if nextConversation.sessionLength == 2 then
+if next_conversation.sessionLength == 2 then
   assistant.text
 else
   "bad-state"

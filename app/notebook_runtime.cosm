@@ -1,17 +1,15 @@
-require("app/notebook_store.cosm")
-require("support/controller.cosm")
-require("cosm/workflow.cosm")
-require("agent/runtime.cosm")
+let notebook_store = require("app/notebook_store.cosm")
+let controller = require("support/controller.cosm")
+let workflow = require("cosm/workflow.cosm")
+let agent_runtime = require("agent/runtime.cosm")
 
-def sessionName(page)
+def session_name(page)
   "notebook-page:" + page.id
 end
 
-def sessionFor(page)
-  Session.named(sessionName(page))
-end
+def session_for(page) = Session.named(session_name(page));
 
-def runBlock(session, block)
+def run_block(session, block)
   if block.kind == "markdown" then
     {
       kind: "markdown",
@@ -34,7 +32,7 @@ def runBlock(session, block)
   end
 end
 
-def finalResult(results)
+def final_result(results)
   results.reduce(false, ->(acc, result) {
     if result.kind == "cosm" then
       result
@@ -44,7 +42,7 @@ def finalResult(results)
   })
 end
 
-def executionSummary(results)
+def execution_summary(results)
   let lines = results.reject(->(result) { result.kind != "cosm" }).map(->(result) {
     if result.ok then
       "ok: " + result.rendered
@@ -59,13 +57,13 @@ def executionSummary(results)
   end
 end
 
-def runPage(page)
-  let session = sessionFor(page)
+def run_page(page)
+  let session = session_for(page)
   let steps = page.blocks.map(->(block) {
-    workflow.step(block.kind, ->() { runBlock(session, block) })
+    workflow.step(block.kind, ->() { run_block(session, block) })
   })
-  let stepResults = workflow.run(steps)
-  let results = stepResults.map(->(entry) {
+  let step_results = workflow.run(steps)
+  let results = step_results.map(->(entry) {
     if entry.ok then
       entry.value
     else
@@ -79,41 +77,39 @@ def runPage(page)
       }
     end
   })
-  let summary = executionSummary(results)
-  let savedPage = notebook_store.saveExecution(page, summary)
+  let summary = execution_summary(results)
+  let saved_page = notebook_store.save_execution(page, summary)
   {
-    page: savedPage,
+    page: saved_page,
     session: session,
     results: results,
-    finalResult: finalResult(results),
+    final_result: final_result(results),
     summary: summary
   }
 end
 
-def resetPageSession(page)
-  sessionFor(page).reset()
-  notebook_store.saveExecution(page, false)
+def reset_page_session(page)
+  session_for(page).reset()
+  notebook_store.save_execution(page, false)
 end
 
-def agentContext(page)
-  let blockSummary = page.blocks.map(->(block) {
+def agent_context(page)
+  let block_summary = page.blocks.map(->(block) {
     "[" + block.kind + "]\n" + block.content
   }).join("\n\n")
-  let execution = if page.lastExecutionSummary == false then "No execution has run yet." else page.lastExecutionSummary end
-  "Notebook title: " + page.title + "\n\nBlocks:\n" + blockSummary + "\n\nRecent execution:\n" + execution
+  let execution = if page.last_execution_summary == false then "No execution has run yet." else page.last_execution_summary end
+  "Notebook title: " + page.title + "\n\nBlocks:\n" + block_summary + "\n\nRecent execution:\n" + execution
 end
 
-def attachedConversation(page)
-  controller.pageConversation(page.agentKey, if page.agentTranscript == false then "" else page.agentTranscript end, agentContext(page))
+def attached_conversation(page)
+  controller.page_conversation(page.agent_key, if page.agent_transcript == false then "" else page.agent_transcript end, agent_context(page))
 end
 
-def agentTurn(page, message)
-  let inbound = controller.pageInbound(page.agentKey, message)
-  let turn = runtime.executeTurn(attachedConversation(page), inbound)
-  let savedPage = notebook_store.saveTranscript(page, turn.conversation.transcript)
-  { page: savedPage, reply: turn.reply }
+def agent_turn(page, message)
+  let inbound = controller.page_inbound(page.agent_key, message)
+  let turn = agent_runtime.execute_turn(attached_conversation(page), inbound)
+  let saved_page = notebook_store.save_transcript(page, turn.conversation.transcript)
+  { page: saved_page, reply: turn.reply }
 end
 
-def resetAgent(page)
-  notebook_store.saveTranscript(page, "")
-end
+def reset_agent(page) = notebook_store.save_transcript(page, "");

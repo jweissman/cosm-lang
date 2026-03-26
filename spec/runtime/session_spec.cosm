@@ -2,12 +2,12 @@ require("cosm/spec.cosm")
 
 spec.suite("Session", ->() {
   spec.it("default session stays explicit", ->() {
-    spec.assertEqual(Session.default().name, "default")
-    spec.assertEqual(Kernel.session().name, "default")
+    spec.assert_equal(Session.default().name, "default")
+    spec.assert_equal(Kernel.session().name, "default")
   })
   spec.it("eval helpers stay structured", ->() {
     assert(Kernel.tryEval("1 + 2").ok == true)
-    spec.assertEqual(Kernel.tryEval("1 + 2").inspect, "3")
+    spec.assert_equal(Kernel.tryEval("1 + 2").inspect, "3")
   })
 })
 

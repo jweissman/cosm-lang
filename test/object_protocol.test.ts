@@ -179,7 +179,7 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval("[1].one()")).toBe(true);
   expect(cosmEval("[1, 2, 3].filter(->(value) { value > 1 })")).toEqual([2, 3]);
   expect(cosmEval("[1, false, 3].compact()")).toEqual([1, 3]);
-  expect(cosmEval("[1, 2].flatMap(->(value) { [value, value + 10] })")).toEqual([1, 11, 2, 12]);
+  expect(cosmEval("[1, 2].flat_map(->(value) { [value, value + 10] })")).toEqual([1, 11, 2, 12]);
   expect(cosmEval("[1, 2, 3].sum()")).toBe(6);
   expect(cosmEval("[1, 2, 3].first()")).toBe(1);
   expect(cosmEval('[1, 2, 3].find(->(value) { value > 1 })')).toBe(2);

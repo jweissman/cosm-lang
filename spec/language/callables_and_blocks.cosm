@@ -1,8 +1,8 @@
 ## Blocks, functions, missing-method fallback, and yield
 
 assert(do let x = 1; x + 2 end == 3, "blocks return their last value");
-let letShadow = do let greeting = "inner"; greeting end;
-assert(letShadow == "inner", "blocks can create inner locals");
+let shadowed_greeting = do let greeting = "inner"; greeting end;
+assert(shadowed_greeting == "inner", "blocks can create inner locals");
 let greeting = "hello";
 assert(greeting == "hello", "outer local survives block shadowing");
 assert((if true then "yes" else "no" end) == "yes", "if picks the true branch");
@@ -22,14 +22,14 @@ def greet(name) do
   "hello " + name
 end;
 assert(greet("cosm") == "hello cosm", "def introduces named functions");
-def defaultGreet(name = "cosm") do
+def default_greet(name = "cosm") do
   "hello " + name
 end;
-assert(defaultGreet() == "hello cosm", "defs can use default arguments");
-assert(defaultGreet("runtime") == "hello runtime", "defs can override default arguments");
-let defaultJoin = ->(left, right = "sm") { left + right };
-assert(defaultJoin("co") == "cosm", "lambdas can use default arguments");
-assert(defaultJoin("co", "dex") == "codex", "lambdas can override default arguments");
+assert(default_greet() == "hello cosm", "defs can use default arguments");
+assert(default_greet("runtime") == "hello runtime", "defs can override default arguments");
+let default_join = ->(left, right = "sm") { left + right };
+assert(default_join("co") == "cosm", "lambdas can use default arguments");
+assert(default_join("co", "dex") == "codex", "lambdas can override default arguments");
 
 class ImplicitDispatch do
   def greet(name) do
@@ -52,19 +52,19 @@ end;
 assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallback can handle explicit sends");
 assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
 
-def withBlock(value) do
+def with_block(value) do
   yield(value + 1)
 end;
-assert(withBlock(41) do |value| value end == 42, "yield can invoke the current trailing block with arguments");
+assert(with_block(41) do |value| value end == 42, "yield can invoke the current trailing block with arguments");
 
-def nestedYield() do
+def nested_yield() do
   let inner = ->() { yield("nested") };
   inner()
 end;
-assert(nestedYield() do |label| label end == "nested", "nested calls preserve the current block context");
+assert(nested_yield() do |label| label end == "nested", "nested calls preserve the current block context");
 assert(Kernel.try(->() { yield() }).error.message == "Block error: yield called without a current block", "yield fails clearly when no current block exists");
 
-def yieldOne()
+def forward_block_value()
   yield(41)
 end
-assert((yieldOne() do |value| value + 1 end) == 42, "yield can forward arguments into the current trailing block");
+assert((forward_block_value() do |value| value + 1 end) == 42, "yield can forward arguments into the current trailing block");

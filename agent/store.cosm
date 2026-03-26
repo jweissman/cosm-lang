@@ -1,36 +1,27 @@
 let models = require("support/models.cosm")
 let config = require("agent/config.cosm")
 
-let AgentThreadRecord = Data.model("AgentThreadRecord", {
-  conversation: models.Conversation,
-  processedEvents: Data.array(Data.string())
+let agent_thread_record = Data.model("agent_thread_record", {
+  conversation: models.conversation,
+  processed_events: Data.array(Data.string())
 })
 
-def storage_dir()
-  config.slack_storage_dir()
-end
+def storage_dir = config.slack_storage_dir();
 
-def ready_probe_path()
-  storage_dir() + "/.ready"
-end
+def ready_probe_path = storage_dir() + "/.ready";
 
-def record_path(key)
-  storage_dir() + "/" + Kernel.hmacSha256("cosm-agent-store", key) + ".json"
-end
+def record_path(key) = storage_dir() + "/" + Kernel.hmacSha256("cosm-agent-store", key) + ".json";
 
 def record(conversation, processed_events = [])
-  let value = {
-    conversation: conversation,
-    processedEvents: processed_events
-  }
-  AgentThreadRecord.validate(value)
+  let value = { conversation: conversation, processed_events: processed_events }
+  agent_thread_record.validate(value)
   value
 end
 
 def load_record(key)
   if Kernel.exists(record_path(key)) then
     let value = Kernel.parseJson(Kernel.readText(record_path(key)))
-    AgentThreadRecord.validate(value)
+    agent_thread_record.validate(value)
     value
   else
     false
@@ -38,7 +29,7 @@ def load_record(key)
 end
 
 def save_record(key, value)
-  AgentThreadRecord.validate(value)
+  agent_thread_record.validate(value)
   Kernel.writeText(record_path(key), Kernel.json(value))
   value
 end
@@ -46,9 +37,8 @@ end
 def save_conversation(conversation)
   let key = conversation.key
   let loaded = load_record(key)
-  let processed = loaded == false ? [] : loaded.processedEvents
-  let value = record(conversation, processed)
-  save_record(key, value)
+  let processed_events = loaded == false ? [] : loaded.processed_events
+  save_record(key, record(conversation, processed_events))
 end
 
 def processed(key, event_key)
@@ -56,7 +46,7 @@ def processed(key, event_key)
   if loaded == false then
     false
   else
-    loaded.processedEvents.find(->(entry) { entry == event_key }) != false
+    loaded.processed_events.find(->(entry) { entry == event_key }) != false
   end
 end
 
@@ -64,56 +54,20 @@ def next_processed_events(loaded, event_key)
   if loaded == false then
     [event_key]
   else
-    if loaded.processedEvents.find(->(entry) { entry == event_key }) != false then
-      loaded.processedEvents
+    if loaded.processed_events.find(->(entry) { entry == event_key }) != false then
+      loaded.processed_events
     else
-      loaded.processedEvents.append(event_key)
+      loaded.processed_events.append(event_key)
     end
   end
 end
 
 def mark_processed(conversation, event_key)
   let loaded = load_record(conversation.key)
-  let processed = next_processed_events(loaded, event_key)
-  let value = record(conversation, processed)
-  save_record(conversation.key, value)
+  save_record(conversation.key, record(conversation, next_processed_events(loaded, event_key)))
 end
 
 def writable()
-  let outcome = Kernel.try(->() {
-    Kernel.writeText(ready_probe_path(), Time.isoNow())
-  })
+  let outcome = Kernel.try(->() { Kernel.writeText(ready_probe_path(), Time.isoNow()) })
   outcome.ok
-end
-
-def storageDir()
-  storage_dir()
-end
-
-def readyProbePath()
-  ready_probe_path()
-end
-
-def recordPath(key)
-  record_path(key)
-end
-
-def loadRecord(key)
-  load_record(key)
-end
-
-def saveRecord(key, value)
-  save_record(key, value)
-end
-
-def saveConversation(conversation)
-  save_conversation(conversation)
-end
-
-def nextProcessedEvents(loaded, eventKey)
-  next_processed_events(loaded, eventKey)
-end
-
-def markProcessed(conversation, eventKey)
-  mark_processed(conversation, eventKey)
 end

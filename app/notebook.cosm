@@ -1,149 +1,149 @@
-require("app/rendering.cosm")
-require("app/examples.cosm")
-require("app/notebook_store.cosm")
-require("app/notebook_runtime.cosm")
+let rendering = require("app/rendering.cosm")
+let examples = require("app/examples.cosm")
+let notebook_store = require("app/notebook_store.cosm")
+let notebook_runtime = require("app/notebook_runtime.cosm")
 
 class NotebookExamples
   class << self
-    def exampleSectionTemplate()
+    def example_section_template()
       require("app/views/notebook/examples.ecosm")
     end
 
-    def exampleCategoryTemplate()
+    def example_category_template()
       require("app/views/notebook/example_category.ecosm")
     end
 
-    def exampleCardTemplate()
+    def example_card_template()
       require("app/views/notebook/example_card.ecosm")
     end
 
-    def reflectionMarkup()
-      category("Reflection", "Method names first, method objects second, and ordinary runtime reflection through live values.", card(examples.mathReflection()) + card(examples.receiverReflection()) + card(examples.methodLookup()))
+    def reflection_markup()
+      category("Reflection", "Method names first, method objects second, and ordinary runtime reflection through live values.", card(examples.math_reflection()) + card(examples.receiver_reflection()) + card(examples.method_lookup()))
     end
 
-    def dispatchMarkup()
-      category("Dispatch", "Explicit helper dispatch stays available when you already have a receiver value.", card(examples.dispatchHelper()))
+    def dispatch_markup()
+      category("Dispatch", "Explicit helper dispatch stays available when you already have a receiver value.", card(examples.dispatch_helper()))
     end
 
-    def dataMarkup()
-      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(examples.dataModel()) + card(examples.schemaExport()) + card(examples.scalarCasts()))
+    def data_markup()
+      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(examples.data_model()) + card(examples.schema_export()) + card(examples.scalar_casts()))
     end
 
-    def collectionsMarkup()
-      category("Collections", "Enumerable-style helpers now make small Cosm-authored transforms clearer without broadening the language surface.", card(examples.enumerableReduce()) + card(examples.enumerableFilter()))
+    def collections_markup()
+      category("Collections", "Enumerable-style helpers now make small Cosm-authored transforms clearer without broadening the language surface.", card(examples.enumerable_reduce()) + card(examples.enumerable_filter()))
     end
 
-    def aiMarkup()
-      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.promptObject()) + card(examples.aiStatus()) + card(examples.aiHealth()) + card(examples.aiCastHelper()) + card(examples.supportAgentPreview()) + card(examples.promptData()))
+    def ai_markup()
+      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through cosm.ai and Cosm-authored modules.", card(examples.prompt_object()) + card(examples.ai_status()) + card(examples.ai_health()) + card(examples.ai_cast_helper()) + card(examples.support_agent_preview()) + card(examples.prompt_data()))
     end
 
-    def supportMarkup()
-      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and the Slack service remains a thin adapter.", card(examples.supportChatStep()) + card(examples.supportStepModel()) + card(examples.supportPage()))
+    def support_markup()
+      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and the Slack service remains a thin adapter.", card(examples.support_chat_step()) + card(examples.support_step_model()) + card(examples.support_page()))
     end
 
-    def notebookMarkup()
-      category("Notebook", "Persistent block pages, page-scoped sessions, and small ordered workflow helpers make the notebook the main wedge in this slice.", card(examples.notebookPage()) + card(examples.workflowRun()) + card(examples.namedSession()))
+    def notebook_markup()
+      category("Notebook", "Persistent block pages, page-scoped sessions, and small ordered workflow helpers make the notebook the main wedge in this slice.", card(examples.notebook_page()) + card(examples.workflow_run()) + card(examples.named_session()))
     end
 
-    def servicesMarkup()
-      category("Services", "The service layer stays object-first and deliberately small.", card(examples.routerSketch()))
+    def services_markup()
+      category("Services", "The service layer stays object-first and deliberately small.", card(examples.router_sketch()))
     end
 
     def markup()
-      rendering.HtmlView.render(exampleSectionTemplate(), { groups: reflectionMarkup() + dispatchMarkup() + dataMarkup() + collectionsMarkup() + aiMarkup() + supportMarkup() + notebookMarkup() + servicesMarkup() })
+      rendering.HtmlView.render(example_section_template(), { groups: reflection_markup() + dispatch_markup() + data_markup() + collections_markup() + ai_markup() + support_markup() + notebook_markup() + services_markup() })
     end
 
     def category(title, description, cards)
-      rendering.HtmlView.render(exampleCategoryTemplate(), { title: rendering.HtmlView.escape(title), description: rendering.HtmlView.escape(description), cards: cards })
+      rendering.HtmlView.render(example_category_template(), { title: rendering.HtmlView.escape(title), description: rendering.HtmlView.escape(description), cards: cards })
     end
 
     def card(example)
-      rendering.HtmlView.render(exampleCardTemplate(), { category: rendering.HtmlView.escape(example.category), title: rendering.HtmlView.escape(example.title), description: rendering.HtmlView.escape(example.description), code: rendering.HtmlView.escape(example.code) })
+      rendering.HtmlView.render(example_card_template(), { category: rendering.HtmlView.escape(example.category), title: rendering.HtmlView.escape(example.title), description: rendering.HtmlView.escape(example.description), code: rendering.HtmlView.escape(example.code) })
     end
   end
 end
 
 class NotebookView
   class << self
-    def pageTemplate()
+    def page_template()
       require("app/views/notebook/page.ecosm")
     end
 
-    def scriptTemplate()
+    def script_template()
       require("app/views/notebook/script.ecosm")
     end
 
-    def emptyTemplate()
+    def empty_template()
       require("app/views/notebook/empty.ecosm")
     end
 
-    def resultTemplate()
+    def result_template()
       require("app/views/notebook/result.ecosm")
     end
 
-    def errorTemplate()
+    def error_template()
       require("app/views/notebook/error.ecosm")
     end
 
-    def page(currentPage, pages, execution = false, reply = false)
-      let session = notebook_runtime.sessionFor(currentPage)
-      rendering.HtmlView.renderLayout("Cosm Notebook", pageTemplate(), {
-        pageId: rendering.HtmlView.escape(currentPage.id),
-        pageTitle: rendering.HtmlView.escape(currentPage.title),
-        blocksMarkup: blocksMarkup(currentPage),
-        blocksJson: rendering.HtmlView.escape(Kernel.json(currentPage.blocks)),
-        pageListMarkup: pageListMarkup(pages, currentPage),
-        output: resultsMarkup(execution),
-        assistantMarkup: assistantMarkup(currentPage, reply),
+    def page(current_page, pages, execution = false, reply = false)
+      let session = notebook_runtime.session_for(current_page)
+      rendering.HtmlView.render_layout("Cosm Notebook", page_template(), {
+        page_id: rendering.HtmlView.escape(current_page.id),
+        page_title: rendering.HtmlView.escape(current_page.title),
+        blocks_markup: blocks_markup(current_page),
+        blocks_json: rendering.HtmlView.escape(Kernel.json(current_page.blocks)),
+        page_list_markup: page_list_markup(pages, current_page),
+        output: results_markup(execution),
+        assistant_markup: assistant_markup(current_page, reply),
         pid: Process.pid(),
         platform: rendering.HtmlView.escape(Process.platform()),
         arch: rendering.HtmlView.escape(Process.arch()),
         now: rendering.HtmlView.escape(Time.isoNow()),
-        sessionName: rendering.HtmlView.escape(session.name),
-        historyLength: session.length,
-        lastSummary: if currentPage.lastExecutionSummary == false then "No execution has run yet." else rendering.HtmlView.escape(currentPage.lastExecutionSummary) end,
-        examplesMarkup: NotebookExamples.markup()
-      }, rendering.HtmlView.head(), rendering.HtmlView.render(scriptTemplate(), { }))
+        session_name: rendering.HtmlView.escape(session.name),
+        history_length: session.length,
+        last_summary: if current_page.last_execution_summary == false then "No execution has run yet." else rendering.HtmlView.escape(current_page.last_execution_summary) end,
+        examples_markup: NotebookExamples.markup()
+      }, rendering.HtmlView.head(), rendering.HtmlView.render(script_template(), { }))
     end
 
     def fragment(code, evaluation)
       if evaluation == false then
-        rendering.HtmlView.render(emptyTemplate(), { })
+        rendering.HtmlView.render(empty_template(), { })
       else
         if evaluation.ok then
-          rendering.HtmlView.render(resultTemplate(), { inspect: rendering.HtmlView.escape(evaluation.inspect) })
+          rendering.HtmlView.render(result_template(), { inspect: rendering.HtmlView.escape(evaluation.inspect) })
         else
           let details = if evaluation.error.details == false then "(none)" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.details)) end
           let backtrace = if evaluation.error.backtrace == false then "(none)" else rendering.HtmlView.escape(Kernel.inspect(evaluation.error.backtrace)) end
-          rendering.HtmlView.render(errorTemplate(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: backtrace })
+          rendering.HtmlView.render(error_template(), { message: rendering.HtmlView.escape(evaluation.error.message), details: details, backtrace: backtrace })
         end
       end
     end
 
-    def pageListMarkup(pages, currentPage)
+    def page_list_markup(pages, current_page)
       if pages.empty() then
         "<div class=\"rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400\">No saved pages yet.</div>"
       else
         pages.map(->(page) {
-          let active = if page.id == currentPage.id then " border-cyan-400 bg-slate-950/90" else " border-slate-800 bg-slate-950/60" end
-          "<a class=\"block rounded-2xl border p-4 text-sm transition hover:border-cyan-400" + active + "\" href=\"/notebook?id=" + rendering.HtmlView.escape(page.id) + "\"><p class=\"font-semibold text-slate-100\">" + rendering.HtmlView.escape(page.title) + "</p><p class=\"mt-2 text-xs text-slate-400\">" + rendering.HtmlView.escape(page.updatedAt) + "</p></a>"
+          let active = if page.id == current_page.id then " border-cyan-400 bg-slate-950/90" else " border-slate-800 bg-slate-950/60" end
+          "<a class=\"block rounded-2xl border p-4 text-sm transition hover:border-cyan-400" + active + "\" href=\"/notebook?id=" + rendering.HtmlView.escape(page.id) + "\"><p class=\"font-semibold text-slate-100\">" + rendering.HtmlView.escape(page.title) + "</p><p class=\"mt-2 text-xs text-slate-400\">" + rendering.HtmlView.escape(page.updated_at) + "</p></a>"
         }).join("")
       end
     end
 
-    def blocksMarkup(currentPage)
-      currentPage.blocks.map(->(block) {
-        blockMarkup(block)
+    def blocks_markup(current_page)
+      current_page.blocks.map(->(block) {
+        block_markup(block)
       }).join("")
     end
 
-    def blockMarkup(block)
+    def block_markup(block)
       let tone = if block.kind == "markdown" then "text-amber-300" else "text-cyan-300" end
       let label = if block.kind == "markdown" then "Markdown" else "Cosm" end
       "<article class=\"notebook-block rounded-3xl border border-slate-800 bg-slate-950/70 p-4\" data-kind=\"" + rendering.HtmlView.escape(block.kind) + "\"><div class=\"mb-3 flex items-center justify-between gap-3\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] " + tone + "\">" + label + " Block</p><div class=\"flex gap-2\"><button class=\"notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300\" type=\"button\" data-kind=\"markdown\">Markdown</button><button class=\"notebook-kind rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300\" type=\"button\" data-kind=\"cosm\">Cosm</button><button class=\"notebook-remove rounded-full border border-rose-700 px-3 py-1 text-xs text-rose-200\" type=\"button\">Remove</button></div></div><textarea class=\"notebook-block-content min-h-[10rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 outline-none\" spellcheck=\"false\">" + rendering.HtmlView.escape(block.content) + "</textarea></article>"
     end
 
-    def resultsMarkup(execution)
+    def results_markup(execution)
       if execution == false then
         "<div class=\"rounded-[2rem] border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300\">Run the whole page to execute each Cosm block in one named session.</div>"
       else
@@ -162,11 +162,11 @@ class NotebookView
       end
     end
 
-    def assistantMarkup(currentPage, reply)
-      let transcript = if currentPage.agentTranscript == false || currentPage.agentTranscript == "" then "No assistant turns yet." else currentPage.agentTranscript end
-      let replyText = if reply == false then false else reply.text end
-      let replyMarkup = if replyText == false then "" else "<div class=\"mt-4 rounded-2xl border border-cyan-900 bg-cyan-950/30 p-4 text-sm text-cyan-100\">" + rendering.HtmlView.escape(replyText) + "</div>" end
-      "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300\">Attached Assistant</p><p class=\"mt-3 text-sm text-slate-400\">This assistant is attached to the current page key and sees the saved page content plus recent execution summary.</p><pre class=\"mt-4 min-h-[12rem] whitespace-pre-wrap break-words rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200\">" + rendering.HtmlView.escape(transcript) + "</pre>" + replyMarkup + "<form id=\"notebook-agent-form\" class=\"mt-4 space-y-3\" method=\"post\" action=\"/notebook/agent\"><input type=\"hidden\" name=\"id\" value=\"" + rendering.HtmlView.escape(currentPage.id) + "\" /><input type=\"hidden\" name=\"title\" class=\"notebook-sync-title\" value=\"" + rendering.HtmlView.escape(currentPage.title) + "\" /><input type=\"hidden\" name=\"blocks\" class=\"notebook-sync-blocks\" value=\"" + rendering.HtmlView.escape(Kernel.json(currentPage.blocks)) + "\" /><textarea name=\"message\" class=\"min-h-[7rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 text-sm text-slate-100 outline-none\" placeholder=\"Ask about this page or its most recent execution...\"></textarea><div class=\"flex flex-wrap gap-3\"><button class=\"rounded-full bg-fuchsia-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-fuchsia-300\" type=\"submit\">Ask Attached Assistant</button><button class=\"rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-amber-400 hover:text-amber-200\" type=\"submit\" formaction=\"/notebook/agent/reset\">Reset Assistant</button></div></form></div>"
+    def assistant_markup(current_page, reply)
+      let transcript = if current_page.agent_transcript == false || current_page.agent_transcript == "" then "No assistant turns yet." else current_page.agent_transcript end
+      let reply_text = if reply == false then false else reply.text end
+      let reply_markup = if reply_text == false then "" else "<div class=\"mt-4 rounded-2xl border border-cyan-900 bg-cyan-950/30 p-4 text-sm text-cyan-100\">" + rendering.HtmlView.escape(reply_text) + "</div>" end
+      "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300\">Attached Assistant</p><p class=\"mt-3 text-sm text-slate-400\">This assistant is attached to the current page key and sees the saved page content plus recent execution summary.</p><pre class=\"mt-4 min-h-[12rem] whitespace-pre-wrap break-words rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200\">" + rendering.HtmlView.escape(transcript) + "</pre>" + reply_markup + "<form id=\"notebook-agent-form\" class=\"mt-4 space-y-3\" method=\"post\" action=\"/notebook/agent\"><input type=\"hidden\" name=\"id\" value=\"" + rendering.HtmlView.escape(current_page.id) + "\" /><input type=\"hidden\" name=\"title\" class=\"notebook-sync-title\" value=\"" + rendering.HtmlView.escape(current_page.title) + "\" /><input type=\"hidden\" name=\"blocks\" class=\"notebook-sync-blocks\" value=\"" + rendering.HtmlView.escape(Kernel.json(current_page.blocks)) + "\" /><textarea name=\"message\" class=\"min-h-[7rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 text-sm text-slate-100 outline-none\" placeholder=\"Ask about this page or its most recent execution...\"></textarea><div class=\"flex flex-wrap gap-3\"><button class=\"rounded-full bg-fuchsia-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-fuchsia-300\" type=\"submit\">Ask Attached Assistant</button><button class=\"rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-amber-400 hover:text-amber-200\" type=\"submit\" formaction=\"/notebook/agent/reset\">Reset Assistant</button></div></form></div>"
     end
   end
 end

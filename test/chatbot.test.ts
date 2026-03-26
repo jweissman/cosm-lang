@@ -22,18 +22,18 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
     cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
       prompt.includes("notebook session")
         ? {
-            shouldReply: true,
+            should_reply: true,
             text: "Reset the session with the Reset Session button in the notebook UI.",
             rationale: "mocked support reply",
-            toolCalls: false,
-            toolResults: false,
+            tool_calls: false,
+            tool_results: false,
           }
         : {
-            shouldReply: true,
+            should_reply: true,
             text: "I am not sure yet.",
             rationale: "mocked default",
-            toolCalls: false,
-            toolResults: false,
+            tool_calls: false,
+            tool_results: false,
           },
     )),
   });
@@ -44,48 +44,48 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
   expect(cosmEval('require("support/chat.cosm"); chat.step("", "How do I reset the notebook session?").transcript')).toContain(
     "assistant: Reset the session with the Reset Session button in the notebook UI.",
   );
-  expect(cosmEval('require("support/agent.cosm"); agent.stepTranscript("", "How do I reset the notebook session?").reply.text')).toBe(
+  expect(cosmEval('require("support/agent.cosm"); agent.step_transcript("", "How do I reset the notebook session?").reply.text')).toBe(
     "Reset the session with the Reset Session button in the notebook UI.",
   );
 });
 
 test("pure Cosm support chat transcript helpers stay stable", () => {
-  expect(cosmEval('require("support/chat.cosm"); chat.appendTranscript("", "user", "hello")')).toBe("user: hello");
-  expect(cosmEval('require("support/chat.cosm"); chat.appendTranscript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
+  expect(cosmEval('require("support/chat.cosm"); chat.append_transcript("", "user", "hello")')).toBe("user: hello");
+  expect(cosmEval('require("support/chat.cosm"); chat.append_transcript("user: hello", "assistant", "hi")')).toBe("user: hello\nassistant: hi");
 });
 
 test("support controller provides a thin conversation contract for shared chat flows", () => {
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
-      shouldReply: true,
+      should_reply: true,
       text: "Reset the session with the Reset Session button in the notebook UI.",
       rationale: "mocked controller reply",
-      toolCalls: false,
-      toolResults: false,
+      tool_calls: false,
+      tool_results: false,
     })),
   });
 
   expect(cosmEval(`
     require("support/controller.cosm")
-    let turn = controller.turn(controller.cliConversation([]), controller.cliInbound("How do I reset the notebook session?"))
+    let turn = controller.turn(controller.cli_conversation([]), controller.cli_inbound("How do I reset the notebook session?"))
     turn.reply.text
   `)).toBe("Reset the session with the Reset Session button in the notebook UI.");
 
   expect(cosmEval(`
     require("support/controller.cosm")
-    let turn = controller.turn(controller.cliConversation([]), controller.cliInbound("How do I reset the notebook session?"))
+    let turn = controller.turn(controller.cli_conversation([]), controller.cli_inbound("How do I reset the notebook session?"))
     turn.conversation.messages.length
   `)).toBe(2);
 
   expect(cosmEval(`
     require("support/controller.cosm")
-    let turn = controller.turn(controller.pageConversation("page-1", "user: hello"), controller.pageInbound("page-1", "How do I reset the notebook session?"))
-    controller.displayTranscript(turn.conversation)
+    let turn = controller.turn(controller.page_conversation("page-1", "user: hello"), controller.page_inbound("page-1", "How do I reset the notebook session?"))
+    controller.display_transcript(turn.conversation)
   `)).toContain("assistant: Reset the session with the Reset Session button in the notebook UI.");
 });
 
 test("support prompt data is loaded from markdown-backed prompt files", () => {
-  expect(cosmEval('require("support/prompt_data.cosm"); prompt_data.iapetusSystem().length > 10')).toBe(true);
+  expect(cosmEval('require("support/prompt_data.cosm"); prompt_data.iapetus_system().length > 10')).toBe(true);
 });
 
 test("pure Cosm support chat can stream chunks through the shared chat loop helpers", () => {
@@ -109,8 +109,8 @@ test("pure Cosm support chat can stream chunks through the shared chat loop help
   try {
     expect(cosmEval(`
       require("support/chat.cosm")
-      let result = chat.streamStep("", "How do I reset the notebook session?") do |event|
-        chat.renderStreamEvent(event)
+      let result = chat.stream_step("", "How do I reset the notebook session?") do |event|
+        chat.render_stream_event(event)
       end
       result.reply.text
     `)).toBe("Reset the session.");

@@ -6,17 +6,17 @@ let page = {
 }
 
 let preview = page.transcriptLines.take(1)
-let baseTranscript = if preview.length == 1 then
+let base_transcript = if preview.length == 1 then
   preview.first()
 else
   "bad-state"
 end
 
-let statusLabel = if page.ai.ok then
+let status_label = if page.ai.ok then
   "healthy"
 else
   "offline"
 end
 
-let renderedReply = Kernel.dispatch(page.reply.text, :plus, " [" + statusLabel + "]")
-Kernel.dispatch(Kernel.dispatch(baseTranscript, :plus, "\nassistant: "), :plus, renderedReply)
+let rendered_reply = Kernel.dispatch(page.reply.text, :plus, " [" + status_label + "]")
+Kernel.dispatch(Kernel.dispatch(base_transcript, :plus, "\nassistant: "), :plus, rendered_reply)

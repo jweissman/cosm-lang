@@ -1,6 +1,6 @@
-require("support/models.cosm")
+let models = require("support/models.cosm")
 
-def storageDir()
+def storage_dir()
   let configured = Process.env("COSM_NOTEBOOK_DIR")
   if configured == false then
     "var/notebook/pages"
@@ -9,149 +9,147 @@ def storageDir()
   end
 end
 
-def pagePath(id)
-  storageDir() + "/" + id
-end
+def page_path(id) = storage_dir() + "/" + id;
 
 def block(kind, content)
   let value = { kind: kind, content: content }
-  models.NotebookBlock.validate(value)
+  models.notebook_block.validate(value)
   value
 end
 
-def defaultBlocks()
+def default_blocks()
   [block("markdown", "# Cosm notebook page. This page is persisted locally and can carry an attached assistant transcript."), block("cosm", "1 + 2")]
 end
 
-def page(id, title, blocks, agentTranscript = false, lastExecutionSummary = false, createdAt = Time.isoNow(), updatedAt = Time.isoNow())
+def page(id, title, blocks, agent_transcript = false, last_execution_summary = false, created_at = Time.isoNow(), updated_at = Time.isoNow())
   let value = {
     id: id,
     title: title,
     blocks: blocks,
-    agentKey: "notebook-agent:" + id,
-    agentTranscript: agentTranscript,
-    lastExecutionSummary: lastExecutionSummary,
-    createdAt: createdAt,
-    updatedAt: updatedAt
+    agent_key: "notebook-agent:" + id,
+    agent_transcript: agent_transcript,
+    last_execution_summary: last_execution_summary,
+    created_at: created_at,
+    updated_at: updated_at
   }
-  models.NotebookPage.validate(value)
+  models.notebook_page.validate(value)
   value
 end
 
-def normalizeBlocks(blocks)
+def normalize_blocks(blocks)
   blocks.map(->(entry) {
     let value = {
       kind: entry.kind,
       content: entry.content
     }
-    models.NotebookBlock.validate(value)
+    models.notebook_block.validate(value)
     value
   })
 end
 
-def parseBlocks(raw)
+def parse_blocks(raw)
   if raw == false || raw == "" then
-    defaultBlocks()
+    default_blocks()
   else
-    normalizeBlocks(Kernel.parseJson(raw))
+    normalize_blocks(Kernel.parseJson(raw))
   end
 end
 
-def loadPage(id)
-  if Kernel.exists(pagePath(id)) then
-    let value = Kernel.parseJson(Kernel.readText(pagePath(id)))
-    models.NotebookPage.validate(value)
+def load_page(id)
+  if Kernel.exists(page_path(id)) then
+    let value = Kernel.parseJson(Kernel.readText(page_path(id)))
+    models.notebook_page.validate(value)
     value
   else
     false
   end
 end
 
-def savePage(target)
+def save_page(target)
   let value = {
     id: target.id,
     title: target.title,
-    blocks: normalizeBlocks(target.blocks),
-    agentKey: target.agentKey,
-    agentTranscript: target.agentTranscript,
-    lastExecutionSummary: target.lastExecutionSummary,
-    createdAt: target.createdAt,
-    updatedAt: Time.isoNow()
+    blocks: normalize_blocks(target.blocks),
+    agent_key: target.agent_key,
+    agent_transcript: target.agent_transcript,
+    last_execution_summary: target.last_execution_summary,
+    created_at: target.created_at,
+    updated_at: Time.isoNow()
   }
-  models.NotebookPage.validate(value)
-  Kernel.writeText(pagePath(value.id), Kernel.json(value))
+  models.notebook_page.validate(value)
+  Kernel.writeText(page_path(value.id), Kernel.json(value))
   value
 end
 
-def createPage(title = "Untitled notebook page")
+def create_page(title = "Untitled notebook page")
   let now = Time.isoNow()
-  savePage(page(Kernel.uuid(), title, defaultBlocks(), false, false, now, now))
+  save_page(page(Kernel.uuid(), title, default_blocks(), false, false, now, now))
 end
 
-def listPages()
-  Kernel.listDir(storageDir()).map(->(id) {
-    loadPage(id)
+def list_pages()
+  Kernel.listDir(storage_dir()).map(->(id) {
+    load_page(id)
   }).reject(->(entry) {
     entry == false
   })
 end
 
-def currentPage(pageId = false)
-  if pageId != false then
-    let loaded = loadPage(pageId)
+def current_page(page_id = false)
+  if page_id != false then
+    let loaded = load_page(page_id)
     if loaded == false then
-      createPage("Recovered notebook page")
+      create_page("Recovered notebook page")
     else
       loaded
     end
   else
-    let pages = listPages()
+    let pages = list_pages()
     if pages.empty() then
-      createPage("Welcome notebook page")
+      create_page("Welcome notebook page")
     else
       pages.first()
     end
   end
 end
 
-def saveDraft(id, title, rawBlocks)
-  let existing = if id == false then false else loadPage(id) end
+def save_draft(id, title, raw_blocks)
+  let existing = if id == false then false else load_page(id) end
   let now = Time.isoNow()
-  let base = if existing == false then page(Kernel.uuid(), title, parseBlocks(rawBlocks), false, false, now, now) else {
+  let base = if existing == false then page(Kernel.uuid(), title, parse_blocks(raw_blocks), false, false, now, now) else {
     id: existing.id,
     title: title,
-    blocks: parseBlocks(rawBlocks),
-    agentKey: existing.agentKey,
-    agentTranscript: existing.agentTranscript,
-    lastExecutionSummary: existing.lastExecutionSummary,
-    createdAt: existing.createdAt,
-    updatedAt: now
+    blocks: parse_blocks(raw_blocks),
+    agent_key: existing.agent_key,
+    agent_transcript: existing.agent_transcript,
+    last_execution_summary: existing.last_execution_summary,
+    created_at: existing.created_at,
+    updated_at: now
   } end
-  savePage(base)
+  save_page(base)
 end
 
-def saveExecution(target, summary)
-  savePage({
+def save_execution(target, summary)
+  save_page({
     id: target.id,
     title: target.title,
     blocks: target.blocks,
-    agentKey: target.agentKey,
-    agentTranscript: target.agentTranscript,
-    lastExecutionSummary: summary,
-    createdAt: target.createdAt,
-    updatedAt: target.updatedAt
+    agent_key: target.agent_key,
+    agent_transcript: target.agent_transcript,
+    last_execution_summary: summary,
+    created_at: target.created_at,
+    updated_at: target.updated_at
   })
 end
 
-def saveTranscript(target, transcript)
-  savePage({
+def save_transcript(target, transcript)
+  save_page({
     id: target.id,
     title: target.title,
     blocks: target.blocks,
-    agentKey: target.agentKey,
-    agentTranscript: transcript,
-    lastExecutionSummary: target.lastExecutionSummary,
-    createdAt: target.createdAt,
-    updatedAt: target.updatedAt
+    agent_key: target.agent_key,
+    agent_transcript: transcript,
+    last_execution_summary: target.last_execution_summary,
+    created_at: target.created_at,
+    updated_at: target.updated_at
   })
 end

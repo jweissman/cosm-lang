@@ -44,7 +44,7 @@ def compact()
   self.select(->(value) { value != false })
 end
 
-def flatMap(callback)
+def flat_map(callback)
   self.map(callback).reduce([], ->(acc, value) {
     if value.class.name == "Array" then
       value.reduce(acc, ->(next, item) { next.append(item) })

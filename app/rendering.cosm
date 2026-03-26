@@ -8,25 +8,25 @@ class HtmlView
       template.render(context)
     end
 
-    def renderWithYield(template, context, body)
+    def render_with_yield(template, context, body)
       template.render(context, body)
     end
 
-    def pageLayoutTemplate()
+    def page_layout_template()
       require("app/views/layout/page.ecosm")
     end
 
-    def headTemplate()
+    def head_template()
       require("app/views/layout/head.ecosm")
     end
 
     def head()
-      render(headTemplate(), { })
+      render(head_template(), { })
     end
 
-    def renderLayout(title, bodyTemplate, bodyContext, extraHead, extraScript)
-      let body = render(bodyTemplate, bodyContext)
-      renderWithYield(pageLayoutTemplate(), { title: escape(title), extraHead: extraHead, extraScript: extraScript }, body)
+    def render_layout(title, body_template, body_context, extra_head, extra_script)
+      let body = render(body_template, body_context)
+      render_with_yield(page_layout_template(), { title: escape(title), extra_head: extra_head, extra_script: extra_script }, body)
     end
   end
 end

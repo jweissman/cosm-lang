@@ -3,19 +3,17 @@ let models = require("support/models.cosm")
 let prompts = require("support/prompts.cosm")
 let replies = require("support/replies.cosm")
 
-def append_transcript(transcript, role, text)
-  transcript == "" ? role + ": " + text : transcript + "\n" + role + ": " + text
-end
+def append_transcript(transcript, role, text) = transcript == "" ? role + ": " + text : transcript + "\n" + role + ": " + text;
 
 def reply_for_transcript(transcript, latest_text)
-  let reply = ai.reply(prompts.reply_prompt_from_transcript(transcript, latest_text), models.AgentReply)
-  models.AgentReply.validate(reply)
+  let reply = ai.reply(prompts.reply_prompt_from_transcript(transcript, latest_text), models.agent_reply)
+  models.agent_reply.validate(reply)
   reply
 end
 
 def reply_for_context(transcript, latest_text, context)
-  let reply = ai.reply(prompts.reply_prompt_from_context(transcript, latest_text, context), models.AgentReply)
-  models.AgentReply.validate(reply)
+  let reply = ai.reply(prompts.reply_prompt_from_context(transcript, latest_text, context), models.agent_reply)
+  models.agent_reply.validate(reply)
   reply
 end
 
@@ -24,7 +22,7 @@ def stream_reply_for_transcript(transcript, latest_text)
     yield(event)
   end
   let reply = replies.text(text, "streamed")
-  models.AgentReply.validate(reply)
+  models.agent_reply.validate(reply)
   reply
 end
 
@@ -33,7 +31,7 @@ def stream_reply_for_context(transcript, latest_text, context)
     yield(event)
   end
   let reply = replies.text(text, "streamed")
-  models.AgentReply.validate(reply)
+  models.agent_reply.validate(reply)
   reply
 end
 
@@ -41,7 +39,7 @@ def step_transcript(transcript, latest_text)
   let reply = reply_for_transcript(transcript, latest_text)
   let next_transcript = append_transcript(append_transcript(transcript, "user", latest_text), "assistant", reply.text)
   let step = { transcript: next_transcript, reply: reply }
-  models.ChatStep.validate(step)
+  models.chat_step.validate(step)
   step
 end
 
@@ -49,80 +47,26 @@ def stream_step_transcript(transcript, latest_text)
   let reply = stream_reply_for_transcript(transcript, latest_text)
   let next_transcript = append_transcript(append_transcript(transcript, "user", latest_text), "assistant", reply.text)
   let step = { transcript: next_transcript, reply: reply }
-  models.ChatStep.validate(step)
+  models.chat_step.validate(step)
   step
 end
 
-def transcript_from_conversation(conversation)
-  conversation.messages.map(->(entry) { entry.role + ": " + entry.text }).join("\n")
-end
+def transcript_from_conversation(conversation) = conversation.messages.map(->(entry) { entry.role + ": " + entry.text }).join("\n");
 
 def handle(conversation, inbound)
-  models.Conversation.validate(conversation)
-  models.InboundMessage.validate(inbound)
+  models.conversation.validate(conversation)
+  models.inbound_message.validate(inbound)
   step_transcript(transcript_from_conversation(conversation), inbound.text).reply
 end
 
 def fallback(conversation, inbound, error_message)
-  models.Conversation.validate(conversation)
-  models.InboundMessage.validate(inbound)
+  models.conversation.validate(conversation)
+  models.inbound_message.validate(inbound)
   replies.unavailable(error_message)
 end
 
-def example_conversation()
-  { key: "DDEMO:1710000000.000001", channel: "DDEMO", thread: "1710000000.000001", messages: [{ role: "user", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }], sessionName: "slack-demo", sessionLength: 1 }
-end
+def example_conversation() = { key: "DDEMO:1710000000.000001", channel: "DDEMO", thread: "1710000000.000001", messages: [{ role: "user", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }], session_name: "slack-demo", session_length: 1 };
 
-def example_inbound()
-  { channel: "DDEMO", thread: "1710000000.000001", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" }
-end
+def example_inbound() = { channel: "DDEMO", thread: "1710000000.000001", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" };
 
-def preview()
-  prompts.reply_prompt_from_transcript(transcript_from_conversation(example_conversation()), example_inbound().text)
-end
-
-def appendTranscript(transcript, role, text)
-  append_transcript(transcript, role, text)
-end
-
-def replyForTranscript(transcript, latestText)
-  reply_for_transcript(transcript, latestText)
-end
-
-def replyForContext(transcript, latestText, context)
-  reply_for_context(transcript, latestText, context)
-end
-
-def streamReplyForTranscript(transcript, latestText)
-  stream_reply_for_transcript(transcript, latestText) do |event|
-    yield(event)
-  end
-end
-
-def streamReplyForContext(transcript, latestText, context)
-  stream_reply_for_context(transcript, latestText, context) do |event|
-    yield(event)
-  end
-end
-
-def stepTranscript(transcript, latestText)
-  step_transcript(transcript, latestText)
-end
-
-def streamStepTranscript(transcript, latestText)
-  stream_step_transcript(transcript, latestText) do |event|
-    yield(event)
-  end
-end
-
-def transcriptFromConversation(conversation)
-  transcript_from_conversation(conversation)
-end
-
-def exampleConversation()
-  example_conversation()
-end
-
-def exampleInbound()
-  example_inbound()
-end
+def preview() = prompts.reply_prompt_from_transcript(transcript_from_conversation(example_conversation()), example_inbound().text);

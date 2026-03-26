@@ -2,7 +2,7 @@ require("cosm/spec.cosm")
 
 spec.suite("AI runtime", ->() {
   spec.it("Prompt and Schema stay explicit runtime objects", ->() {
-    spec.assertEqual(Prompt.text("hello").source, "hello")
+    spec.assert_equal(Prompt.text("hello").source, "hello")
     assert(Schema.string().validate("ok") == true)
   })
   spec.it("Data stays validation-first locally", ->() {
