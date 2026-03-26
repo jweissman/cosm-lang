@@ -6,7 +6,7 @@ Cosm::Spec.suite("Session", ->() {
     Cosm::Spec.assert_equal(Kernel.session().name, "default")
   })
   Cosm::Spec.it("eval helpers stay structured", ->() {
-    assert(Kernel.tryEval("1 + 2").ok == true)
+    Cosm::Spec.assert(Kernel.tryEval("1 + 2").ok == true)
     Cosm::Spec.assert_equal(Kernel.tryEval("1 + 2").inspect, "3")
   })
 })

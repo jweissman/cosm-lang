@@ -158,13 +158,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.14");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.15");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.14");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.15");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -173,6 +173,14 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
 test("require defines constant modules directly", () => {
   expect(cosmEval('require "support/chat"; Support::Chat.class.name')).toBe("Module");
   expect(cosmEval('require "support/chat"; Support::Chat.help().length > 10')).toBe(true);
+});
+
+test("Cosm::Spec is the canonical spec harness", () => {
+  expect(cosmEval('require "cosm/spec.cosm"; Cosm::Spec.assert(true)')).toBe(true);
+  expect(cosmEval('require "cosm/spec.cosm"; Cosm::Spec.refute(false)')).toBe(true);
+  expect(cosmEval('require "cosm/spec.cosm"; Cosm::Spec.assert_equal(4, 4)')).toBe(true);
+  expect(cosmEval('require "cosm/spec.cosm"; Cosm::Spec.expect_raises(->() { Kernel.raise("boom", { code: 7 }) }).details.code')).toBe(7);
+  expect(() => cosmEval('require "cosm/spec.cosm"; Cosm::Spec.expect_raises(->() { 42 })')).toThrow("Expectation failed: expected a raised error");
 });
 
 test("ternary is a compact expression form", () => {
@@ -610,4 +618,10 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("class Thing do def init(value) do true end; def missing() do @other end end; Thing.new(1).missing()")).toThrow("Property error: object of class Thing has no ivar '@other'");
   expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
   expect(() => cosmEval("let self = 1")).toThrow("Parse error:");
+});
+
+test("Kernel.raise keeps message, details, and error-object forms explicit", () => {
+  expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).error.message')).toBe("boom");
+  expect(cosmEval('Kernel.try(->() { Kernel.raise("boom", { code: 7 }) }).error.details.code')).toBe(7);
+  expect(cosmEval('error = Error.new("boom", { code: 9 }); Kernel.try(->() { Kernel.raise(error) }).error.details.code')).toBe(9);
 });

@@ -1,10 +1,10 @@
-require("cosm/test")
+require "cosm/spec.cosm"
 
-describe("Time", ->() {
-  test("iso helpers stay available", ->() {
-    assert(Time.iso(0) == "1970-01-01T00:00:00.000Z")
-    assert(Time.isoNow().length >= 20)
-    assert(Time.fromIso("1970-01-01T00:00:00.000Z") == 0)
+Cosm::Spec.suite("Time", ->() {
+  Cosm::Spec.it("iso helpers stay available", ->() {
+    Cosm::Spec.assert(Time.iso(0) == "1970-01-01T00:00:00.000Z")
+    Cosm::Spec.assert(Time.isoNow().length >= 20)
+    Cosm::Spec.assert(Time.fromIso("1970-01-01T00:00:00.000Z") == 0)
   })
 })
 

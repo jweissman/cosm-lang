@@ -4,14 +4,52 @@ def suite(name, body) = Cosm::Test.describe(name, body);
 
 def it(name, body) = Cosm::Test.test(name, body);
 
-def assert_equal(actual, expected) = Cosm::Test.expectEqual(actual, expected);
-
-def refute(value) = assert(value == false);
-
-def expect_raises(body)
-  let result = Kernel.try(body)
-  assert(result.ok == false)
-  result.error
+def assert(value, message = false)
+  if message == false then
+    Kernel.assert(value)
+  else
+    Kernel.assert(value, message)
+  end
 end
 
-def finish() = Cosm::Test.summary();
+def refute(value, message = false)
+  if message == false then
+    Kernel.assert(value == false)
+  else
+    Kernel.assert(value == false, message)
+  end
+end
+
+def assert_equal(actual, expected, message = false)
+  if message == false then
+    Cosm::Test.expectEqual(actual, expected)
+  else
+    Cosm::Test.expectEqual(actual, expected, message)
+  end
+end
+
+def expect_raises(body, message = false)
+  result = Kernel.try(body)
+  if result.ok then
+    Kernel.raise("Expectation failed: expected a raised error")
+  else
+    false
+  end
+  error = result.error
+  if message != false then
+    assert_equal(error.message, message)
+  else
+    false
+  end
+  error
+end
+
+def finish()
+  summary = Cosm::Test.summary()
+  if summary.failed > 0 then
+    Kernel.raise("Spec failures: " + summary.failed, summary)
+  else
+    false
+  end
+  summary
+end

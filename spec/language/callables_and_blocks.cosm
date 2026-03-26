@@ -1,70 +1,86 @@
-## Blocks, functions, missing-method fallback, and yield
+require "cosm/spec.cosm"
 
-assert(do let x = 1; x + 2 end == 3, "blocks return their last value");
-let shadowed_greeting = do let greeting = "inner"; greeting end;
-assert(shadowed_greeting == "inner", "blocks can create inner locals");
-let greeting = "hello";
-assert(greeting == "hello", "outer local survives block shadowing");
-assert((if true then "yes" else "no" end) == "yes", "if picks the true branch");
+Cosm::Spec.suite("Blocks and callables", ->() {
+  Cosm::Spec.it("keeps block scope and conditionals explicit", ->() {
+    Cosm::Spec.assert(do let x = 1; x + 2 end == 3, "blocks return their last value")
+    shadowed_greeting = do let greeting = "inner"; greeting end
+    Cosm::Spec.assert(shadowed_greeting == "inner", "blocks can create inner locals")
+    greeting = "hello"
+    Cosm::Spec.assert(greeting == "hello", "outer local survives block shadowing")
+    Cosm::Spec.assert((if true then "yes" else "no" end) == "yes", "if picks the true branch")
+  })
 
-let prefix = "co";
-let join = ->(rest) { prefix + rest };
-assert(join("sm") == "cosm", "closures capture outer locals");
-assert(join.call("sm") == "cosm", "functions can be invoked through call");
-let twice = ->(value) { value + value };
-assert(twice(21) == 42, "user-defined functions can be called");
-def scoped() do
-  let local = "hidden";
-  local
-end;
-assert(scoped() == "hidden", "function body returns its last value");
-def greet(name) do
-  "hello " + name
-end;
-assert(greet("cosm") == "hello cosm", "def introduces named functions");
-def default_greet(name = "cosm") do
-  "hello " + name
-end;
-assert(default_greet() == "hello cosm", "defs can use default arguments");
-assert(default_greet("runtime") == "hello runtime", "defs can override default arguments");
-let default_join = ->(left, right = "sm") { left + right };
-assert(default_join("co") == "cosm", "lambdas can use default arguments");
-assert(default_join("co", "dex") == "codex", "lambdas can override default arguments");
+  Cosm::Spec.it("supports lambdas, defs, and defaults", ->() {
+    prefix = "co"
+    join = ->(rest) { prefix + rest }
+    Cosm::Spec.assert(join("sm") == "cosm", "closures capture outer locals")
+    Cosm::Spec.assert(join.call("sm") == "cosm", "functions can be invoked through call")
+    twice = ->(value) { value + value }
+    Cosm::Spec.assert(twice(21) == 42, "user-defined functions can be called")
 
-class ImplicitDispatch do
-  def greet(name) do
-    "hello " + name
-  end
-  def relay(name) do
-    greet(name)
-  end
-end;
-assert(ImplicitDispatch.new().relay("cosm") == "hello cosm", "unresolved bare calls can dispatch through self");
+    def scoped() do
+      local = "hidden"
+      local
+    end
+    Cosm::Spec.assert(scoped() == "hidden", "function body returns its last value")
 
-class MissingExample
-  def does_not_understand(message, args)
-    message.name + ":" + args.length
-  end
-  def render()
-    wrapper("ok")
-  end
-end;
-assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallback can handle explicit sends");
-assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls");
+    def greet(name) do
+      "hello " + name
+    end
+    Cosm::Spec.assert(greet("cosm") == "hello cosm", "def introduces named functions")
 
-def with_block(value) do
-  yield(value + 1)
-end;
-assert(with_block(41) do |value| value end == 42, "yield can invoke the current trailing block with arguments");
+    def default_greet(name = "cosm") do
+      "hello " + name
+    end
+    Cosm::Spec.assert(default_greet() == "hello cosm", "defs can use default arguments")
+    Cosm::Spec.assert(default_greet("runtime") == "hello runtime", "defs can override default arguments")
 
-def nested_yield() do
-  let inner = ->() { yield("nested") };
-  inner()
-end;
-assert(nested_yield() do |label| label end == "nested", "nested calls preserve the current block context");
-assert(Kernel.try(->() { yield() }).error.message == "Block error: yield called without a current block", "yield fails clearly when no current block exists");
+    default_join = ->(left, right = "sm") { left + right }
+    Cosm::Spec.assert(default_join("co") == "cosm", "lambdas can use default arguments")
+    Cosm::Spec.assert(default_join("co", "dex") == "codex", "lambdas can override default arguments")
+  })
 
-def forward_block_value()
-  yield(41)
-end
-assert((forward_block_value() do |value| value + 1 end) == 42, "yield can forward arguments into the current trailing block");
+  Cosm::Spec.it("supports implicit self dispatch and missing-method fallback", ->() {
+    class ImplicitDispatch do
+      def greet(name) do
+        "hello " + name
+      end
+      def relay(name) do
+        greet(name)
+      end
+    end
+    Cosm::Spec.assert(ImplicitDispatch.new().relay("cosm") == "hello cosm", "unresolved bare calls can dispatch through self")
+
+    class MissingExample
+      def does_not_understand(message, args)
+        message.name + ":" + args.length
+      end
+      def render()
+        wrapper("ok")
+      end
+    end
+    Cosm::Spec.assert(MissingExample.new().unknown(1, 2) == "unknown:2", "missing-method fallback can handle explicit sends")
+    Cosm::Spec.assert(MissingExample.new().render() == "wrapper:1", "missing-method fallback can support implicit self calls")
+  })
+
+  Cosm::Spec.it("supports yield for the current trailing block", ->() {
+    def with_block(value) do
+      yield(value + 1)
+    end
+    Cosm::Spec.assert(with_block(41) do |value| value end == 42, "yield can invoke the current trailing block with arguments")
+
+    def nested_yield() do
+      inner = ->() { yield("nested") }
+      inner()
+    end
+    Cosm::Spec.assert(nested_yield() do |label| label end == "nested", "nested calls preserve the current block context")
+
+    error = Cosm::Spec.expect_raises(->() { yield() }, "Block error: yield called without a current block")
+    Cosm::Spec.assert_equal(error.message, "Block error: yield called without a current block")
+
+    def forward_block_value()
+      yield(41)
+    end
+    Cosm::Spec.assert((forward_block_value() do |value| value + 1 end) == 42, "yield can forward arguments into the current trailing block")
+  })
+})

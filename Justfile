@@ -2,13 +2,22 @@ set shell := ["zsh", "-lc"]
 
 dev-bun := "./script/bunx"
 
-test: ts-test
+test: fast-test
 
-ts-test:
+fast-test:
+  {{dev-bun}} run test:fast
+
+watch-test:
   {{dev-bun}} test --watch
 
+slow-test:
+  {{dev-bun}} run test:slow
+
 http-test:
-  COSM_HTTP_INTEGRATION=1 {{dev-bun}} test test/http.integration.test.ts
+  COSM_HTTP_INTEGRATION=1 {{dev-bun}} test test/http.integration.slow.ts
+
+live-ai-test:
+  COSM_AI_LIVE=1 {{dev-bun}} test test/ai.integration.test.ts
 
 lint:
   {{dev-bun}} run lint
@@ -42,3 +51,8 @@ bench-vm:
 
 chat:
   {{dev-bun}} bin/cosm support/chat_cli.cosm
+
+commit:
+  git add .
+  git commit -m "v$(cosm --version)"
+  git tag v$(cosm --version)

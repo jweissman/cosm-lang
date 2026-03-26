@@ -127,9 +127,9 @@ answer + 2
 ### Modules
 
 - `Module`
-- `require("cosm/test")`
+- `require "cosm/spec.cosm"`
 
-Cosm now has a small reflective `Module` runtime object. The first real example is `cosm.test`, which is also exposed through `cosm.modules.test`.
+Cosm has a small reflective `Module` runtime object with constant-backed access paths.
 
 Module objects currently support:
 
@@ -139,17 +139,16 @@ Module objects currently support:
 - `.has(symbolOrString)`
 - `.get(symbolOrString)`
 
-`require("cosm/test")` now works both as a statement and as an expression. The preferred style is explicit binding:
+The canonical style is to require a module for its exported constant path:
 
 ```cosm
-let test_module = require("cosm/test")
+require "cosm/spec.cosm"
+Cosm::Spec.assert_equal(2 + 2, 4)
 ```
 
-For one compatibility patch line, `require(...)` still also injects basename bindings like `examples`, `chat`, or `slack_dm` into the current scope, and `require("cosm/test")` still injects bootstrap helpers like `test`, `describe`, and `expectEqual`.
+Maintained code should use module constants such as `Cosm::Spec`, `Cosm::AI`, `Support::Chat`, and `App::App` rather than older ambient lowercase wrappers.
 
-Local `.cosm` files may also be loaded through `require("path/to/file.cosm")`. In `0.3.12.x`, `.ecosm` files may also be loaded through `require(...)` as renderable module objects with a `render(context)` or `render(context, body)` entry point, which fits naturally with an `app/views/...` layout. `.ecosm` now supports both compatibility `#{...}` interpolation and preferred `<%= ... %>` interpolation. Layout composition may provide template child content through `yield()` inside `.ecosm`, and in `0.3.12.x` that body now flows through renderer-owned metadata rather than hijacking ordinary context keys.
-
-`require("app/examples.cosm")` is also now used as a small example of Cosm-authored app support code: a plain module that exposes notebook example source through ordinary defs. `require("support/chat.cosm")` and `require("support/agent.cosm")` now provide the tiny support-assistant core that both the CLI chatbot and the separate Slack agent service build on.
+Local `.cosm` and `.ecosm` files may also be loaded through `require "path"`, which installs their exported module constants into the current environment.
 
 `Data` is now also available as a module-backed stdlib surface. It exposes:
 
@@ -369,25 +368,29 @@ Class.class.name
 - `Kernel.expectEqual(actual, expected, message?)`
   Tiny bootstrap equality helper for tests. Raises if the two values are not equal under Cosm equality.
 - `Kernel.test(name, fn)`
-  Runs a zero-argument function or method, prints a tiny pass/fail line, and returns `true` or `false`.
+  Low-level test runner used underneath `Cosm::Spec.it(...)`.
 - `Kernel.describe(name, fn)`
-  Prints a section header, runs a zero-argument function or method, and returns that callable's result.
+  Low-level suite/group runner used underneath `Cosm::Spec.suite(...)`.
 - `Kernel.resetTests()`
   Clears the current test counters.
 - `Kernel.testSummary()`
   Returns a hash with `passed`, `failed`, and `total`.
+- `Kernel.raise(messageOrError, details?)`
+  Raises an `Error`. Supported forms are `Kernel.raise("message")`, `Kernel.raise("message", details)`, and `Kernel.raise(error_object)`.
 - `puts(value)`
   Convenience global alias for `Kernel.puts(value)`.
 - `print(value)`
   Convenience global alias for `Kernel.print(value)`.
 - `warn(value)`
   Convenience global alias for `Kernel.warn(value)`.
-- `test(name, fn)`
-  Convenience global alias for `Kernel.test(name, fn)`.
-- `describe(name, fn)`
-  Available after `require("cosm/test")`, and also exposed as `cosm.test.describe(...)`.
-- `expectEqual(actual, expected, message?)`
-  Available after `require("cosm/test")`, and also exposed as `cosm.test.expectEqual(...)`.
+- `Cosm::Spec.suite(name, fn)`
+- `Cosm::Spec.it(name, fn)`
+- `Cosm::Spec.assert(value, message?)`
+- `Cosm::Spec.refute(value, message?)`
+- `Cosm::Spec.assert_equal(actual, expected, message?)`
+- `Cosm::Spec.expect_raises(fn, message?)`
+- `Cosm::Spec.finish()`
+  Canonical Cosm-native testing surface built on top of the kernel primitives.
 - `resetTests()`
   Convenience global alias for `Kernel.resetTests()`.
 - `testSummary()`
@@ -454,16 +457,15 @@ Class.class.name
 - `Random`
   Reflective object for host randomness like `float()` and `int(max)`.
 - `Module`
-  Reflective class for loaded module objects like `cosm.test`.
+  Reflective class for loaded module objects like `Cosm::Spec`.
 - `Mirror`
   Reflective class for readonly mirror wrappers created through `Mirror.reflect(...)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `HttpRouter`
   Tiny exact-path router class for small service objects.
-- `cosm`
-  Reflective root object currently exposing `Kernel`, `Process`, `Time`, `Random`, `Mirror`, `HttpRouter`, `http`, `classes`, `modules`, `test`, and `version`.
-  `cosm.length`, `cosm.keys()`, `cosm.values()`, `cosm.has(:name)`, and `cosm.get(:name)` now work through the `Namespace` runtime model.
+- `Cosm`
+  Reflective root module currently exposing runtime-level constants such as `Cosm::Kernel`, `Cosm::Process`, `Cosm::Data`, `Cosm::Spec`, `Cosm::AI`, and `Cosm.version`.
 - `Symbol`
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
@@ -480,20 +482,15 @@ Kernel.puts("hello from cosm")
 Kernel.warn("careful now")
 puts 'hello from cosm'
 test("smoke", ->() { assert true })
-require("cosm/test")
-describe("smoke section", ->() { test("smoke", ->() { assert(true) }) })
-cosm.test.test("smoke", ->() { assert(true) })
-cosm.test.describe("more smoke", ->() { test("nested", ->() { assert(true) }) })
-cosm.test.expectEqual([1, 2], [1, 2])
-require("app/app.cosm")
-app.App.build().class.name
-cosm.test.summary()
-cosm.test.name
-cosm.modules.test.name
+require "cosm/spec.cosm"
+Cosm::Spec.suite("smoke section", ->() { Cosm::Spec.it("smoke", ->() { Cosm::Spec.assert(true) }) })
+Cosm::Spec.assert_equal([1, 2], [1, 2])
+require "app/app"
+App::App.build().class.name
 Kernel.class.name
 Kernel.inspect(Kernel)
 http.class.name
-cosm.http.class.name
+Cosm::Http.class.name
 Time.now()
 Time.isoNow()
 Time.iso(0)
@@ -531,12 +528,10 @@ end
 Kernel.dispatch(1, Symbol.intern("plus"), 2)
 Kernel.method(:assert).name
 Kernel.method(:assert).call(true)
-cosm.Kernel.assert(true)
-cosm.classes.Array.name
-cosm.version
-cosm.get(:version)
+Cosm::Kernel.assert(true)
+Cosm.version
 classes.get(:Kernel).name
-cosm.values().length
+Cosm.values().length
 :status.name
 Symbol.intern("status").name
 1.send(:plus, 2)
@@ -581,9 +576,8 @@ do let x = 1; x + 2 end
 - `assert` still exists as a convenience global, but `Kernel.assert(...)` is the clearer long-term shape.
 - `puts` also exists as a convenience global alias for `Kernel.puts(...)`.
 - `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
-- `resetTests` and `testSummary` also exist as convenience global aliases, though `cosm.test.reset()` / `cosm.test.summary()` remain a better long-term shape.
-- `require("cosm/test")` still parses as a statement. It injects `test`, `describe`, `expectEqual`, `resetTests`, and `testSummary` into the current scope and returns the same `Module` object exposed as `cosm.test`.
-- `require("path/to/file.cosm")` also parses as a statement. It returns a reflective `Module` object and injects a basename-style module binding such as `app` for `require("app/app.cosm")`.
+- `resetTests` and `testSummary` still exist as convenience globals, but `Cosm::Spec` is the maintained testing path.
+- `require "path"` is the maintained module-loading form. Prefer module constants like `Cosm::Spec` and `App::App` over older ambient bindings.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
@@ -604,7 +598,7 @@ do let x = 1; x + 2 end
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.
 - `Kernel`, `classes`, and `cosm` now also have clearer named runtime classes (`Kernel` and `Namespace`) rather than always appearing as anonymous `Object` bags. `Namespace` currently owns `length`, `keys`, `values`, `has`, and `get` natively.
-- `Module` is now a distinct runtime class from `Namespace`. `cosm.test` is a `Module`, while `cosm.modules` remains a `Namespace` that indexes module objects.
+- `Module` is now a distinct runtime class from `Namespace`. Maintained module surfaces like `Cosm::Spec` are `Module` values.
 - Strings, arrays, and hashes now expose `.length` directly; the old global `len` helper has been removed.
 - Loops and reassignment are not implemented yet.
 

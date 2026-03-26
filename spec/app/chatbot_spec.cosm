@@ -9,10 +9,10 @@ Cosm::Spec.suite("Support chatbot helpers", ->() {
   })
   Cosm::Spec.it("step returns the structured chat-step model shape", ->() {
     let step = { transcript: "user: hello\nassistant: hi", reply: { should_reply: true, text: "hi", rationale: "mocked", tool_calls: false, tool_results: false } }
-    assert(Support::Models.chat_step.validate(step) == true)
+    Cosm::Spec.assert(Support::Models.chat_step.validate(step) == true)
   })
   Cosm::Spec.it("banner stays descriptive", ->() {
-    assert(Support::Chat.banner().length > 20)
+    Cosm::Spec.assert(Support::Chat.banner().length > 20)
   })
 })
 

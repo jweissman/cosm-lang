@@ -1,5 +1,9 @@
 {
   "scripts": {
+    "test": "zsh script/test_fast.sh",
+    "test:fast": "zsh script/test_fast.sh",
+    "test:slow": "zsh script/test_slow.sh",
+    "test:live-ai": "COSM_AI_LIVE=1 ./script/bunx test test/ai.integration.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

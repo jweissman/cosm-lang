@@ -2,7 +2,7 @@ require "cosm/spec.cosm"
 
 Cosm::Spec.suite("Kernel", ->() {
   Cosm::Spec.it("ambient assertions and dispatch stay available", ->() {
-    assert(Kernel.assert(true) == true)
+    Cosm::Spec.assert(Kernel.assert(true) == true)
     Cosm::Spec.assert_equal(Kernel.dispatch(1, :plus, 2), 3)
   })
   Cosm::Spec.it("explicit scalar helpers stay available", ->() {
@@ -12,7 +12,7 @@ Cosm::Spec.suite("Kernel", ->() {
   })
   Cosm::Spec.it("trace and validation helpers stay available", ->() {
     Cosm::Spec.assert_equal(Kernel.trace("kernel spec", 41), 41)
-    assert(Kernel.tryValidate(42, Schema.number()).ok == true)
+    Cosm::Spec.assert(Kernel.tryValidate(42, Schema.number()).ok == true)
   })
 })
 

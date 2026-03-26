@@ -1,3 +1,9 @@
-assert(Object.new().methods() == [:eq, :method, :methods, :send, :inspect, :to_s], "ordinary receivers expose a symbol-list reflection surface")
-assert(Object.new().method(:send).name == "send", "ordinary receivers can look up a concrete method object")
-assert(Object.methods() == [:new, :classMethod, :include, :eq, :method, :methods, :send, :inspect, :to_s], "class receivers expose a callable symbol-list surface in dispatch precedence order")
+require "cosm/spec.cosm"
+
+Cosm::Spec.suite("Reflection", ->() {
+  Cosm::Spec.it("keeps receiver-side reflection compact", ->() {
+    Cosm::Spec.assert_equal(Object.new().methods(), [:eq, :method, :methods, :send, :inspect, :to_s])
+    Cosm::Spec.assert_equal(Object.new().method(:send).name, "send")
+    Cosm::Spec.assert_equal(Object.methods(), [:new, :classMethod, :include, :eq, :method, :methods, :send, :inspect, :to_s])
+  })
+})

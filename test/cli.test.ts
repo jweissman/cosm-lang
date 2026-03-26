@@ -199,13 +199,13 @@ test("cli supports bare puts with single-quoted strings", () => {
 test("cli can sketch a tiny Cosm-native test harness", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "kernel-test.cosm");
-  writeFileSync(sourcePath, 'test("smoke", ->() { assert(true) }); test("sad", ->() { assert(false, "boom") }); 11\n');
+  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; Cosm::Spec.suite("smoke", ->() { Cosm::Spec.it("passes", ->() { Cosm::Spec.assert(true) }) }); Cosm::Spec.finish()\n');
 
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("ok - smoke");
-  expect(result.stdout).toContain("not ok - sad: Assertion failed: boom");
+  expect(result.stdout).toContain("# smoke");
+  expect(result.stdout).toContain("ok - passes");
 });
 
 test("cli can run the dedicated Cosm test file", () => {
@@ -217,19 +217,21 @@ test("cli can run the dedicated Cosm test file", () => {
   expect(result.stdout).toContain("# objects");
   expect(result.stdout).toContain("ok - math smoke");
   expect(result.stdout).toContain("ok - class smoke");
-  expect(result.stdout).toContain("not ok - sad path: Assertion failed: boom");
+  expect(result.stdout).toContain("ok - sad path");
 });
 
 test("cli test mode reports failures and exits nonzero", () => {
-  const result = runCli(["--test", "test/test.cosm"]);
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-failing-test-"));
+  const sourcePath = join(tempDir, "failing_spec.cosm");
+  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; Cosm::Spec.suite("smoke", ->() { Cosm::Spec.it("passes", ->() { Cosm::Spec.assert(true) }); Cosm::Spec.it("fails", ->() { Cosm::Spec.assert(false, "boom") }) })\n');
+
+  const result = runCli(["--test", sourcePath]);
   expect(result.exitCode).toBe(1);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("# kernel basics");
-  expect(result.stdout).toContain("# callables");
-  expect(result.stdout).toContain("# objects");
-  expect(result.stdout).toContain("ok - math smoke");
-  expect(result.stdout).toContain("not ok - sad path: Assertion failed: boom");
-  expect(result.stdout).toContain("7 passed, 1 failed, 8 total");
+  expect(result.stdout).toContain("# smoke");
+  expect(result.stdout).toContain("ok - passes");
+  expect(result.stdout).toContain("not ok - fails: Assertion failed: boom");
+  expect(result.stdout).toContain("1 passed, 1 failed, 2 total");
 });
 
 test("cli watch mode restarts a target file on change", async () => {
@@ -360,7 +362,8 @@ test("cli can run the cosm self-test file", () => {
   const result = runCli(["spec/core.cosm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toBe("");
+  expect(result.stdout).toContain("# Core language expressions");
+  expect(result.stdout).toContain("# Reflection");
 });
 
 test("cli can run the dedicated runtime harness spec bundle", () => {

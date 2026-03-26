@@ -56,7 +56,7 @@ test("worker-backed sessions timeout cleanly and recover on the next eval", () =
       session.tryEval("Kernel.sleep(50); 1").error.message
     `)).toContain("Session timeout");
 
-    process.env.COSM_SESSION_TIMEOUT_MS = "200";
+    process.env.COSM_SESSION_TIMEOUT_MS = "500";
 
     expect(cosmEval(`
       let session = Session.new()

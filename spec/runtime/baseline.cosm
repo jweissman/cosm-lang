@@ -1,3 +1,4 @@
+require "cosm/spec.cosm"
 require "spec/runtime/kernel_spec.cosm"
 require "spec/runtime/process_spec.cosm"
 require "spec/runtime/time_spec.cosm"
@@ -7,4 +8,4 @@ require "spec/runtime/http_spec.cosm"
 require "spec/runtime/ai_spec.cosm"
 require "spec/app/chatbot_spec.cosm"
 
-"runtime baseline complete"
+Cosm::Spec.finish()

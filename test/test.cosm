@@ -1,35 +1,38 @@
 ## Tiny Cosm-native test harness exercise
 
-require("cosm/test");
+require "cosm/spec.cosm"
 
-expectEqual(Kernel.inspect(Kernel), "#<Kernel>");
+Cosm::Spec.assert_equal(Kernel.inspect(Kernel), "#<Kernel>")
 
 def kernel_examples()
-  test("math smoke", ->() { assert(1 + 1 == 2) });
-  test("expectEqual smoke", ->() { expectEqual([1, 2], [1, 2]) });
-  test("inspect smoke", ->() { assert(Kernel.inspect(Kernel) == "#<Kernel>") });
-  test("explicit send smoke", ->() { assert(Kernel.dispatch(1, :plus, 2) == 3) })
-end;
+  Cosm::Spec.it("math smoke", ->() { Cosm::Spec.assert(1 + 1 == 2) })
+  Cosm::Spec.it("expectEqual smoke", ->() { Cosm::Spec.assert_equal([1, 2], [1, 2]) })
+  Cosm::Spec.it("inspect smoke", ->() { Cosm::Spec.assert(Kernel.inspect(Kernel) == "#<Kernel>") })
+  Cosm::Spec.it("explicit send smoke", ->() { Cosm::Spec.assert(Kernel.dispatch(1, :plus, 2) == 3) })
+end
 
 def callable_examples()
-  let id = ->(x) { x };
-  test("function call smoke", ->() { assert(id.call(4) == 4) });
-  test("method call smoke", ->() { assert(Kernel.method(:assert).call(true, "ok") == true) })
-end;
+  id = ->(x) { x }
+  Cosm::Spec.it("function call smoke", ->() { Cosm::Spec.assert(id.call(4) == 4) })
+  Cosm::Spec.it("method call smoke", ->() { Cosm::Spec.assert(Kernel.method(:assert).call(true, "ok") == true) })
+end
 
 class HarnessThing
   def init(value)
-    assert(@value == value)
+    Cosm::Spec.assert(@value == value)
   end
-end;
+end
 
 def object_examples()
-  test("class smoke", ->() { assert(HarnessThing.new(3).value == 3) });
-  test("sad path", ->() { assert(false, "boom") })
-end;
+  Cosm::Spec.it("class smoke", ->() { Cosm::Spec.assert(HarnessThing.new(3).value == 3) })
+  Cosm::Spec.it("sad path", ->() {
+    error = Cosm::Spec.expect_raises(->() { Cosm::Spec.assert(false, "boom") }, "Assertion failed: boom")
+    Cosm::Spec.assert_equal(error.message, "Assertion failed: boom")
+  })
+end
 
-describe("kernel basics", kernel_examples);
-describe("callables", callable_examples);
-describe("objects", object_examples);
+Cosm::Spec.suite("kernel basics", kernel_examples)
+Cosm::Spec.suite("callables", callable_examples)
+Cosm::Spec.suite("objects", object_examples)
 
-"test harness complete"
+Cosm::Spec.finish()

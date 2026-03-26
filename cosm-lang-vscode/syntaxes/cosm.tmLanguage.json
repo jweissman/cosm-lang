@@ -27,6 +27,9 @@
 			"include": "#constants"
 		},
 		{
+			"include": "#symbols"
+		},
+		{
 			"include": "#strings"
 		}
 	],
@@ -51,6 +54,10 @@
 			{
 				"name": "keyword.operator.assignment.cosm",
 				"match": "="
+			},
+			{
+				"name": "keyword.operator.ternary.cosm",
+				"match": "\\?|:"
 			},
 			{
 				"name": "keyword.operator.namespace.cosm",
@@ -89,11 +96,11 @@
 			"patterns": [
 				{
 					"name": "entity.name.function.cosm",
-					"match": "\\bdef\\s+self\\.([A-Za-z][A-Za-z0-9]*)\\b"
+					"match": "\\bdef\\s+self\\.([a-z_][A-Za-z0-9_]*)\\b"
 				},
 				{
 					"name": "entity.name.function.cosm",
-					"match": "\\bdef\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+					"match": "\\bdef\\s+([a-z_][A-Za-z0-9_]*)\\b"
 				}
 			]
 		},
@@ -125,10 +132,54 @@
 				}
 			]
 		},
+		"symbols": {
+			"patterns": [
+				{
+					"name": "constant.other.symbol.cosm",
+					"match": ":[A-Za-z_][A-Za-z0-9_]*\\b"
+				}
+			]
+		},
 		"strings": {
-			"name": "string.quoted.double.cosm",
-			"begin": "\"",
-			"end": "\"",
+			"patterns": [
+				{
+					"name": "string.quoted.triple.cosm",
+					"begin": "\"\"\"",
+					"end": "\"\"\"",
+					"patterns": [
+						{
+							"include": "#interpolation"
+						}
+					]
+				},
+				{
+					"name": "string.quoted.single.cosm",
+					"begin": "'",
+					"end": "'",
+					"patterns": [
+						{
+							"name": "constant.character.escape.cosm",
+							"match": "\\\\."
+						}
+					]
+				},
+				{
+					"name": "string.quoted.double.cosm",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [
+						{
+							"include": "#interpolation"
+						},
+						{
+							"name": "constant.character.escape.cosm",
+							"match": "\\\\."
+						}
+					]
+				}
+			]
+		},
+		"interpolation": {
 			"patterns": [
 				{
 					"name": "meta.interpolation.cosm",
@@ -153,12 +204,11 @@
 						},
 						{
 							"include": "#constants"
+						},
+						{
+							"include": "#symbols"
 						}
 					]
-				},
-				{
-					"name": "constant.character.escape.cosm",
-					"match": "\\\\."
 				}
 			]
 		}
