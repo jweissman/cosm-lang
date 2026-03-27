@@ -1,6 +1,8 @@
 class Module < Object
   def entry_names()
-    self.keys().map(->(name) { name.name })
+    self.keys().map do |name|
+      name.name
+    end
   end
 
   def include_into(target) = target.include(self);

@@ -142,6 +142,7 @@ Slack smoke testing:
 - [Language reference](./doc/lang.md)
 - [Feature snapshot](./doc/features.md)
 - [Roadmap](./doc/roadmap.md)
+- [Runtime call flow](./doc/runtime_call_flow.md)
 - [Slack agent notes](./doc/slack.md)
 - [Vision](./doc/vision.md)
 

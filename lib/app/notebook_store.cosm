@@ -31,12 +31,12 @@ def page(id, title, blocks, last_execution_summary = false, created_at = Time.is
 end
 
 def normalize_blocks(blocks)
-  blocks.map(->(entry) {
+  blocks.map do |entry|
     Support::Models.notebook_block.build({
       kind: entry.kind,
       content: entry.content
     })
-  })
+  end
 end
 
 def parse_blocks(raw)
@@ -76,11 +76,11 @@ def create_page(title = "Untitled notebook page")
 end
 
 def list_pages()
-  Kernel.listDir(storage_dir()).map(->(id) {
+  (Kernel.listDir(storage_dir()).map do |id|
     load_page(id)
-  }).reject(->(entry) {
+  end).reject do |entry|
     entry == false
-  })
+  end
 end
 
 def current_page(page_id = false)

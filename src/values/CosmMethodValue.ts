@@ -1,17 +1,19 @@
 import { CosmValue } from "../types";
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 
 
 export class CosmMethodValue extends CosmValueBase {
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
 
   static installRuntimeHooks(hooks: {
-    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue) => CosmValue;
+    invoke: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   }): void {
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue) =>
+      hooks.invoke(callee, args, normalizeInvocationContext(contextOrReceiver))) as typeof this.invokeHandler;
   }
 
   static readonly manifest: RuntimeValueManifest<CosmMethodValue> = {
@@ -27,7 +29,7 @@ export class CosmMethodValue extends CosmValueBase {
         if (!CosmMethodValue.invokeHandler) {
           throw new Error('Method runtime error: invoke handler is not installed');
         }
-        return CosmMethodValue.invokeHandler(selfValue, args);
+        return CosmMethodValue.invokeHandler(selfValue, args, {});
       }),
     },
   };

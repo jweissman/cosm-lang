@@ -1,5 +1,6 @@
 import { CosmValue, CosmEnv } from "../types";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -23,7 +24,7 @@ import { createHmac } from "node:crypto";
 
 export class CosmKernelValue extends CosmObjectValue {
   private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   private static evalHandler?: (source: string) => CosmValue;
   private static resetEvalHandler?: () => void;
   private static defaultSessionHandler?: () => CosmValue;
@@ -33,14 +34,15 @@ export class CosmKernelValue extends CosmObjectValue {
 
   static installRuntimeHooks(hooks: {
     send: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
-    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
     eval?: (source: string) => CosmValue;
     resetEval?: () => void;
     defaultSession?: () => CosmValue;
     wrapError?: (error: unknown) => CosmErrorValue;
   }): void {
     this.sendHandler = hooks.send;
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+      hooks.invoke(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler;
     this.evalHandler = hooks.eval;
     this.resetEvalHandler = hooks.resetEval;
     this.defaultSessionHandler = hooks.defaultSession;
@@ -325,7 +327,7 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         const [callable] = args;
         try {
-          const value = CosmKernelValue.invokeHandler(callable, [], undefined, env);
+          const value = CosmKernelValue.invokeHandler(callable, [], { env });
           return CosmKernelValue.resultNamespace(value);
         } catch (error) {
           return CosmKernelValue.resultNamespace(false, error);
@@ -453,7 +455,7 @@ export class CosmKernelValue extends CosmObjectValue {
           throw new Error('Type error: test expects a string name');
         }
         try {
-          CosmKernelValue.invokeHandler(callable, [], undefined, env);
+          CosmKernelValue.invokeHandler(callable, [], { env });
           CosmKernelValue.testPassed += 1;
           process.stdout.write(`ok - ${nameValue.value}\n`);
           return new CosmBoolValue(true);
@@ -476,7 +478,7 @@ export class CosmKernelValue extends CosmObjectValue {
           throw new Error('Type error: describe expects a string name');
         }
         process.stdout.write(`# ${nameValue.value}\n`);
-        return CosmKernelValue.invokeHandler(callable, [], undefined, env);
+        return CosmKernelValue.invokeHandler(callable, [], { env });
       }),
       resetTests: () => new CosmFunctionValue('resetTests', (args) => {
         if (args.length !== 0) {

@@ -1,4 +1,5 @@
 import { CosmEnv, CosmValue } from "../types";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmNumberValue } from "./CosmNumberValue";
@@ -7,12 +8,15 @@ import { CosmValueBase } from "./CosmValueBase";
 
 
 export class CosmArrayValue extends CosmValueBase {
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
 
   static installRuntimeHooks(hooks: {
-    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   }): void {
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = hooks.invoke
+      ? ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+        hooks.invoke?.(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler
+      : undefined;
   }
 
   readonly type = 'array';
@@ -53,7 +57,7 @@ export class CosmArrayValue extends CosmValueBase {
           throw new Error("Array runtime error: invoke handler is not installed");
         }
         for (const item of selfValue.items) {
-          CosmArrayValue.invokeHandler(callback, [item], undefined, env);
+          CosmArrayValue.invokeHandler(callback, [item], { env });
         }
         return selfValue;
       });
@@ -95,7 +99,7 @@ export class CosmArrayValue extends CosmValueBase {
         if (!CosmArrayValue.invokeHandler) {
           throw new Error("Array runtime error: invoke handler is not installed");
         }
-        return new CosmArrayValue(selfValue.items.map((item) => CosmArrayValue.invokeHandler!(callback, [item], undefined, env)));
+        return new CosmArrayValue(selfValue.items.map((item) => CosmArrayValue.invokeHandler!(callback, [item], { env })));
       });
     }
     if (name === "select") {
@@ -114,7 +118,7 @@ export class CosmArrayValue extends CosmValueBase {
           throw new Error("Array runtime error: invoke handler is not installed");
         }
         const items = selfValue.items.filter((item) => {
-          const result = CosmArrayValue.invokeHandler!(callback, [item], undefined, env);
+          const result = CosmArrayValue.invokeHandler!(callback, [item], { env });
           if (!(result instanceof CosmBoolValue)) {
             throw new Error("Type error: select expects the callback to return a boolean");
           }
@@ -139,7 +143,7 @@ export class CosmArrayValue extends CosmValueBase {
           throw new Error("Array runtime error: invoke handler is not installed");
         }
         const items = selfValue.items.filter((item) => {
-          const result = CosmArrayValue.invokeHandler!(callback, [item], undefined, env);
+          const result = CosmArrayValue.invokeHandler!(callback, [item], { env });
           if (!(result instanceof CosmBoolValue)) {
             throw new Error("Type error: reject expects the callback to return a boolean");
           }
@@ -164,7 +168,7 @@ export class CosmArrayValue extends CosmValueBase {
           throw new Error("Array runtime error: invoke handler is not installed");
         }
         for (const item of selfValue.items) {
-          const result = CosmArrayValue.invokeHandler!(callback, [item], undefined, env);
+          const result = CosmArrayValue.invokeHandler!(callback, [item], { env });
           if (!(result instanceof CosmBoolValue)) {
             throw new Error("Type error: find expects the callback to return a boolean");
           }
@@ -222,7 +226,7 @@ export class CosmArrayValue extends CosmValueBase {
         }
         let accumulator = args[0];
         for (const item of selfValue.items) {
-          accumulator = CosmArrayValue.invokeHandler!(callback, [accumulator, item], undefined, env);
+          accumulator = CosmArrayValue.invokeHandler!(callback, [accumulator, item], { env });
         }
         return accumulator;
       });

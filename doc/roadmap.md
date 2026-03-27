@@ -65,14 +65,16 @@ Current priorities:
 
 ## Current Release Line
 
-### `0.3.13.23`
+### `0.3.13.24` - `0.3.13.25`
 
-This release is about making the authored core story match the runtime:
+This hardening line is about making the runtime smaller, cleaner, and easier to reason about:
 
-- keeping the `BasicObject` / `Object` / `Module` / `Class` tower explicit
-- turning `cosm/core/*` facades for `BasicObject`, `Object`, `Module`, `Class`, `Array`, and `Hash` into real authored classes
-- making collection includes explicit in authored Cosm code rather than bootstrap-only wiring
-- adding method-send trailing blocks so collection code can become more block-native
+- splitting runtime bootstrap into explicit domain-grouped modules
+- moving parser input normalization out of the parser implementation
+- writing down the `RuntimeDispatch` / `InterpreterInvoke` / `InterpreterMessage` call flow explicitly
+- making maintained Cosm code more block-first where that is now natural
+- splitting runtime tests by subsystem instead of one omnibus file
+- starting the invocation-context migration at the runtime-hook boundary
 - keeping the notebook flagship wedge while the agent/tool runtime stays intentionally secondary
 
 Explicitly not the goal of `0.3.13.x`:

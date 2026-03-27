@@ -2,6 +2,8 @@ class Object < BasicObject
   def receiver_name() = self.class.name;
 
   def method_names()
-    self.methods().map(->(name) { name.name })
+    self.methods().map do |name|
+      name.name
+    end
   end
 end

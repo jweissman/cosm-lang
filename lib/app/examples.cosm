@@ -55,7 +55,7 @@ def enumerable_sum_by()
 end
 
 def collection_lattice()
-  example("Collections", "Collection lattice", "Array and Hash now expose their small authored mixin lattice directly.", "[Array.includedModules.map(->(mod) { mod.name }), Hash.includedModules.map(->(mod) { mod.name })]")
+  example("Collections", "Collection lattice", "Array and Hash now expose their small authored mixin lattice directly.", "[Array.includedModules.map do |mod| mod.name end, Hash.includedModules.map do |mod| mod.name end]")
 end
 
 def prompt_object()

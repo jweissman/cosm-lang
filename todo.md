@@ -147,3 +147,39 @@ make Array and Hash feel like real descendants with included modules, not specia
 
 push more inspect, to_s, reflection, and maybe equality semantics into authored Cosm surfaces
 reduce the amount of “mystery native behavior”
+
+0.3.13.24: Bootstrap + Parser Paydown
+split Bootstrap.ts into smaller runtime-bootstrap modules
+move parser-owned normalization out of parser.ts where practical
+write a short “call flow” note for RuntimeDispatch vs InterpreterInvoke vs InterpreterMessage
+0.3.13.25: Block/Callable Consolidation
+review core/stdlib APIs and prefer trailing blocks where they are now natural
+convert more collection/core authored code away from stabby lambdas
+decide where explicit lambdas remain the preferred surface:
+stored callbacks
+AI/streaming handlers
+places where object identity matters
+0.3.13.26: Test + Runtime Surface Cleanup
+split cosm.test.ts by subsystem
+revisit native method signatures and probably move toward a required invocation context object
+keep shrinking TS-owned visible behavior into Cosm-authored surfaces
+
+0.3.13.26: Canonicalization and Object Protocol
+finish inspect / to_s / method / methods cleanup
+keep shrinking TS-owned visible behavior into authored Cosm
+do a full roadmap/vision/README consistency pass
+rewrite the 0.3.13.x retrospective as what actually landed, not what we once predicted
+0.3.13.27: Boundary Semantics
+define what Mirror and Hologram really are
+sharpen host-backed value translation rules
+decide whether ~= / ~ become the canonical visible seam for semantic computation
+make the AI boundary feel as principled as HTTP/class reflection
+0.3.13.28: Persistence and Runtime State
+introduce a real store boundary
+likely SQLite
+better replay/status/debuggability
+maybe begin thinking about “living object persistence” in a scoped, honest way
+0.3.13.29: Tool/Concurrency Wedge
+only after boundaries and persistence are clearer
+tiny tool protocol
+maybe first structured concurrency down payment for agent/tool work

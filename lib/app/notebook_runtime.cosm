@@ -31,23 +31,23 @@ def run_block(session, block)
 end
 
 def final_result(results)
-  results.reduce(false, ->(acc, result) {
+  results.reduce(false) do |acc, result|
     if result.kind == "cosm" then
       result
     else
       acc
     end
-  })
+  end
 end
 
 def execution_summary(results)
-  let lines = results.compact_map(->(result) {
+  let lines = results.compact_map do |result|
     if result.kind != "cosm" then
       false
     else
       result.ok ? "ok: " + result.rendered : "error: " + result.error.message
     end
-  })
+  end
   if lines.empty() then
     "No Cosm blocks were executed yet."
   else
@@ -57,11 +57,11 @@ end
 
 def run_page(page)
   let session = session_for(page)
-  let steps = page.blocks.map(->(block) {
+  let steps = page.blocks.map do |block|
     Cosm::Workflow.step(block.kind, ->() { run_block(session, block) })
-  })
+  end
   let step_results = Cosm::Workflow.run(steps)
-  let results = step_results.map(->(entry) {
+  let results = step_results.map do |entry|
     if entry.ok then
       entry.value
     else
@@ -74,7 +74,7 @@ def run_page(page)
         skipped: false
       }
     end
-  })
+  end
   let summary = execution_summary(results)
   let saved_page = App::NotebookStore.save_execution(page, summary)
   {

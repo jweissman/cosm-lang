@@ -1,4 +1,5 @@
 import { RuntimeValueManifest, manifestMethod, manifestProperty } from "../runtime/RuntimeManifest";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmEnv, CosmValue } from "../types";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -51,14 +52,15 @@ class CosmHttpRouterDslValue extends CosmObjectValue {
 }
 
 export class CosmHttpRouterValue extends CosmObjectValue {
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
 
   static installRuntimeHooks(hooks: {
-    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
     lookupMethod: (receiver: CosmValue, message: CosmValue) => CosmValue;
   }): void {
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+      hooks.invoke(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler;
     this.methodLookupHandler = hooks.lookupMethod;
   }
 
@@ -126,8 +128,7 @@ export class CosmHttpRouterValue extends CosmObjectValue {
         CosmHttpRouterValue.invokeHandler(
           builder,
           [],
-          new CosmHttpRouterDslValue(selfValue),
-          env,
+          { receiver: new CosmHttpRouterDslValue(selfValue), env },
         );
         return selfValue;
       }),

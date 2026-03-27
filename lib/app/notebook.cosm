@@ -127,17 +127,17 @@ class NotebookView
       if pages.empty() then
         "<div class=\"rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-400\">No saved pages yet.</div>"
       else
-        pages.map(->(page) {
+        (pages.map do |page|
           let active = if page.id == current_page.id then " border-cyan-400 bg-slate-950/90" else " border-slate-800 bg-slate-950/60" end
           "<a class=\"block rounded-2xl border p-4 text-sm transition hover:border-cyan-400" + active + "\" href=\"/notebook?id=" + App::Rendering::HtmlView.escape(page.id) + "\"><p class=\"font-semibold text-slate-100\">" + App::Rendering::HtmlView.escape(page.title) + "</p><p class=\"mt-2 text-xs text-slate-400\">" + App::Rendering::HtmlView.escape(page.updated_at) + "</p></a>"
-        }).join("")
+        end).join("")
       end
     end
 
     def blocks_markup(current_page)
-      current_page.blocks.map(->(block) {
+      (current_page.blocks.map do |block|
         block_markup(block)
-      }).join("")
+      end).join("")
     end
 
     def block_markup(block)
@@ -150,7 +150,7 @@ class NotebookView
       if execution == false then
         "<div class=\"rounded-[2rem] border border-dashed border-slate-700 bg-slate-900/60 p-6 text-slate-300\">Run the whole page to execute each Cosm block in one named session.</div>"
       else
-        execution.results.map(->(result) {
+        (execution.results.map do |result|
           if result.kind == "markdown" then
             "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/70 p-5\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-amber-300\">Markdown</p><pre class=\"mt-3 whitespace-pre-wrap break-words text-sm text-slate-300\">" + App::Rendering::HtmlView.escape(result.content) + "</pre></div>"
           else
@@ -161,7 +161,7 @@ class NotebookView
               "<div class=\"rounded-[2rem] border border-rose-900 bg-rose-950/40 p-5\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-rose-300\">Cosm Error</p><p class=\"mt-3 text-sm font-semibold text-rose-100\">" + App::Rendering::HtmlView.escape(result.error.message) + "</p><pre class=\"mt-3 whitespace-pre-wrap break-words text-xs text-rose-200\">" + details + "</pre></div>"
             end
           end
-        }).join("")
+        end).join("")
       end
     end
 

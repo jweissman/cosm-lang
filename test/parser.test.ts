@@ -36,6 +36,8 @@ test("parser treats significant newlines like semicolons", () => {
   expect(() => Parser.parse("class A\nend\nA.name")).not.toThrow();
   expect(() => Parser.parse("def f() 1 end\ndef g() 2 end\ng()")).not.toThrow();
   expect(() => Parser.parse("1 +\n2")).not.toThrow();
+  expect(() => Parser.parse("module Box\n  def label() = \"ok\"\nend\nBox.label()")).not.toThrow();
+  expect(() => Parser.parse("begin\n  Kernel.raise(\"boom\")\nrescue err\n  err.message\nend")).not.toThrow();
   expect(() => Parser.parse('HttpResponse.json({\n  method: req.method,\n  path: req.path,\n  header: req.headers.get("x-test")\n}, 201)')).not.toThrow();
   expect(() => Parser.parse('HttpResponse.json({\n  ok: Kernel.try(->() {\n    1 + 1\n  }).ok,\n  label: "done"\n}, 200)')).not.toThrow();
 });
@@ -49,6 +51,7 @@ test("parser keeps keyword prefixes distinct from identifiers", () => {
 
 test("parser accepts interpolated triple-quoted strings", () => {
   expect(() => Parser.parse('let name = "cosm"\n"""\n<h1>Hello #{name}</h1>\n"""')).not.toThrow();
+  expect(() => Parser.parse('let text = """# not a comment\nstill text"""\ntext')).not.toThrow();
   expect(() => Parser.parse("yield()")).not.toThrow();
   expect(() => Parser.parse("yield(1, 2)")).not.toThrow();
   expect(() => Parser.parse("super(1, 2)")).not.toThrow();

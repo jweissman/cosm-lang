@@ -5,6 +5,8 @@ class Class < Module
   end
 
   def included_module_names()
-    self.includedModules.map(->(mod) { mod.name })
+    self.includedModules.map do |mod|
+      mod.name
+    end
   end
 end

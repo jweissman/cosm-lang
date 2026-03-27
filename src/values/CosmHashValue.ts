@@ -1,4 +1,5 @@
 import { CosmEnv, CosmValue } from "../types";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -8,12 +9,15 @@ import { CosmValueBase } from "./CosmValueBase";
 
 
 export class CosmHashValue extends CosmValueBase {
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
 
   static installRuntimeHooks(hooks: {
-    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   }): void {
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = hooks.invoke
+      ? ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+        hooks.invoke?.(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler
+      : undefined;
   }
 
   readonly type = 'hash';
@@ -54,7 +58,7 @@ export class CosmHashValue extends CosmValueBase {
           throw new Error("Hash runtime error: invoke handler is not installed");
         }
         for (const [key, value] of Object.entries(selfValue.entries)) {
-          CosmHashValue.invokeHandler(callback, [new CosmStringValue(key), value], undefined, env);
+          CosmHashValue.invokeHandler(callback, [new CosmStringValue(key), value], { env });
         }
         return selfValue;
       });
@@ -76,7 +80,7 @@ export class CosmHashValue extends CosmValueBase {
         }
         return new CosmArrayValue(
           Object.entries(selfValue.entries).map(([key, value]) =>
-            CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env),
+            CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], { env }),
           ),
         );
       });
@@ -113,7 +117,7 @@ export class CosmHashValue extends CosmValueBase {
         }
         const entries = Object.fromEntries(
           Object.entries(selfValue.entries).filter(([key, value]) => {
-            const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env);
+            const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], { env });
             if (!(result instanceof CosmBoolValue)) {
               throw new Error("Type error: select expects the callback to return a boolean");
             }
@@ -140,7 +144,7 @@ export class CosmHashValue extends CosmValueBase {
         }
         const entries = Object.fromEntries(
           Object.entries(selfValue.entries).filter(([key, value]) => {
-            const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env);
+            const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], { env });
             if (!(result instanceof CosmBoolValue)) {
               throw new Error("Type error: reject expects the callback to return a boolean");
             }
@@ -166,7 +170,7 @@ export class CosmHashValue extends CosmValueBase {
           throw new Error("Hash runtime error: invoke handler is not installed");
         }
         for (const [key, value] of Object.entries(selfValue.entries)) {
-          const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], undefined, env);
+          const result = CosmHashValue.invokeHandler!(callback, [new CosmStringValue(key), value], { env });
           if (!(result instanceof CosmBoolValue)) {
             throw new Error("Type error: find expects the callback to return a boolean");
           }
@@ -210,7 +214,7 @@ export class CosmHashValue extends CosmValueBase {
         }
         let accumulator = args[0];
         for (const [key, value] of Object.entries(selfValue.entries)) {
-          accumulator = CosmHashValue.invokeHandler!(callback, [accumulator, new CosmStringValue(key), value], undefined, env);
+          accumulator = CosmHashValue.invokeHandler!(callback, [accumulator, new CosmStringValue(key), value], { env });
         }
         return accumulator;
       });

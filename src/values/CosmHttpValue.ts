@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { Construct } from "../Construct";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmEnv, CosmValue } from "../types";
 import { ValueAdapter } from "../ValueAdapter";
 import { CosmClassValue } from "./CosmClassValue";
@@ -15,16 +16,17 @@ import { CosmStringValue } from "./CosmStringValue";
 import { CosmErrorValue } from "./CosmErrorValue";
 
 export class CosmHttpValue extends CosmObjectValue {
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
   private static requestHandler?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
 
   static installRuntimeHooks(hooks: {
-    invoke: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
     lookupMethod: (receiver: CosmValue, message: CosmValue) => CosmValue;
     request?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
   }): void {
-    this.invokeHandler = hooks.invoke;
+    this.invokeHandler = ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+      hooks.invoke(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler;
     this.methodLookupHandler = hooks.lookupMethod;
     if ("request" in hooks) {
       this.requestHandler = hooks.request;
@@ -32,7 +34,7 @@ export class CosmHttpValue extends CosmObjectValue {
   }
 
   static currentRuntimeHooks(): {
-    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
     lookupMethod?: (receiver: CosmValue, message: CosmValue) => CosmValue;
     request?: (method: string, url: string, options: { headers: Record<string, string>; body?: string }) => { status: number; body: string };
   } {

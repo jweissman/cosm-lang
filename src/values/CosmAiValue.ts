@@ -1,5 +1,6 @@
 import { CosmEnv, CosmValue } from "../types";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
+import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmObjectValue } from "./CosmObjectValue";
@@ -20,7 +21,7 @@ export class CosmAiValue extends CosmObjectValue {
   private static chatCastHandler?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
   private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
-  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
 
   static installRuntimeHooks(hooks: {
     status?: () => CosmValue;
@@ -30,7 +31,7 @@ export class CosmAiValue extends CosmObjectValue {
     chatCast?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
     stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
-    invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+    invoke?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   }): void {
     if ("status" in hooks) {
       this.statusHandler = hooks.status;
@@ -54,7 +55,10 @@ export class CosmAiValue extends CosmObjectValue {
       this.streamHandler = hooks.stream;
     }
     if ("invoke" in hooks) {
-      this.invokeHandler = hooks.invoke;
+      this.invokeHandler = hooks.invoke
+        ? ((callee: CosmValue, args: CosmValue[], contextOrReceiver?: InvocationContext | CosmValue, env?: CosmEnv, currentBlock?: CosmValue) =>
+          hooks.invoke?.(callee, args, normalizeInvocationContext(contextOrReceiver, env, currentBlock))) as typeof this.invokeHandler
+        : undefined;
     }
   }
 

@@ -1,14 +1,16 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.23
+## Current Release Target: 0.3.13.25
 
-`0.3.13.23` is best read as the slice that makes the authored Cosm surface match the runtime tower more honestly:
+`0.3.13.24`-`0.3.13.25` are best read as the hardening line that follows the core-tower/authored-facade work:
 
-- keep the explicit `BasicObject` / `Object` / `Module` / `Class` split
-- turn the `cosm/core/*` core facade layer into real authored classes rather than module overlays
-- make `Collection`, `Enumerable`, `Sequence`, and `Mapping` the explicit authored collection story
-- make collection includes explicit in authored Cosm code
-- make method-send trailing blocks work for collection methods
+- split runtime bootstrap into explicit domain modules instead of one monolith
+- move parser input normalization out of `parser.ts`
+- keep the explicit `BasicObject` / `Object` / `Module` / `Class` split legible through authored facades and smaller runtime seams
+- keep `Collection`, `Enumerable`, `Sequence`, and `Mapping` as the explicit authored collection story
+- keep method-send trailing blocks idiomatic enough that maintained Cosm code can prefer them where natural
+- replace the monolithic `test/cosm.test.ts` with subsystem-aligned runtime tests
+- start migrating runtime hook boundaries toward an explicit invocation context instead of optional positional `self/env`
 - keep the notebook as the main learning and experimentation wedge
 - keep the Slack agent runtime available, but secondary
 - keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
