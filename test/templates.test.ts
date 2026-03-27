@@ -46,7 +46,7 @@ test(".ecosm templates still interpolate explicit context bindings", () => {
 test(".ecosm templates support preferred <%= ... %> interpolation while keeping #{...}", () => {
   expect(cosmEval('require "lib/app/views/layout/page.ecosm"; App::Views::Layout::Page.render({ title: "Demo", extra_head: "<meta name=\\"x\\" content=\\"1\\">", extra_script: "<script>ok</script>" }, "<main>Body</main>")')).toContain("<title>Demo</title>");
   expect(cosmEval('require "lib/app/notebook"; require "lib/app/examples"; App::Notebook::NotebookExamples.card(App::Examples.receiver_reflection())')).toContain("Receiver reflection");
-  expect(cosmEval('require "lib/app/notebook"; App::Notebook::NotebookExamples.markup()')).toContain("Method names first");
+  expect(cosmEval('require "lib/app/notebook"; App::Notebook::NotebookExamples.markup()')).toContain("BasicObject/Object split");
 });
 
 test(".ecosm layout templates can render child content through yield", () => {

@@ -21,35 +21,31 @@ class NotebookExamples
     end
 
     def reflection_markup()
-      category("Reflection", "Method names first, method objects second, and ordinary runtime reflection through live values.", card(App::Examples.math_reflection()) + card(App::Examples.receiver_reflection()) + card(App::Examples.method_lookup()))
-    end
-
-    def dispatch_markup()
-      category("Dispatch", "Explicit helper dispatch stays available when you already have a receiver value.", card(App::Examples.dispatch_helper()))
+      category("Object Protocol", "Start with the real BasicObject/Object split, then inspect receiver methods, method objects, text protocol, and the explicit core tower.", card(App::Examples.object_surface_split()) + card(App::Examples.receiver_reflection()) + card(App::Examples.method_lookup()) + card(App::Examples.text_protocol()) + card(App::Examples.core_tower()) + card(App::Examples.mixin_include()))
     end
 
     def data_markup()
-      category("Data", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(App::Examples.data_model()) + card(App::Examples.schema_export()) + card(App::Examples.scalar_casts()))
+      category("Data Models", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(App::Examples.data_model()) + card(App::Examples.schema_export()) + card(App::Examples.scalar_casts()))
     end
 
     def collections_markup()
       category("Collections", "Collection, Enumerable, Sequence, and Mapping now explain the small authored collection surface more honestly.", card(App::Examples.enumerable_reduce()) + card(App::Examples.enumerable_filter()) + card(App::Examples.collection_lattice()))
     end
 
-    def ai_markup()
-      category("AI", "Prompt objects, runtime AI config vs health, and explicit AI-assisted cast remain available without becoming the center of the notebook wedge.", card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()) + card(App::Examples.prompt_data()))
+    def boundary_markup()
+      category("Boundaries", "Prompt objects, runtime AI config, and explicit AI-assisted cast remain visible, but they stay secondary to the notebook's object-model teaching path.", card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()) + card(App::Examples.prompt_data()))
     end
 
     def notebook_markup()
-      category("Notebook", "Persistent block pages, page-scoped sessions, and core-tower examples make the notebook the main wedge in this slice.", card(App::Examples.notebook_page()) + card(App::Examples.workflow_run()) + card(App::Examples.named_session()) + card(App::Examples.core_tower()))
+      category("Notebook", "Persistent block pages, page-scoped sessions, and runtime-facing examples make the notebook the main wedge in this slice.", card(App::Examples.notebook_page()) + card(App::Examples.named_session()) + card(App::Examples.workflow_run()))
     end
 
     def services_markup()
-      category("Services", "The service layer stays object-first and deliberately small.", card(App::Examples.router_sketch()))
+      category("Services", "The service layer stays object-first and deliberately small, with explicit dispatch still available when you need it.", card(App::Examples.dispatch_helper()) + card(App::Examples.router_sketch()))
     end
 
     def markup()
-      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + dispatch_markup() + data_markup() + collections_markup() + ai_markup() + notebook_markup() + services_markup() })
+      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + data_markup() + collections_markup() + notebook_markup() + boundary_markup() + services_markup() })
     end
 
     def category(title, description, cards)

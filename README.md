@@ -2,7 +2,7 @@
 
 Cosm is a small reflective programming language for interactive tooling, service objects, and explicit runtime boundaries.
 
-It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, and a narrower separate Slack-facing agent service.
+It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, and narrower separate assistant and Slack-facing agent wedges.
 
 ## What Cosm Emphasizes
 
@@ -115,12 +115,13 @@ Notebook workflow:
 - `just server` starts the notebook-first app wedge
 - `/notebook` is the current flagship surface for learning the language and exploring the runtime
 - notebook pages are durable local block documents with one named session per page
-- notebook examples focus on the core tower, collection lattice, and explicit runtime objects
+- notebook examples focus on the object protocol, core tower, collection lattice, and explicit runtime objects
 
 Iapetus workflow:
 
 - `just agent-server` starts the Slack-facing service at the canonical `lib/agent/server.cosm` entrypoint
 - `just chat` starts the local terminal loop against the same `Agent::Runtime` and file-backed store
+- `/assistant` remains available as a narrower page-backed wedge, but it is no longer presented as co-equal with the notebook workbench
 - maintained agent entrypoints explicitly `require "cosm/dotenv"` so `.env` and `.env.local` are loaded on startup without ambient CLI magic
 - `agent-server` is webhook-driven, not channel-polling: it does not take a channel id, and Slack delivers accepted DM and mention-driven channel events to `POST /slack/events`
 - inside local chat, `prompt`, `preview`, and `runtime` expose the current system prompt, the real message list that will be sent to the model, and local runtime/session status

@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.25
+## Current Release Target: 0.3.13.26
 
-`0.3.13.24`-`0.3.13.25` are best read as the hardening line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.26` are best read as the hardening and canonicalization line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -11,7 +11,8 @@
 - keep method-send trailing blocks idiomatic enough that maintained Cosm code can prefer them where natural
 - replace the monolithic `test/cosm.test.ts` with subsystem-aligned runtime tests
 - start migrating runtime hook boundaries toward an explicit invocation context instead of optional positional `self/env`
-- keep the notebook as the main learning and experimentation wedge
+- use the notebook as the main learning and experimentation wedge
+- make the object protocol easier to teach directly through the notebook and authored core surfaces
 - keep the Slack agent runtime available, but secondary
 - keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
 

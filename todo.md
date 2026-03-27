@@ -1,185 +1,122 @@
-1. 0.3.13.16: Spec/CLI/Developer Loop Cleanup
-This would finish the testing/tooling story we just improved.
+# Cosm Near-Term Plan
 
-I’d put here:
+## What `0.3.13.x` Actually Landed
 
-cosm test ... as a first-class CLI mode
-make Cosm::Spec implicit inside that mode so specs can write suite, it, assert, expect_raises without the Cosm::Spec. prefix
-remove the need for explicit finish()
-improve --trace-core / --trace-surface so they actually feel informative
-decide whether VM remains experimental-only or gets a clearer proving wedge
-This is probably the highest leverage polish slice.
+The `0.3.13.x` line ended up being three overlapping arcs rather than a neat linear patch plan.
 
-2. 0.3.13.17: Persistent Agent Runtime That Actually Feels Real
-I agree this now needs to come back to center.
+### 1. Runtime / CLI Legitimacy
 
-Right now we have the pieces, but not quite the experience. The next step should be:
+Largely landed:
 
-one obvious agent entrypoint
-one obvious way to run it
-one obvious way to DM it and get durable replies
-I’d keep Slack webhook-driven for now, not polling/scanning history yet, but make the runtime feel like a real control plane:
+- `cosm test ...` as a first-class CLI mode
+- implicit spec helpers in test mode
+- no explicit `finish()` requirement in normal spec flow
+- clearer VM parity wedge and smoke fixtures
+- better trace/debug surfaces
+- split bootstrap, smaller parser responsibilities, documented call flow
+- runtime tests split by subsystem instead of one omnibus runtime file
 
-load/store conversation
-execute one turn
-persist state
-emit reply
-expose status
-maybe add a tiny local chat harness too so we can talk to Iapetus without Slack in the loop
-That would make the agent feel less like infrastructure and more like a living wedge.
+### 2. Agent / Memory / Service Legitimacy
 
-3. 0.3.13.18: OO/Stdlib Deepening
-This is where I’d tackle:
+Largely landed in a narrow form:
 
-more mixin/inheritance/metaclass pressure
-confirm metaclass chain behavior is airtight
-lift more behavior into Cosm
-add better functional helpers / stdlib growth
-probably start a lib/ rehome for Cosm-authored code
-I think your lib/agent, lib/app, lib/support instinct is good. It would:
+- one obvious agent runtime path
+- local chat harness
+- DM-first Slack service
+- mention/thread channel ingress
+- durable message-native conversation history
+- thread-local durable state
+- status/diagnostic commands and HTTP surfaces
 
-reduce root clutter
-give stdlib a natural home
-make “Cosm-authored ecosystem code” feel like one layer
-I would not do that rehome as a tiny side edit, though. It should be a deliberate slice.
+Still intentionally deferred:
 
-4. 0.3.13.19: Boundary Semantics and Neurosymbolic Reliability
-This is where I think Mirror/Hologram, generative casting, and ~=/~ start to belong together.
+- real tool runtime
+- broader concurrency/runtime orchestration
+- larger persistent agent platform story
 
-I would not rush syntax like prompt literals or barred union yet, but I do think we should stabilize the semantic substrate:
+### 3. OO / Authored Surface Legitimacy
 
-Cosm::AI.cast(...) must be reliable
-schema/model validation must be predictable
-failure modes must be crisp
-Mirror should get clearer boundary semantics for JS/TS values
-Hologram can be the more opinionated translation layer if that still feels right
+Substantially landed:
 
+- explicit `BasicObject` / `Object` / `Module` / `Class` tower
+- authored `cosm/core/*` class facades
+- explicit collection lattice through `Collection`, `Enumerable`, `Sequence`, and `Mapping`
+- authored includes for `Array` / `Hash`
+- method-send trailing blocks
+- more maintained Cosm code reading in a more block-first style
 
----
+Still partial:
 
-0.3.13.20: Message-Native Agent Memory
+- object protocol cleanup
+- reducing remaining mystery native behavior
+- further stdlib lifting into authored Cosm code
 
-stop flattening the whole conversation into one big user prompt
-keep durable history as structured role-based messages
-feed the model a real message list: system + prior turns + latest turn
-preserve richer typed turn/result objects in runtime/store
-keep no tool execution yet
-0.3.13.21: Enumerable/Stdlib OO Lift
+## Current Open Debts
 
-turn cosm/enumerable.cosm into a real Enumerable module
-explicitly mix it into Array/Hash
-lift more collection behavior into Cosm
-simplify one-line defs and make maintained Cosm code read more idiomatically
-0.3.13.22: Tool-Ready Inner Loop
+### Object Protocol
 
-introduce typed tool-call / tool-result records in the runtime
-keep tool execution minimal at first
-make the agent turn contract naturally ready for “think -> choose -> reply”
-probably still single-turn, synchronous
-0.3.13.23: Boundary/Interop Deepening
+- finish `inspect`, `to_s`, `method`, and `methods` cleanup
+- keep clarifying what belongs on `BasicObject` vs `Object`
+- reduce visible behavior that still only really lives in TS
 
-clarify Mirror further on host-backed values
-decide what Hologram actually is
-start a real host-value translation story if the runtime is ready
+### Boundary Semantics
 
----
+- define `Mirror` and `Hologram` more crisply
+- sharpen host-backed value translation
+- make AI casting/comparison feel like principled runtime boundaries
+- decide how `~=` / `~` fit into the language model
 
-0.3.13.21: Useful Slack Agent
+### Persistence
 
-support channel/mention-driven ingress in addition to DM
-configurable allowed channel or channels
-thread-based durable conversation in channels
-cleaner server logs/status
-probably switch Kernel.puts boot logging to ordinary puts
+- move from wedge storage under `var/` toward a real store boundary
+- likely SQLite
+- make replay/status/debug much easier
 
-0.3.13.22: First Real Tools
+### Blocks and Callables
 
-introduce a tiny tool contract
-start with very practical tools only:
-web search
-fetch/open page
-maybe screenshot/image capture
-no complex planner yet, just one-turn “decide -> maybe use tool -> reply”
+- keep converting maintained Cosm code to trailing blocks where natural
+- keep explicit lambdas where they are the right tool:
+  - stored callbacks
+  - AI/streaming handlers
+  - identity-sensitive callable objects
 
-0.3.13.23: Better Persistence
+### Invocation Context
 
-introduce a real store boundary
-likely move from ad hoc JSON files toward SQLite
-keep the message-native conversation model
-make replay/status/debug much easier
-0.3.13.24: More Expressive Inner Loop
+- the runtime hook boundary now normalizes through an explicit invocation context
+- finish migrating more native/runtime-backed internals to use that model directly instead of relying on compatibility normalization
 
-richer typed turn records
-tool-call / tool-result messages as first-class history
-better prompt/policy modules
-maybe start making the agent loop itself more Cosm-authored and expressive
+## Next Milestones
 
-0.3.13.25: Language/Wedge Lift Together
+### `0.3.13.26`: Canonicalization and Object Protocol
 
-more stdlib lifting
-real Enumerable mixin/module
-cleaner base classes and mixin use
-perhaps a lightweight record/model pattern if persistence has stabilized
+- finish `inspect` / `to_s` / `method` / `methods` cleanup
+- keep shrinking TS-owned visible behavior into authored Cosm
+- keep docs/roadmap/vision aligned with current reality
 
----
+### `0.3.13.27`: Boundary Semantics
 
-0.3.13.22: Core Tower Clarification
+- define what `Mirror` and `Hologram` really are
+- sharpen host-backed value translation rules
+- decide whether `~=` / `~` become the canonical visible semantic seam
+- make the AI boundary feel as principled as HTTP/class reflection
 
-add BasicObject
-make Object < BasicObject
-decide exactly what lives on each
-keep TS as bootstrap/runtime substrate, but expose the tower explicitly
+### `0.3.13.28`: Persistence and Runtime State
 
-0.3.13.23: Cosm-Authored Core Facades
+- introduce a real store boundary
+- likely SQLite
+- better replay/status/debuggability
+- keep notebook and agent memory on the same explicit persistence story
 
-add real Cosm-authored definitions for Object, Module, Class, Array, Hash
-these don’t need to fully replace TS storage/dispatch yet
-but they should author the visible method surfaces and mixins more honestly
+### `0.3.13.29`: Tool / Concurrency Wedge
 
-0.3.13.24: Collection Layer Lift
+- tiny typed tool protocol
+- only after persistence and boundary semantics are clearer
+- possibly a first structured-concurrency down payment if the runtime needs it
 
-deepen Enumerable
-maybe split out Sequence or Mapping if needed
-move more collection behavior from TS into Cosm-authored code
-make Array and Hash feel like real descendants with included modules, not special cases
+## Longer-Term Ideas Worth Protecting
 
-0.3.13.25: Object Protocol Paydown
-
-push more inspect, to_s, reflection, and maybe equality semantics into authored Cosm surfaces
-reduce the amount of “mystery native behavior”
-
-0.3.13.24: Bootstrap + Parser Paydown
-split Bootstrap.ts into smaller runtime-bootstrap modules
-move parser-owned normalization out of parser.ts where practical
-write a short “call flow” note for RuntimeDispatch vs InterpreterInvoke vs InterpreterMessage
-0.3.13.25: Block/Callable Consolidation
-review core/stdlib APIs and prefer trailing blocks where they are now natural
-convert more collection/core authored code away from stabby lambdas
-decide where explicit lambdas remain the preferred surface:
-stored callbacks
-AI/streaming handlers
-places where object identity matters
-0.3.13.26: Test + Runtime Surface Cleanup
-split cosm.test.ts by subsystem
-revisit native method signatures and probably move toward a required invocation context object
-keep shrinking TS-owned visible behavior into Cosm-authored surfaces
-
-0.3.13.26: Canonicalization and Object Protocol
-finish inspect / to_s / method / methods cleanup
-keep shrinking TS-owned visible behavior into authored Cosm
-do a full roadmap/vision/README consistency pass
-rewrite the 0.3.13.x retrospective as what actually landed, not what we once predicted
-0.3.13.27: Boundary Semantics
-define what Mirror and Hologram really are
-sharpen host-backed value translation rules
-decide whether ~= / ~ become the canonical visible seam for semantic computation
-make the AI boundary feel as principled as HTTP/class reflection
-0.3.13.28: Persistence and Runtime State
-introduce a real store boundary
-likely SQLite
-better replay/status/debuggability
-maybe begin thinking about “living object persistence” in a scoped, honest way
-0.3.13.29: Tool/Concurrency Wedge
-only after boundaries and persistence are clearer
-tiny tool protocol
-maybe first structured concurrency down payment for agent/tool work
+- neurosymbolic operators as visible language seams
+- runtime synchronization between server and browser through reflective boundaries
+- JS interop through shaped APIs rather than raw host objects
+- protocol-oriented composition for tools/services/routers
+- scoped living object persistence

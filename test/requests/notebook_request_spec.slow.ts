@@ -35,7 +35,7 @@ test("persistent notebook pages can be created, saved, run, and reloaded through
     const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
     expect(notebookBody).toContain("Saved Cosm block pages");
     expect(notebookBody).toContain("Run Whole Page");
-    expect(notebookBody).toContain("core object model directly");
+    expect(notebookBody).toContain("object protocol");
 
     const created = dispatchService(appSource, "POST", "/notebook/create", { body: "title=Runbook" });
     const createdBody = ValueAdapter.cosmToJS(created.nativeProperty?.("body"));

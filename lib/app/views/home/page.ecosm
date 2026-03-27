@@ -1,38 +1,38 @@
 <main class="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
   <div class="space-y-4">
     <p class="text-sm uppercase tracking-[0.35em] text-cyan-300">Cosm <%= version %></p>
-    <h1 class="text-5xl font-black tracking-tight">Reflective server slice</h1>
+    <h1 class="text-5xl font-black tracking-tight">Notebook-first runtime</h1>
     <p class="max-w-2xl text-lg text-slate-300">
-      Object-first routing, router middleware, `.ecosm` templates, and a notebook-first workbench for exploring Cosm’s reflective runtime.
+      The notebook is the flagship workbench for exploring Cosm’s reflective runtime, object protocol, and collection lattice. Assistant and Slack flows stay available, but secondary.
     </p>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-cyan-400" href="/notebook">
+  <div class="grid gap-4 md:grid-cols-2">
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 transition hover:-translate-y-0.5 hover:border-cyan-400 md:col-span-2" href="/notebook">
       <p class="text-sm uppercase tracking-[0.25em] text-cyan-300">Notebook</p>
-      <h2 class="mt-3 text-2xl font-bold">Persistent Workbench</h2>
-      <p class="mt-2 text-sm text-slate-300">Save block pages locally, run whole-page Cosm in one named session, and learn the core tower and collection lattice through live examples.</p>
-    </a>
-
-    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-emerald-400" href="/assistant">
-      <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Assistant</p>
-      <h2 class="mt-3 text-2xl font-bold">Persistent Page Wedge</h2>
-      <p class="mt-2 text-sm text-slate-300">Keep the shared support/controller core around as a narrow separate wedge without making it the center of the notebook story.</p>
+      <h2 class="mt-3 text-3xl font-bold">Persistent Runtime Workbench</h2>
+      <p class="mt-2 max-w-2xl text-sm text-slate-300">Save block pages locally, run whole-page Cosm in one named session, and learn the object protocol, core tower, collection lattice, and data-model runtime through live examples.</p>
     </a>
 
     <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-amber-400" href="/health">
-      <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Health</p>
+      <p class="text-sm uppercase tracking-[0.25em] text-amber-300">Health</p>
       <h2 class="mt-3 text-2xl font-bold">JSON Status</h2>
       <p class="mt-2 text-sm text-slate-300">Inspect a tiny runtime-backed JSON response with process metadata.</p>
     </a>
 
-    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-3">
-      <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Secondary Wedge</p>
-      <h2 class="mt-3 text-2xl font-bold">Narrow Agent Service</h2>
-      <p class="mt-2 text-sm text-slate-300">The Slack-facing agent remains available as a thin secondary transport path, but this release keeps the notebook as the main teaching and experimentation surface.</p>
+    <a class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 transition hover:-translate-y-0.5 hover:border-emerald-400" href="/assistant">
+      <p class="text-sm uppercase tracking-[0.25em] text-emerald-300">Assistant</p>
+      <h2 class="mt-3 text-2xl font-bold">Secondary Page Wedge</h2>
+      <p class="mt-2 text-sm text-slate-300">Keep the shared support/controller core around as a narrower separate wedge without making it co-equal with the notebook workbench.</p>
+    </a>
+
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-2">
+      <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Secondary Runtime Paths</p>
+      <h2 class="mt-3 text-2xl font-bold">Assistant and Slack Service</h2>
+      <p class="mt-2 text-sm text-slate-300">The page-backed assistant and the Slack-facing agent still pressure the same runtime, but they stay deliberately secondary while the notebook teaches the language and object model directly.</p>
     </div>
 
-    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-3">
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 md:col-span-2">
       <p class="text-sm uppercase tracking-[0.25em] text-fuchsia-300">Request</p>
       <h2 class="mt-3 text-2xl font-bold"><%= method %> <%= path %></h2>
       <p class="mt-2 text-sm text-slate-300">Current pid <%= pid %> on <%= platform %>/<%= arch %>.</p>

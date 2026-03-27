@@ -29,8 +29,13 @@ test("receiver-side inspect stays available on representative objects", () => {
 
 test("receiver-side methods() exposes visible reflective methods consistently", () => {
   expect(cosmEval("BasicObject.new().basic_object_root()")).toBe(true);
+  expect(cosmEval("BasicObject.new().class.name")).toBe("BasicObject");
   expect(() => cosmEval("BasicObject.new().methods()")).toThrow("object of class BasicObject has no property 'methods'");
+  expect(() => cosmEval("BasicObject.new().method(:basic_object_root)")).toThrow("object of class BasicObject has no property 'method'");
+  expect(() => cosmEval("BasicObject.new().inspect()")).toThrow("object of class BasicObject has no property 'inspect'");
+  expect(() => cosmEval("BasicObject.new().to_s()")).toThrow("object of class BasicObject has no property 'to_s'");
   expect(cosmEval("Object.new().methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
+  expect(cosmEval("Object.new().method(:send).name")).toBe("send");
   expect(cosmEval("Object.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }, { kind: "symbol", name: "new" }]));
   expect(cosmEval("1.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "plus" }]));
   expect(cosmEval("Kernel.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "assert" }, { kind: "symbol", name: "dispatch" }]));
@@ -196,6 +201,22 @@ test("print and puts use receiver-side to_s for non-strings", () => {
   expect(stdout).toContain("custom-output\n");
 });
 
+test("receiver-side inspect and to_s mark the everyday object protocol boundary", () => {
+  expect(cosmEval("Object.new().inspect()")).toBe("{  }");
+  expect(cosmEval("Object.new().to_s()")).toBe("{  }");
+  expect(cosmEval(`
+    class Printable
+      def inspect()
+        "<Printable inspect>"
+      end
+      def to_s()
+        "printable to_s"
+      end
+    end
+    [Printable.new().inspect(), Printable.new().to_s()]
+  `)).toEqual(["<Printable inspect>", "printable to_s"]);
+});
+
 test("core scalar values expose explicit conversion helpers", () => {
   expect(cosmEval('"42".to_i()')).toBe(42);
   expect(cosmEval('"3.5".to_f()')).toBe(3.5);
@@ -207,10 +228,10 @@ test("core scalar values expose explicit conversion helpers", () => {
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
   expect(cosmEval('Cosm::Enumerable.class.name')).toBe("Module");
   expect(cosmEval('Cosm::Enumerable.name')).toBe("Enumerable");
-  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(["Collection", "Enumerable", "Sequence"]);
-  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(["Collection", "Enumerable", "Mapping"]);
-  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
-  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
+  expect(cosmEval('Array.includedModules.map do |mod| mod.name end')).toEqual(["Collection", "Enumerable", "Sequence"]);
+  expect(cosmEval('Hash.includedModules.map do |mod| mod.name end')).toEqual(["Collection", "Enumerable", "Mapping"]);
+  expect(cosmEval('Array.includedModules.map do |mod| mod.name end')).toEqual(expect.arrayContaining(["Enumerable"]));
+  expect(cosmEval('Hash.includedModules.map do |mod| mod.name end')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
   expect(cosmEval("[].empty()")).toBe(true);
   expect(cosmEval('{ answer: 42 }.present()')).toBe(true);
