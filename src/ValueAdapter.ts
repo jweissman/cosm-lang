@@ -4,6 +4,7 @@ import { CosmHttpResponseValue } from "./values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "./values/CosmHttpServerValue";
 import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
+import { CosmHologramHandleValue } from "./values/CosmHologramHandleValue";
 import { CosmModuleValue } from "./values/CosmModuleValue";
 import { CosmNamespaceValue } from "./values/CosmNamespaceValue";
 import { CosmErrorValue } from "./values/CosmErrorValue";
@@ -126,6 +127,13 @@ export class ValueAdapter {
             targetClass: value.nativeProperty("targetClass") ? this.cosmToJS(value.nativeProperty("targetClass")!) : null,
           };
         }
+        if (value instanceof CosmHologramHandleValue) {
+          return {
+            kind: "hologram_handle",
+            targetClass: value.nativeProperty("targetClass") ? this.cosmToJS(value.nativeProperty("targetClass")!) : null,
+            keys: value.nativeMethod("keys")?.nativeCall?.([], value) ? this.cosmToJS(value.nativeMethod("keys")!.nativeCall!([], value)) : [],
+          };
+        }
         if (value instanceof CosmErrorValue) {
           return {
             kind: "error",
@@ -163,6 +171,7 @@ export class ValueAdapter {
             kind: "data_model",
             name: value.nativeProperty("name") ? this.cosmToJS(value.nativeProperty("name")!) : null,
             fields: value.nativeProperty("fields") ? this.cosmToJS(value.nativeProperty("fields")!) : {},
+            defaults: value.nativeProperty("defaults") ? this.cosmToJS(value.nativeProperty("defaults")!) : {},
           };
         }
         return Object.fromEntries(

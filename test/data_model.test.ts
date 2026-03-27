@@ -31,6 +31,20 @@ test("Data models support nested casts and reflective schema export", () => {
   });
 });
 
+test("Data models can build validated record-shaped hashes with defaults", () => {
+  expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no"), note: Cosm::Data.optional(Cosm::Data.string()) }, { choice: "yes", note: false }); Reason.build({ answer: "hi" })')).toEqual({ answer: "hi", choice: "yes", note: false });
+
+  expect(cosmEval(`
+    let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") })
+    Reason.with_defaults({ choice: "no" }).build({ answer: "later" })
+  `)).toEqual({ answer: "later", choice: "no" });
+
+  expect(cosmEval(`
+    let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") }, { choice: "yes" })
+    Reason.defaults.choice
+  `)).toBe("yes");
+});
+
 test("cosm/ai.cosm can cast into a Data model through the runtime AI boundary", () => {
   CosmAiValue.installRuntimeHooks({
     status: () => Construct.namespace({

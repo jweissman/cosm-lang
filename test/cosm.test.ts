@@ -174,13 +174,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.20");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.21");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.20");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.21");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -315,9 +315,41 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval("Mirror.reflect(Object.new()).methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval('require "cosm/test"; Mirror.reflect(Cosm::Test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
-  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().mode')).toBe("placeholder");
-  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.wrap(Kernel).target_class')).toBe("Kernel");
+  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().mode')).toBe("narrow-writable");
+  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.wrap(Kernel).target_class.name')).toBe("Kernel");
+  expect(cosmEval('require "cosm/hologram"; holo = Cosm::Hologram.wrap({ answer: 1 }); holo.set(:answer, 2); holo.get(:answer)')).toBe(2);
   expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
+});
+
+test("module authoring and begin-rescue make module/mixin and errors more explicit", () => {
+  expect(cosmEval(`
+    module GreetingTools
+      def label() = "hi"
+    end
+    GreetingTools.name
+  `)).toBe("GreetingTools");
+  expect(cosmEval(`
+    module Outer
+      module Inner
+        def label() = "nested"
+      end
+    end
+    Outer::Inner.label()
+  `)).toBe("nested");
+  expect(cosmEval(`
+    begin
+      Kernel.raise("boom", { code: 7 })
+    rescue err
+      err.details.code
+    end
+  `)).toBe(7);
+  expect(cosmEval(`
+    begin
+      Schema.string().validate(1)
+    rescue err
+      err.details.path
+    end
+  `)).toBe("$");
 });
 
 test("receiver-side methods() reflects inherited visible methods consistently", () => {

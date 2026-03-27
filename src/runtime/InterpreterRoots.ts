@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { Construct } from "../Construct";
 import { CosmClass, CosmEnv, CosmObject, CosmValue } from "../types";
 import { CosmModuleValue } from "../values/CosmModuleValue";
@@ -62,9 +62,38 @@ export class InterpreterRoots {
     const source = readFileSync(this.sourcePath(name), "utf8");
     const moduleEnv = hooks.createEnv();
     hooks.evalInEnv(source, moduleEnv);
-    const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);
+    const directExport = this.directModuleExport(name, moduleEnv.bindings);
+    const loadedModule = directExport ?? Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);
     repository.modules[name] = loadedModule;
     return loadedModule;
+  }
+
+  private static directModuleExport(name: string, bindings: Record<string, CosmValue>): CosmObject | undefined {
+    const expectedName = this.moduleExportName(name);
+    if (!expectedName) {
+      return undefined;
+    }
+    const entries = Object.entries(bindings);
+    if (entries.length !== 1) {
+      return undefined;
+    }
+    const [[bindingName, value]] = entries;
+    if (bindingName !== expectedName || !(value instanceof CosmModuleValue)) {
+      return undefined;
+    }
+    return value;
+  }
+
+  private static moduleExportName(name: string): string | undefined {
+    const fileName = basename(name).replace(/\.(?:cosm|ecosm)$/u, "");
+    if (!/^[a-z0-9_]+$/u.test(fileName)) {
+      return undefined;
+    }
+    return fileName
+      .split("_")
+      .filter((segment) => segment.length > 0)
+      .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+      .join("");
   }
 
   static classesObject(env: CosmEnv, repository: Repository): CosmValue {

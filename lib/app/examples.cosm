@@ -23,7 +23,7 @@ def dispatch_helper()
 end
 
 def data_model()
-  example("Data", "Data model", "Define a model on top of Schema and validate a structured value through it.", "let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }); Reason.validate({ answer: \"hi\", choice: \"yes\" })")
+  example("Data", "Data model", "Define a model on top of Schema and build a validated record-shaped value through it.", "let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }, { choice: \"yes\" }); Reason.build({ answer: \"hi\" })")
 end
 
 def schema_export()
@@ -39,7 +39,7 @@ def enumerable_reduce()
 end
 
 def enumerable_filter()
-  example("Collections", "Enumerable filter", "Collection helpers stay explicit and runtime-backed through include plus Enumerable.", "{ reset: true, note: false }.filter(->(key, value) { value })")
+  example("Collections", "Enumerable filter", "Array and Hash pick up the authored Enumerable mixin through include.", "{ reset: true, note: false }.filter(->(key, value) { value })")
 end
 
 def enumerable_compact_map()

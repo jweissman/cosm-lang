@@ -21,6 +21,7 @@ import { CosmHttpResponseValue } from "../values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "../values/CosmHttpServerValue";
 import { CosmHttpRouterValue } from "../values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "../values/CosmMirrorValue";
+import { CosmHologramHandleValue } from "../values/CosmHologramHandleValue";
 import { CosmErrorValue } from "../values/CosmErrorValue";
 import { CosmSchemaValue } from "../values/CosmSchemaValue";
 import { CosmPromptValue } from "../values/CosmPromptValue";
@@ -104,6 +105,9 @@ export class Bootstrap {
       lookupProperty: (receiver, property) => RuntimeDispatch.lookupProperty(receiver, property, this.currentRepository!),
       visibleMethods: (receiver) => RuntimeDispatch.visibleMethodSymbols(receiver, this.currentRepository!),
     });
+    CosmHologramHandleValue.installRuntimeHooks({
+      classOf: (value) => runtime.classOf(value),
+    });
     CosmMethodValue.installRuntimeHooks({
       invoke: (callee, args, selfValue) => runtime.invokeFunction(callee, args, selfValue),
     });
@@ -163,7 +167,7 @@ export class Bootstrap {
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'HologramHandle', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -216,6 +220,10 @@ export class Bootstrap {
       new CosmMirrorValue(Construct.bool(true), classes.Mirror),
       CosmMirrorValue.manifest,
     ));
+    Object.assign(classes.HologramHandle.methods, manifestMethods(
+      CosmHologramHandleValue.wrap(Construct.hash({}), classes.HologramHandle),
+      CosmHologramHandleValue.manifest,
+    ));
     Object.assign(classes.Error.methods, manifestMethods(
       new CosmErrorValue("example", [], Construct.bool(false), classes.Error),
       CosmErrorValue.manifest,
@@ -237,7 +245,7 @@ export class Bootstrap {
       CosmSessionValue.manifest,
     ));
     Object.assign(classes.DataModel.methods, manifestMethods(
-      new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace),
+      new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace, {}),
       CosmDataModelValue.manifest,
     ));
     Object.assign(classes.Http.methods, manifestMethods(
@@ -288,6 +296,10 @@ export class Bootstrap {
       CosmMirrorValue.bootClassMethods(),
     );
     Object.assign(
+      classes.HologramHandle.classRef?.methods ?? {},
+      CosmHologramHandleValue.bootClassMethods(),
+    );
+    Object.assign(
       classes.Error.classRef?.methods ?? {},
       CosmErrorValue.bootClassMethods(),
     );
@@ -323,6 +335,7 @@ export class Bootstrap {
       Time: classes.Time,
       Random: classes.Random,
       Mirror: classes.Mirror,
+      HologramHandle: classes.HologramHandle,
       Error: classes.Error,
       Schema: classes.Schema,
       Prompt: classes.Prompt,
@@ -421,10 +434,10 @@ export class Bootstrap {
         return new CosmSchemaValue("object", { fields: new CosmNamespaceValue(this.expectDataFields(args[0], classes.Error), classes.Namespace) }, classes.Schema, classes.Error);
       }),
       model: Construct.nativeFunc("model", (args) => {
-        if (args.length !== 2) {
-          throw new Error(`Arity error: Data.model expects 2 arguments, got ${args.length}`);
+        if (args.length < 2 || args.length > 3) {
+          throw new Error(`Arity error: Data.model expects 2 or 3 arguments, got ${args.length}`);
         }
-        const [name, fields] = args;
+        const [name, fields, defaults = Construct.hash({})] = args;
         if (name.type !== "string") {
           throw new Error("Type error: Data.model expects a string model name");
         }
@@ -435,6 +448,7 @@ export class Bootstrap {
           classes.Schema,
           classes.Error,
           classes.Namespace,
+          this.expectDataValueEntries(defaults, "Data.model defaults", classes.Error),
         );
       }),
     }, classes.Module);
@@ -460,11 +474,7 @@ export class Bootstrap {
   }
 
   private static expectDataFields(value: CosmValue, errorClass?: CosmClassValue): Record<string, CosmSchemaValue> {
-    const entries = value.type === "hash"
-      ? value.entries
-      : value.type === "object"
-        ? value.fields
-        : undefined;
+    const entries = this.expectDataValueEntries(value, "Data.model expects a hash, namespace, or object of field definitions", errorClass);
     if (!entries) {
       CosmErrorValue.raise(
         Construct.string("Type error: Data.model expects a hash, namespace, or object of field definitions"),
@@ -474,6 +484,21 @@ export class Bootstrap {
     return Object.fromEntries(
       Object.entries(entries).map(([key, entry]) => [key, this.expectDataSchema(entry, errorClass)]),
     );
+  }
+
+  private static expectDataValueEntries(value: CosmValue, errorMessage: string, errorClass?: CosmClassValue): Record<string, CosmValue> {
+    const entries = value.type === "hash"
+      ? value.entries
+      : value.type === "object"
+        ? value.fields
+        : undefined;
+    if (!entries) {
+      CosmErrorValue.raise(
+        Construct.string(`Type error: ${errorMessage}`),
+        errorClass,
+      );
+    }
+    return entries;
   }
 
   private static createRequireFunction(
@@ -533,6 +558,7 @@ export class Bootstrap {
     cosmRoot.fields.Time = globals.Time;
     cosmRoot.fields.Random = globals.Random;
     cosmRoot.fields.Mirror = globals.Mirror;
+    cosmRoot.fields.HologramHandle = globals.HologramHandle;
     cosmRoot.fields.Error = globals.Error;
     cosmRoot.fields.Schema = globals.Schema;
     cosmRoot.fields.Prompt = globals.Prompt;

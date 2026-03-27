@@ -66,6 +66,8 @@ test("parser accepts one-line defs", () => {
   expect(() => Parser.parse('def add(x, y) = x + y; add(1, 2)')).not.toThrow();
   expect(() => Parser.parse('def join(head, *tail) = tail.length; join("a", "b", "c")')).not.toThrow();
   expect(() => Parser.parse('class Greeter do def label = "hi" end; Greeter.new().label()')).not.toThrow();
+  expect(() => Parser.parse('module Enumerable\n  def count() = self.length\nend\nEnumerable.name')).not.toThrow();
+  expect(() => Parser.parse('begin\n  Kernel.raise("boom")\nrescue err\n  err.message\nend')).not.toThrow();
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {

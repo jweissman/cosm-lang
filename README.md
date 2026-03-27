@@ -39,8 +39,11 @@ require "cosm/ai"
 Ticket = Data.model("Ticket", {
   title: Data.string(),
   priority: Data.enum("low", "high")
+}, {
+  priority: "low"
 })
 
+Ticket.build({ title: "Demo" })
 Cosm::AI.cast(Prompt.text("title: Demo, priority: high"), Ticket)
 ```
 
@@ -121,7 +124,7 @@ Slack smoke testing:
 - inbound `/slack/events` verification also needs `SLACK_SIGNING_SECRET`
 - allowed channel mentions use `SLACK_ALLOWED_CHANNELS=<id1,id2,...>`
 - mention-driven channels also need the Slack `app_mention` event plus `app_mentions:read`
-- the one-shot DM helper expects a Slack conversation id such as `D...`
+- the one-shot send helper accepts a Slack conversation id such as `D...`, `C...`, or `G...`
 - the current agent service and local chat loop both reuse the same durable runtime/store path and structured message history
 - current durable wedge state is file-backed under `var/` unless you override the storage env vars
 
@@ -138,11 +141,11 @@ Slack smoke testing:
 Cosm is intentionally still narrow in a few places:
 
 - no keyword args or call-site spread yet
-- no rescue/ensure exception system yet
+- no `ensure` or typed `rescue` matching yet; `begin ... rescue err ... end` is now the narrow first structured error path
 - no browser-side runtime
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
-- `Mirror` is readonly reflection only, and `Cosm::Hologram` is still just a placeholder for future host-value translation
+- `Mirror` is still readonly reflection only, and `Cosm::Hologram` is now only a tiny writable boundary wedge, not a full JS bridge
 - no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

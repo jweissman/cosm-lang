@@ -203,9 +203,10 @@ test("core scalar values expose explicit conversion helpers", () => {
 });
 
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
-  expect(cosmEval('Cosm::Enumerable.name')).toBe("cosm/enumerable.cosm");
-  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["cosm/enumerable.cosm"]));
-  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["cosm/enumerable.cosm"]));
+  expect(cosmEval('Cosm::Enumerable.class.name')).toBe("Module");
+  expect(cosmEval('Cosm::Enumerable.name')).toBe("Enumerable");
+  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
+  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
   expect(cosmEval("[].empty()")).toBe(true);
   expect(cosmEval('{ answer: 42 }.present()')).toBe(true);
@@ -238,4 +239,23 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('{ a: 1, b: 2 }.sum_by(->(_key, value) { value })')).toBe(3);
   expect(cosmEval("let increment = ->(value) { value + 1 }; [1, 2, 3].map(increment)")).toEqual([2, 3, 4]);
   expect(cosmEval("let gtOne = ->(key, value) { value > 1 }; { a: 1, b: 2 }.select(gtOne)")).toEqual({ b: 2 });
+});
+
+test("real authored modules and Hologram wrappers expose the object model more honestly", () => {
+  expect(cosmEval(`
+    module GreetingTools
+      def label() = "hi"
+    end
+    GreetingTools.name
+  `)).toBe("GreetingTools");
+  expect(cosmEval(`
+    require "cosm/hologram"
+    holo = Cosm::Hologram.wrap({ answer: 41 })
+    holo.set(:answer, 42)
+    holo.get(:answer)
+  `)).toBe(42);
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Cosm::Hologram.wrap(Kernel).has(:assert)
+  `)).toBe(true);
 });

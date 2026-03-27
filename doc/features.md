@@ -48,7 +48,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - `get "/" do |req| ... end` is in
 - ampersand block capture/passing is out
 - richer block capture and variadics are out
-- lexical `module ... end` is out
+- lexical `module ... end` is now in for narrow authored modules and mixins
 
 ## Implemented Now
 
@@ -146,7 +146,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - shipping Cosm execution into the browser
 - richer notebook/session management
 - route DSL syntax or router macros
-- lexical `module ... end`
+- typed rescue matching or `ensure`
 - `data Foo ... end` syntax or model-declaration syntax
 - Slack/MCP tool ecosystems or generalized persistent agent-runtime surfaces
 - HTML tag-builder DSLs
@@ -161,7 +161,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Decide browser/runtime exposure after the notebook shell and data/model story feel stronger.
 - Only after the separate Slack service feels steady, deepen it toward richer session policy, tool contracts, and later Slack/MCP adapters.
 - Stage callable growth explicitly only after that: variadic args first, block capture later, then richer missing-method/delegation work.
-- Keep deepening modules as reflective runtime objects before introducing lexical `module ... end` syntax.
+- Keep deepening modules as reflective runtime objects now that lexical `module ... end` has landed.
 - Keep the watch loop intentionally narrow for now: target file only, full child-process restart, no in-process hot reload semantics.
 - Keep growing the tiny Bun-native HTTP surface without turning it into a framework/router abstraction inside `0.3.12.x`.
 

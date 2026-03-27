@@ -1,91 +1,65 @@
-def count()
-  self.length
-end
+module Enumerable
+  def count() = self.length;
 
-def empty()
-  self.length == 0
-end
+  def empty() = self.length == 0;
 
-def present()
-  self.length > 0
-end
+  def present() = self.length > 0;
 
-def any(callback = false)
-  if callback == false then
-    self.present()
-  else
-    self.find(callback) != false
+  def any(callback = false) = callback == false ? self.present() : self.find(callback) != false;
+
+  def all(callback)
+    self.reduce(true, ->(acc, value) {
+      acc == false ? false : callback(value)
+    })
   end
-end
 
-def all(callback)
-  self.reduce(true, ->(acc, value) {
-    if acc == false then
-      false
-    else
-      callback(value)
-    end
-  })
-end
+  def none() = self.empty();
 
-def none()
-  self.empty()
-end
+  def one() = self.length == 1;
 
-def one()
-  self.length == 1
-end
+  def filter(callback) = self.select(callback);
 
-def filter(callback)
-  self.select(callback)
-end
+  def compact() = self.select(->(value) { value != false });
 
-def compact()
-  self.select(->(value) { value != false })
-end
+  def presence() = self.present() ? self : false;
 
-def presence()
-  self.present() ? self : false
-end
-
-def compact_map(callback)
-  let missing = :__cosm_compact_map_missing__
-  self.reduce([], ->(acc, first, second = missing) {
-    let mapped = second == missing ? callback(first) : callback(first, second)
-    mapped == false ? acc : acc.append(mapped)
-  })
-end
-
-def find_map(callback)
-  let missing = :__cosm_find_map_missing__
-  let result = self.reduce(missing, ->(acc, first, second = missing) {
-    if acc != missing then
-      acc
-    else
+  def compact_map(callback)
+    let missing = :__cosm_compact_map_missing__
+    self.reduce([], ->(acc, first, second = missing) {
       let mapped = second == missing ? callback(first) : callback(first, second)
-      mapped == false ? missing : mapped
-    end
-  })
-  result == missing ? false : result
-end
+      mapped == false ? acc : acc.append(mapped)
+    })
+  end
 
-def flat_map(callback)
-  self.map(callback).reduce([], ->(acc, value) {
-    if value.class.name == "Array" then
-      value.reduce(acc, ->(next, item) { next.append(item) })
-    else
-      acc.append(value)
-    end
-  })
-end
+  def find_map(callback)
+    let missing = :__cosm_find_map_missing__
+    let result = self.reduce(missing, ->(acc, first, second = missing) {
+      if acc != missing then
+        acc
+      else
+        let mapped = second == missing ? callback(first) : callback(first, second)
+        mapped == false ? missing : mapped
+      end
+    })
+    result == missing ? false : result
+  end
 
-def sum()
-  self.reduce(0, ->(acc, value) { acc + value })
-end
+  def flat_map(callback)
+    self.map(callback).reduce([], ->(acc, value) {
+      if value.class.name == "Array" then
+        value.reduce(acc, ->(next, item) { next.append(item) })
+      else
+        acc.append(value)
+      end
+    })
+  end
 
-def sum_by(callback)
-  let missing = :__cosm_sum_by_missing__
-  self.reduce(0, ->(acc, first, second = missing) {
-    acc + (second == missing ? callback(first) : callback(first, second))
-  })
+  def sum() = self.reduce(0, ->(acc, value) { acc + value });
+
+  def sum_by(callback)
+    let missing = :__cosm_sum_by_missing__
+    self.reduce(0, ->(acc, first, second = missing) {
+      acc + (second == missing ? callback(first) : callback(first, second))
+    })
+  end
 end

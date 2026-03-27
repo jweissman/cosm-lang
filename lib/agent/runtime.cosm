@@ -30,21 +30,19 @@ def local_target(name = "iapetus")
 end
 
 def inbound_for_target(target, text, ts = false)
-  let value = {
+  Support::Models.inbound_message.build({
     channel: target.channel,
     thread: target.thread,
     user: target.user,
     text: text,
     ts: ts == false ? Time.isoNow() : ts
-  }
-  Support::Models.inbound_message.validate(value)
-  value
+  })
 end
 
 def conversation_for_target(target, transcript = false, context = false)
   let now = Time.isoNow()
   let key = conversation_key(target.channel, target.thread, target.transport)
-  let value = {
+  Support::Models.conversation.build({
     agent: identity().name,
     transport: target.transport,
     key: key,
@@ -57,9 +55,7 @@ def conversation_for_target(target, transcript = false, context = false)
     context: context,
     created_at: now,
     updated_at: now
-  }
-  Support::Models.conversation.validate(value)
-  value
+  })
 end
 
 def conversation_for_inbound(inbound, transcript = false, context = false, transport = "slack")
@@ -98,15 +94,11 @@ def from_command(conversation, inbound, command)
     let fresh = conversation_for_target(target(inbound.channel, inbound.thread, conversation.transport, inbound.user), conversation.transcript, conversation.context)
     Session.named(fresh.session_name).reset()
     let reply = Support::Controller.command_reply(fresh, command)
-    let value = { conversation: fresh, inbound: inbound, plan: false, reply: reply, command: command, outcome: "command" }
-    Support::Models.agent_turn_result.validate(value)
-    value
+    Support::Models.agent_turn_result.build({ conversation: fresh, inbound: inbound, reply: reply, command: command, outcome: "command" })
   else
     let reply = Support::Controller.command_reply(conversation, command)
     let updated = Support::Controller.next_conversation(conversation, inbound, reply)
-    let value = { conversation: updated, inbound: inbound, plan: false, reply: reply, command: command, outcome: "command" }
-    Support::Models.agent_turn_result.validate(value)
-    value
+    Support::Models.agent_turn_result.build({ conversation: updated, inbound: inbound, reply: reply, command: command, outcome: "command" })
   end
 end
 
@@ -121,24 +113,20 @@ end
 
 def from_controller_turn(conversation, inbound)
   let outcome = Kernel.try(->() { Support::Controller.turn(conversation, inbound) })
-  let turn = outcome.ok ? outcome.value : {
+  let turn = outcome.ok ? outcome.value : Support::Models.agent_turn_result.build({
     conversation: Support::Controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
     inbound: inbound,
-    plan: false,
     reply: fallback_reply(conversation, inbound, outcome.error.message),
-    command: false,
     outcome: "fallback"
-  }
-  let value = {
+  })
+  Support::Models.agent_turn_result.build({
     conversation: turn.conversation,
     inbound: turn.inbound,
     plan: turn.plan,
     reply: turn.reply,
     command: turn.command,
     outcome: turn.outcome
-  }
-  Support::Models.agent_turn_result.validate(value)
-  value
+  })
 end
 
 def execute_turn(conversation, inbound)
@@ -151,9 +139,7 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
   Agent::Store.note_activity(saved.key, turn.outcome, activity_summary(turn))
-  let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
-  Support::Models.agent_turn_result.validate(value)
-  value
+  Support::Models.agent_turn_result.build({ conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome })
 end
 
 def execute_stored_turn_for_target(target, text, transcript = false, context = false)
@@ -162,9 +148,7 @@ def execute_stored_turn_for_target(target, text, transcript = false, context = f
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
   Agent::Store.note_activity(saved.key, turn.outcome, activity_summary(turn))
-  let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
-  Support::Models.agent_turn_result.validate(value)
-  value
+  Support::Models.agent_turn_result.build({ conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome })
 end
 
 def status()

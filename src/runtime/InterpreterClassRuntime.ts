@@ -11,6 +11,7 @@ type Repository = {
 
 type ClassRuntimeHooks = {
   lookupClass: (name: string, env: CosmEnv) => CosmClass;
+  evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
   invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
   repository: Repository;
 };
@@ -28,8 +29,9 @@ export class InterpreterClassRuntime {
     if (Object.hasOwn(env.bindings, ast.value) && !env.allowTopLevelRebinds) {
       throw new Error(`Name error: duplicate local '${ast.value}'`);
     }
-    const superclassName = ast.left?.value || "Object";
-    const superclass = hooks.lookupClass(superclassName, env);
+    const superclass = ast.left
+      ? this.resolveSuperclass(ast.left, env, hooks)
+      : hooks.lookupClass("Object", env);
     const methods = this.collectClassMethods(ast.value, ast.children ?? [], env);
     const classMethods = this.collectClassMethods(ast.value, ast.children ?? [], env, "class_def");
     const slots = this.collectClassSlots(ast.value, methods, superclass);
@@ -45,6 +47,17 @@ export class InterpreterClassRuntime {
     }
     env.bindings[ast.value] = classValue;
     return classValue;
+  }
+
+  private static resolveSuperclass(ast: CoreNode, env: CosmEnv, hooks: ClassRuntimeHooks): CosmClass {
+    if (ast.kind === "ident") {
+      return hooks.lookupClass(ast.value, env);
+    }
+    const candidate = hooks.evalNode(ast, env);
+    if (candidate.type !== "class") {
+      throw new Error(`Type error: superclass must resolve to a Class, got ${candidate.className ?? candidate.type}`);
+    }
+    return candidate;
   }
 
   static instantiateClass(classValue: CosmClass, args: CosmValue[], hooks: ClassRuntimeHooks): CosmObject {

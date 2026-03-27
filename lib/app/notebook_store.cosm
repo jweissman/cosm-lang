@@ -12,9 +12,7 @@ end
 def page_path(id) = storage_dir() + "/" + id;
 
 def block(kind, content)
-  let value = { kind: kind, content: content }
-  Support::Models.notebook_block.validate(value)
-  value
+  Support::Models.notebook_block.build({ kind: kind, content: content })
 end
 
 def default_blocks()
@@ -22,7 +20,7 @@ def default_blocks()
 end
 
 def page(id, title, blocks, agent_transcript = false, last_execution_summary = false, created_at = Time.isoNow(), updated_at = Time.isoNow())
-  let value = {
+  Support::Models.notebook_page.build({
     id: id,
     title: title,
     blocks: blocks,
@@ -31,19 +29,15 @@ def page(id, title, blocks, agent_transcript = false, last_execution_summary = f
     last_execution_summary: last_execution_summary,
     created_at: created_at,
     updated_at: updated_at
-  }
-  Support::Models.notebook_page.validate(value)
-  value
+  })
 end
 
 def normalize_blocks(blocks)
   blocks.map(->(entry) {
-    let value = {
+    Support::Models.notebook_block.build({
       kind: entry.kind,
       content: entry.content
-    }
-    Support::Models.notebook_block.validate(value)
-    value
+    })
   })
 end
 
@@ -66,7 +60,7 @@ def load_page(id)
 end
 
 def save_page(target)
-  let value = {
+  let value = Support::Models.notebook_page.build({
     id: target.id,
     title: target.title,
     blocks: normalize_blocks(target.blocks),
@@ -75,8 +69,7 @@ def save_page(target)
     last_execution_summary: target.last_execution_summary,
     created_at: target.created_at,
     updated_at: Time.isoNow()
-  }
-  Support::Models.notebook_page.validate(value)
+  })
   Kernel.writeText(page_path(value.id), Kernel.json(value))
   value
 end

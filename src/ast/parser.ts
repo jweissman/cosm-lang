@@ -142,13 +142,21 @@ export class Parser {
         return false;
       }
       if (
+        /^module\b/.test(trimmed)
+        && !/\bend\s*$/.test(trimmed)
+      ) {
+        return false;
+      }
+      if (
         /^def\b/.test(trimmed)
         && !/\bend\s*$/.test(trimmed)
       ) {
         return false;
       }
       if (
-        trimmed === 'do'
+        trimmed === 'begin'
+        || /^rescue\b/.test(trimmed)
+        || trimmed === 'do'
         || trimmed === 'else'
         || /\bthen\s*$/.test(trimmed)
         || /\bdo\s*$/.test(trimmed)
@@ -268,6 +276,20 @@ export class Parser {
           left: left.ast(),
           target: 'const',
         }),
+        ConstPath: (head, tails) => tails.children.reduce((receiver, tail) => ({
+          kind: 'access',
+          value: tail.ast().value,
+          left: receiver,
+          target: 'const',
+        }), {
+          kind: 'ident',
+          value: head.sourceString,
+        }),
+        ConstPathTail: (_sep, name) => ({
+          kind: 'access',
+          value: name.sourceString,
+          target: 'const',
+        }),
         ClassStmt: (_class, name, superclass, _do, body, _end) => {
           const superclassNode = superclass.ast();
           return {
@@ -280,6 +302,35 @@ export class Parser {
         ClassSuper: (_lt, name) => ({
           kind: 'class_super',
           value: name.sourceString,
+          left: name.ast(),
+        }),
+        ModuleStmt: (_module, name, _do, body, _end) => ({
+          kind: 'module_stmt',
+          value: name.sourceString,
+          left: name.ast(),
+          children: Parser.listChildren(body.ast()),
+        }),
+        BeginRescueExp: (_begin, body, rescueClause, _end) => {
+          const rescueNode = rescueClause.ast();
+          return {
+            kind: 'rescue_expr',
+            value: rescueNode.value,
+            left: {
+              kind: 'block_expr',
+              value: '',
+              children: Parser.listChildren(body.ast()),
+            },
+            children: [{
+              kind: 'block_expr',
+              value: '',
+              children: rescueNode.children ?? [],
+            }],
+          };
+        },
+        RescueClause: (_rescue, errorName, _do, body) => ({
+          kind: 'rescue_expr',
+          value: errorName.sourceString,
+          children: Parser.listChildren(body.ast()),
         }),
         ClassBody: (members) => ({
           kind: 'class_body',
@@ -482,6 +533,7 @@ export class Parser {
           value: '',
           children: Parser.listChildren(body.ast()),
         }),
+        PriExp_rescue: (expression) => expression.ast(),
         PriExp_require_bare: (_require, target) => ({
           kind: 'require_stmt',
           value: '',

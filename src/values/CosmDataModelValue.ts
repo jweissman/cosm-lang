@@ -7,6 +7,7 @@ import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmStringValue } from "./CosmStringValue";
+import { CosmHashValue } from "./CosmHashValue";
 
 export class CosmDataModelValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmDataModelValue> = {
@@ -14,6 +15,7 @@ export class CosmDataModelValue extends CosmObjectValue {
       name: (self) => new CosmStringValue(self.modelName),
       fields: (self) => new CosmNamespaceValue(self.fieldSchemas, self.namespaceClassRef),
       length: (self) => new CosmNumberValue(Object.keys(self.fieldSchemas).length),
+      defaults: (self) => new CosmHashValue({ ...self.fieldDefaults }),
     },
     methods: {
       schema: () => new CosmFunctionValue("schema", (args, selfValue) => {
@@ -34,6 +36,34 @@ export class CosmDataModelValue extends CosmObjectValue {
         }
         const schema = selfValue.toSchema();
         return schema.nativeMethod("validate")!.nativeCall!([args[0]], schema);
+      }),
+      build: () => new CosmFunctionValue("build", (args, selfValue) => {
+        if (!(selfValue instanceof CosmDataModelValue)) {
+          throw new Error("Type error: build expects a DataModel receiver");
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: DataModel.build expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const built = selfValue.buildRecord(args[0]);
+        return selfValue.validateAndReturn(built);
+      }),
+      with_defaults: () => new CosmFunctionValue("with_defaults", (args, selfValue) => {
+        if (!(selfValue instanceof CosmDataModelValue)) {
+          throw new Error("Type error: with_defaults expects a DataModel receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: DataModel.with_defaults expects 1 arguments, got ${args.length}`);
+        }
+        const defaults = selfValue.expectEntries(args[0], "DataModel.with_defaults");
+        return new CosmDataModelValue(
+          selfValue.modelName,
+          selfValue.fieldSchemas,
+          selfValue.classRef,
+          selfValue.schemaClassRef,
+          selfValue.errorClassRef,
+          selfValue.namespaceClassRef,
+          { ...selfValue.fieldDefaults, ...defaults },
+        );
       }),
       jsonSchema: () => new CosmFunctionValue("jsonSchema", (args, selfValue) => {
         if (!(selfValue instanceof CosmDataModelValue)) {
@@ -73,6 +103,7 @@ export class CosmDataModelValue extends CosmObjectValue {
     private readonly schemaClassRef?: CosmClassValue,
     private readonly errorClassRef?: CosmClassValue,
     private readonly namespaceClassRef?: CosmClassValue,
+    private readonly fieldDefaults: Record<string, CosmValue> = {},
   ) {
     super("DataModel", {}, classRef);
   }
@@ -88,6 +119,26 @@ export class CosmDataModelValue extends CosmObjectValue {
 
   validateAndReturn(value: CosmValue): CosmValue {
     return this.toSchema().validateAndReturn(value);
+  }
+
+  private buildRecord(value?: CosmValue): CosmHashValue {
+    const provided = value === undefined
+      ? {}
+      : this.expectEntries(value, "DataModel.build");
+    return new CosmHashValue({
+      ...this.fieldDefaults,
+      ...provided,
+    });
+  }
+
+  private expectEntries(value: CosmValue, context: string): Record<string, CosmValue> {
+    if (value instanceof CosmHashValue) {
+      return value.entries;
+    }
+    if (value instanceof CosmNamespaceValue || value instanceof CosmObjectValue) {
+      return value.fields;
+    }
+    throw new Error(`Type error: ${context} expects a hash, namespace, or object`);
   }
 
   override nativeProperty(name: string): CosmValue | undefined {

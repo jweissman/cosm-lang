@@ -25,9 +25,7 @@ def record_path(key) = storage_dir() + "/" + Kernel.hmacSha256("cosm-agent-store
 def activity_log_path = storage_dir() + "/activity.json";
 
 def record(conversation, processed_events = [])
-  let value = { version: 2, conversation: conversation, processed_events: processed_events }
-  agent_thread_record.validate(value)
-  value
+  agent_thread_record.build({ version: 2, conversation: conversation, processed_events: processed_events })
 end
 
 def load_record(key)
@@ -69,9 +67,7 @@ def save_activity_log(events)
 end
 
 def activity(key, kind, summary, at = Time.isoNow())
-  let value = { key: key, kind: kind, summary: summary, at: at }
-  activity_event.validate(value)
-  value
+  activity_event.build({ key: key, kind: kind, summary: summary, at: at })
 end
 
 def note_activity(key, kind, summary)

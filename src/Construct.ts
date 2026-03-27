@@ -67,8 +67,8 @@ export class Construct {
   static session(name: string, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
     return new CosmSessionValue(name, classRef, errorClassRef);
   }
-  static dataModel(name: string, fieldSchemas: Record<string, CosmSchemaValue>, classRef?: CosmClass, schemaClassRef?: CosmClass, errorClassRef?: CosmClass, namespaceClassRef?: CosmClass): CosmObject {
-    return new CosmDataModelValue(name, fieldSchemas, classRef, schemaClassRef, errorClassRef, namespaceClassRef);
+  static dataModel(name: string, fieldSchemas: Record<string, CosmSchemaValue>, classRef?: CosmClass, schemaClassRef?: CosmClass, errorClassRef?: CosmClass, namespaceClassRef?: CosmClass, defaults: Record<string, CosmValue> = {}): CosmObject {
+    return new CosmDataModelValue(name, fieldSchemas, classRef, schemaClassRef, errorClassRef, namespaceClassRef, defaults);
   }
   static class(
     name: string,

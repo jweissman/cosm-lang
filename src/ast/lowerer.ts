@@ -23,6 +23,13 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             left: node.left ? this.lower(node.left) : undefined,
             children: this.lowerChildren(node),
           };
+        case 'module_stmt':
+          return {
+            kind: 'module',
+            value: node.value,
+            left: this.lowerRequired(node.left, 'module_stmt'),
+            children: this.lowerChildren(node),
+          };
         case 'def_stmt':
           return {
             kind: 'def',
@@ -60,16 +67,25 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
             left: this.lowerRequired(node.left, 'require_stmt'),
           };
         case 'class_super':
-          return {
-            kind: 'ident',
-            value: node.value,
-          };
+          return node.left
+            ? this.lower(node.left)
+            : {
+                kind: 'ident',
+                value: node.value,
+              };
         case 'if_expr':
         case 'ternary_expr':
           return {
             kind: node.kind === 'ternary_expr' ? 'ternary' : 'if',
             value: '',
             left: this.lowerRequired(node.left, 'if_expr'),
+            children: this.lowerChildren(node),
+          };
+        case 'rescue_expr':
+          return {
+            kind: 'rescue',
+            value: node.value,
+            left: this.lowerRequired(node.left, 'rescue_expr'),
             children: this.lowerChildren(node),
           };
         case 'block_expr':

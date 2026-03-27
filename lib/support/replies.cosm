@@ -6,49 +6,32 @@ def maybe_field(value, field)
 end
 
 def text(text, rationale, internal_summary = false, next_mode = false)
-  let value = {
+  Support::Models.agent_reply.build({
     should_reply: true,
     text: text,
     rationale: rationale,
     internal_summary: internal_summary,
-    next_mode: next_mode,
-    degraded: false,
-    failure_reason: false,
-    tool_calls: false,
-    tool_results: false
-  }
-  Support::Models.agent_reply.validate(value)
-  value
+    next_mode: next_mode
+  })
 end
 
 def from_plan(plan)
-  let value = {
+  Support::Models.agent_reply.build({
     should_reply: plan.should_reply,
     text: plan.text,
     rationale: plan.rationale,
     internal_summary: maybe_field(plan, :internal_summary),
-    next_mode: maybe_field(plan, :next_mode),
-    degraded: false,
-    failure_reason: false,
-    tool_calls: false,
-    tool_results: false
-  }
-  Support::Models.agent_reply.validate(value)
-  value
+    next_mode: maybe_field(plan, :next_mode)
+  })
 end
 
 def unavailable(error_message)
-  let value = {
+  Support::Models.agent_reply.build({
     should_reply: true,
     text: "I hit a support-agent hiccup while handling that DM. Please try again in a bit.",
     rationale: "fallback",
-    internal_summary: false,
     next_mode: "reply",
     degraded: true,
-    failure_reason: error_message,
-    tool_calls: false,
-    tool_results: false
-  }
-  Support::Models.agent_reply.validate(value)
-  value
+    failure_reason: error_message
+  })
 end

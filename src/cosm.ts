@@ -48,6 +48,8 @@ namespace Cosm {
           return this.evalBlock(ast, env);
         case 'class':
           return this.evalClass(ast, env);
+        case 'module':
+          return this.evalModule(ast, env);
         case 'let':
           return this.evalLet(ast, env);
         case 'assign':
@@ -60,6 +62,8 @@ namespace Cosm {
           return this.evalIf(ast, env);
         case 'ternary':
           return this.evalIf(ast, env);
+        case 'rescue':
+          return this.evalRescue(ast, env);
         case 'lambda':
           return this.evalLambda(ast, env);
         case 'number':
@@ -168,7 +172,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.20");
+        cosmRoot.fields.version = Construct.string("0.3.13.21");
       }
       return repository;
     }
@@ -238,9 +242,20 @@ namespace Cosm {
     private static evalClass(ast: CoreNode, env: Env): CosmValue {
       return InterpreterClassRuntime.evalClass(ast, env, {
         lookupClass: (name, scope) => this.lookupClass(name, scope),
+        evalNode: (node, scope) => this.evalNode(node, scope),
         invokeFunction: (callee, args, selfValue, scope, currentBlock) => this.invokeFunction(callee, args, selfValue, scope, currentBlock),
         repository: { classes: this.repo().classes },
       });
+    }
+
+    private static evalModule(ast: CoreNode, env: Env): CosmValue {
+      const { receiver, name } = this.resolveConstantBindingTarget(this.expectChild(ast, 'module'), env);
+      const moduleValue = Construct.module(ast.value, {}, this.repo().classes.Module);
+      this.bindConstant(receiver, name, moduleValue, env);
+      const moduleEnv = this.createEnv(env);
+      this.evalStatements(ast.children ?? [], moduleEnv);
+      Object.assign(moduleValue.fields, moduleEnv.bindings);
+      return moduleValue;
     }
 
     private static evalLet(ast: CoreNode, env: Env): CosmValue {
@@ -293,7 +308,7 @@ namespace Cosm {
     }
 
     private static isReservedBindingName(name: string): boolean {
-      return ["class", "def", "do", "else", "end", "if", "let", "then", "yield", "super", "require", "true", "false", "self"].includes(name);
+      return ["begin", "class", "def", "do", "else", "end", "if", "let", "module", "rescue", "then", "yield", "super", "require", "true", "false", "self"].includes(name);
     }
 
     private static evalIf(ast: CoreNode, env: Env): CosmValue {
@@ -313,6 +328,21 @@ namespace Cosm {
       return InterpreterClassRuntime.buildClosure(ast, env);
     }
 
+    private static evalRescue(ast: CoreNode, env: Env): CosmValue {
+      const tryBlock = this.expectChild(ast, 'rescue');
+      const [rescueBlock] = ast.children ?? [];
+      if (!rescueBlock) {
+        throw new Error('Invalid AST: rescue node must have a rescue block');
+      }
+      try {
+        return this.evalNode(tryBlock, env);
+      } catch (error) {
+        const rescueEnv = this.createEnv(env);
+        rescueEnv.bindings[ast.value] = CosmErrorValue.fromUnknown(error, this.repo().classes.Error);
+        return this.evalNode(rescueBlock, rescueEnv);
+      }
+    }
+
     private static expectChildren(ast: CoreNode, op: string): [CoreNode, CoreNode] {
       if (!ast.left || !ast.right) {
         throw new Error(`Invalid AST: ${op} node must have left and right children`);
@@ -329,6 +359,37 @@ namespace Cosm {
 
     private static coerceToString(value: CosmValue, context: 'concatenate' | 'interpolate'): string {
       return value.toCosmString(context);
+    }
+
+    private static resolveConstantBindingTarget(ast: CoreNode, env: Env): { receiver?: CosmObject; name: string } {
+      if (ast.kind === 'ident') {
+        return { name: ast.value };
+      }
+      if (ast.kind === 'access' && ast.target === 'const' && ast.left) {
+        const receiver = this.evalNode(ast.left, env);
+        if (receiver.type !== 'object') {
+          throw new Error(`Type error: constant receiver must be a Module or Namespace, got ${receiver.type === 'class' ? receiver.name : receiver.type}`);
+        }
+        return { receiver, name: ast.value };
+      }
+      throw new Error('Syntax error: module expects a constant path');
+    }
+
+    private static bindConstant(receiver: CosmObject | undefined, name: string, value: CosmValue, env: Env): void {
+      if (receiver) {
+        if (Object.hasOwn(receiver.fields, name)) {
+          throw new Error(`Name error: duplicate constant '${name}'`);
+        }
+        receiver.fields[name] = value;
+        return;
+      }
+      if (Object.hasOwn(env.bindings, name) && !env.allowTopLevelRebinds) {
+        throw new Error(`Name error: duplicate local '${name}'`);
+      }
+      if (!Object.hasOwn(env.bindings, name) && Object.hasOwn(this.repo().globals, name)) {
+        throw new Error(`Name error: duplicate constant '${name}'`);
+      }
+      env.bindings[name] = value;
     }
 
     private static lookupName(name: string, env: Env): CosmValue {
@@ -485,6 +546,7 @@ namespace Cosm {
     private static instantiateClass(classValue: CosmClass, args: CosmValue[]): CosmObject {
       return InterpreterClassRuntime.instantiateClass(classValue, args, {
         lookupClass: (name, env) => this.lookupClass(name, env),
+        evalNode: (node, env) => this.evalNode(node, env),
         invokeFunction: (callee, invokeArgs, selfValue, env, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock),
         repository: { classes: this.repo().classes },
       });
@@ -544,6 +606,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.20";
+    export const version = "0.3.13.21";
 }
 export default Cosm;

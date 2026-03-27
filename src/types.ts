@@ -10,6 +10,7 @@ import { CosmClassValue } from "./values/CosmClassValue";
 import { CosmObjectValue } from "./values/CosmObjectValue";
 import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
+import { CosmHologramHandleValue } from "./values/CosmHologramHandleValue";
 import { CosmErrorValue } from "./values/CosmErrorValue";
 import { CosmSchemaValue } from "./values/CosmSchemaValue";
 import { CosmPromptValue } from "./values/CosmPromptValue";
@@ -21,6 +22,7 @@ export type CoreNodeKind =
   | 'program'
   | 'block'
   | 'class'
+  | 'module'
   | 'class_meta'
   | 'let'
   | 'assign'
@@ -59,7 +61,8 @@ export type CoreNodeKind =
   | 'call'
   | 'yield'
   | 'ternary'
-  | 'super';
+  | 'super'
+  | 'rescue';
 
 export type CoreNode = {
   kind: CoreNodeKind;
@@ -134,6 +137,7 @@ export type CosmValue =
   | CosmMethodValue
   | CosmHttpRouterValue
   | CosmMirrorValue
+  | CosmHologramHandleValue
   | CosmErrorValue
   | CosmSchemaValue
   | CosmPromptValue
@@ -146,6 +150,7 @@ export type SurfaceNodeKind =
   | 'statement_list'
   | 'statement'
   | 'class_stmt'
+  | 'module_stmt'
   | 'class_meta_stmt'
   | 'def_stmt'
   | 'class_def_stmt'
@@ -188,7 +193,8 @@ export type SurfaceNodeKind =
   | 'access'
   | 'call'
   | 'yield'
-  | 'super';
+  | 'super'
+  | 'rescue_expr';
 
 export type SurfaceNode = {
   kind: SurfaceNodeKind;

@@ -159,14 +159,17 @@ Local `.cosm` and `.ecosm` files may also be loaded through `require "path"`, wh
 - `Data.array(inner)`
 - `Data.optional(inner)`
 - `Data.object(fields)`
-- `Data.model(name, fields)`
+- `Data.model(name, fields, defaults?)`
 
 `Data.model(...)` returns a `DataModel` value with:
 
 - `.name`
 - `.fields`
+- `.defaults`
 - `.schema()`
 - `.validate(value)`
+- `.build(value?)`
+- `.with_defaults(defaults)`
 - `.jsonSchema()`
 - `.inspect()`
 
@@ -433,7 +436,7 @@ Class.class.name
 - `Mirror.reflect(value)`
   Returns a readonly reflective wrapper around `value`.
 - `require "cosm/hologram"` then `Cosm::Hologram.status()` / `Cosm::Hologram.wrap(value)`
-  Placeholder module for future host-value translation; in `0.3.13.21` it is intentionally not a JS bridge yet.
+  Small module facade over the first narrow writable boundary wedge. It is still intentionally not a JS bridge.
 - `mirror.targetClass`
 - `mirror.inspect()`
 - `mirror.methods()`
@@ -464,6 +467,8 @@ Class.class.name
   Reflective class for loaded module objects like `Cosm::Spec`.
 - `Mirror`
   Reflective class for readonly mirror wrappers created through `Mirror.reflect(...)`.
+- `HologramHandle`
+  Reflective class for the tiny writable wrappers returned from `Cosm::Hologram.wrap(...)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `HttpRouter`
@@ -516,6 +521,14 @@ Random.int(10)
 Random.choice(["red", "green", "blue"])
 Mirror.reflect({ answer: 42 }).inspect()
 Mirror.reflect(Kernel).get(:assert)
+begin
+  Kernel.raise("boom", { code: 7 })
+rescue err
+  err.details.code
+end
+require "cosm/hologram"
+Cosm::Hologram.status().mode
+Cosm::Hologram.wrap({ answer: 41 }).set(:answer, 42)
 Kernel.expectEqual([1, 2], [1, 2])
 HttpResponse.html("<h1>ok</h1>", 200)
 HttpResponse.text("ok", 201)
@@ -562,7 +575,7 @@ do let x = 1; x + 2 end
 - Inside `router.draw(...)`, bare verb calls like `get(...)` and `post(...)` are handled through a tiny builder receiver that uses `does_not_understand(message, args)` under the hood. That keeps the first routing DSL object-first and runtime-backed rather than introducing route-specific syntax.
 - `router.draw do ... end` and `get "/" do |req| ... end` are the intended `0.3.12.x` routing ergonomics boundary. They are still just final-argument block sugar over the existing callable model, not a full block system.
 - Hash keys are currently identifier keys, not string keys.
-- Current reserved words include `class`, `def`, `do`, `else`, `end`, `if`, `let`, `then`, `true`, and `false`.
+- Current reserved words include `begin`, `class`, `def`, `do`, `else`, `end`, `if`, `let`, `module`, `rescue`, `then`, `true`, and `false`.
 - `self` is reserved for method bodies.
 - `@name` reads instance fields through the current `self` and is only valid when `self` is bound to an object instance.
 - Line comments use `# ...`.
@@ -574,6 +587,8 @@ do let x = 1; x + 2 end
 - `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.12.x` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
 - `methods()` on live receivers is now the intended everyday reflection path; `Mirror` stays the readonly wrapper path, and `.methods` / `.classMethods` on class objects remain the explicit class-table views.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
+- `module Name ... end` is now the narrow authored-module form for mixins and grouped helper surfaces.
+- `begin ... rescue err ... end` is now the first structured error-handling form. It currently supports one rescue clause and no `ensure`.
 - `class << self ... end` is now available as an explicit class-side authoring form and is currently equivalent to `def self.name(...)`.
 - `Class` is currently the bootstrap anchor for a minimal metaclass model: ordinary classes have their own metaclass objects, metaclasses are instances of `Class`, and metaclass superclasses currently mirror the ordinary class hierarchy.
 - `Point.class` and `Point.metaclass` are currently the same reflective object. The explicit `.metaclass` spelling exists to make the bootstrap model easier to inspect while it is still settling.
@@ -597,7 +612,7 @@ do let x = 1; x + 2 end
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape.
-- `Cosm::Hologram` is only a placeholder in `0.3.13.20`; it documents future host-value translation intent but does not yet perform boundary conversion.
+- `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.

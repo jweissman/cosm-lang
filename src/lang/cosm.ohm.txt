@@ -10,6 +10,7 @@ Cosm {
 
   Statement
     = ClassStmt
+    | ModuleStmt
     | DefStmt
     | LetStmt
     | AssignStmt
@@ -31,7 +32,16 @@ Cosm {
     = kw_class const_name ClassSuper? DoOpt ClassBody kw_end
 
   ClassSuper
-    = "<" const_name
+    = "<" ConstPath
+
+  ModuleStmt
+    = kw_module ConstPath DoOpt StatementList kw_end
+
+  BeginRescueExp
+    = kw_begin StatementList RescueClause kw_end
+
+  RescueClause
+    = kw_rescue ident DoOpt StatementList
 
   ClassBody
     = ClassMember*
@@ -137,6 +147,7 @@ Cosm {
 
   PriExp
     = "(" Exp ")"  -- paren
+    | BeginRescueExp -- rescue
     | kw_require string          -- require_bare
     | kw_require "(" string ")"  -- require
     | kw_super "(" CallArgs? ")"  -- super
@@ -153,6 +164,12 @@ Cosm {
     | ivar
     | ident
     | number
+
+  ConstPath
+    = const_name ConstPathTail*
+
+  ConstPathTail
+    = "::" const_name
 
   symbol
     = ":" name
@@ -265,6 +282,7 @@ Cosm {
     = kw_self
 
   kw_class = "class" ~alnum
+  kw_begin = "begin" ~alnum
   kw_def = "def" ~alnum
   kw_do = "do" ~alnum
   kw_else = "else" ~alnum
@@ -272,7 +290,9 @@ Cosm {
   kw_false = "false" ~alnum
   kw_if = "if" ~alnum
   kw_let = "let" ~alnum
+  kw_module = "module" ~alnum
   kw_require = "require" ~alnum
+  kw_rescue = "rescue" ~alnum
   kw_self = "self" ~alnum
   kw_super = "super" ~alnum
   kw_then = "then" ~alnum
@@ -283,7 +303,8 @@ Cosm {
     = "@" ident
 
   keyword
-    = kw_class
+    = kw_begin
+    | kw_class
     | kw_def
     | kw_do
     | kw_else
@@ -291,7 +312,9 @@ Cosm {
     | kw_false
     | kw_if
     | kw_let
+    | kw_module
     | kw_require
+    | kw_rescue
     | kw_self
     | kw_super
     | kw_then
