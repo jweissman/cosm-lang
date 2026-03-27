@@ -95,6 +95,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     }),
     complete: (prompt) => Construct.string(`complete:${prompt}`),
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
+    chatCast: (messages, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`chat:${messages.map((entry) => `${entry.role}:${entry.content}`).join("|")}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
     stream: (prompt, onEvent) => {
       onEvent({ kind: "waiting", index: 0, text: "iapetus> [thinking |]" });
@@ -109,6 +110,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     expect(cosmEval('require "cosm/ai"; Cosm::AI.health().ok')).toBe(true);
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.chat_cast([{ role: "system", content: "rules" }, { role: "user", content: "hello" }], Schema.string())')).toBe("chat:system:rules|user:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
     let stdout = "";
     const originalWrite = process.stdout.write;
@@ -143,6 +145,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
       health: () => AiRuntime.health(),
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
+      chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema as CosmSchemaValue),
       compare: (left, right) => AiRuntime.compare(left, right),
       stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
     });

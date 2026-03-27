@@ -12,7 +12,7 @@ def system_prompt() = Support::PromptData.iapetus_system();
 
 def reply_prompt_preview(text = "How should I continue?", name = "iapetus")
   let conversation = Agent::Runtime.load_conversation_for_target(target(name))
-  Support::Prompts.reply_prompt(conversation, Agent::Runtime.inbound_for_target(target(name), text))
+  Support::Prompts.reply_messages_preview(conversation, Agent::Runtime.inbound_for_target(target(name), text))
 end
 
 def status(name = "iapetus")
@@ -40,7 +40,7 @@ def handle_local_command(input, name = "iapetus")
     Kernel.puts(system_prompt())
   else
     if command == "preview" then
-      Kernel.puts(reply_prompt_preview("How should I continue?", name).source)
+      Kernel.puts(Kernel.inspect(reply_prompt_preview("How should I continue?", name)))
     else
       if command == "runtime" then
         Kernel.puts(Kernel.inspect(status(name)))

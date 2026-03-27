@@ -29,6 +29,18 @@ def reply_for_context(transcript, latest_text, context)
   reply
 end
 
+def plan_for_conversation(conversation, inbound)
+  let plan = Cosm::AI.chat_cast(Support::Prompts.reply_messages(conversation, inbound), Support::Models.agent_turn_plan)
+  Support::Models.agent_turn_plan.validate(plan)
+  plan
+end
+
+def reply_for_conversation(conversation, inbound)
+  let reply = Support::Replies.from_plan(plan_for_conversation(conversation, inbound))
+  Support::Models.agent_reply.validate(reply)
+  reply
+end
+
 def stream_reply_for_transcript(transcript, latest_text)
   let text = Cosm::AI.stream(Support::Prompts.stream_prompt_from_transcript(transcript, latest_text)) do |event|
     yield(event)
@@ -68,7 +80,7 @@ def transcript_from_conversation(conversation) = conversation.messages.map(->(en
 def handle(conversation, inbound)
   Support::Models.conversation.validate(conversation)
   Support::Models.inbound_message.validate(inbound)
-  step_transcript(transcript_from_conversation(conversation), inbound.text).reply
+  reply_for_conversation(conversation, inbound)
 end
 
 def fallback(conversation, inbound, error_message)
@@ -81,4 +93,4 @@ def example_conversation() = { key: "DDEMO:1710000000.000001", channel: "DDEMO",
 
 def example_inbound() = { channel: "DDEMO", thread: "1710000000.000001", user: "UDEMO", text: "How do I reset the notebook session?", ts: "1710000000.000001" };
 
-def preview() = Support::Prompts.reply_prompt_from_transcript(transcript_from_conversation(example_conversation()), example_inbound().text);
+def preview() = Support::Prompts.reply_messages_preview(example_conversation(), example_inbound());

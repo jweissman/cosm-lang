@@ -19,6 +19,8 @@ end
 
 def cast(prompt, target) = ai.cast(prompt, schema_for(target));
 
+def chat_cast(messages, target) = ai.chat_cast(messages, schema_for(target));
+
 def reply(prompt, target) = cast(prompt, target);
 
 def stream(prompt)

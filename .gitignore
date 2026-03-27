@@ -1,3 +1,4 @@
 /node_modules
 .cosm_history
 var/slack/
+.env

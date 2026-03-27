@@ -203,6 +203,9 @@ test("core scalar values expose explicit conversion helpers", () => {
 });
 
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
+  expect(cosmEval('Cosm::Enumerable.name')).toBe("cosm/enumerable.cosm");
+  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["cosm/enumerable.cosm"]));
+  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["cosm/enumerable.cosm"]));
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
   expect(cosmEval("[].empty()")).toBe(true);
   expect(cosmEval('{ answer: 42 }.present()')).toBe(true);

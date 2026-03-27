@@ -1,0 +1,16 @@
+def load(path = ".env", overwrite = false)
+  Process.load_env_file(path, overwrite)
+end
+
+def load_default_files(overwrite = false)
+  [load(".env", overwrite), load(".env.local", overwrite)]
+end
+
+let loaded_files = load_default_files()
+
+def status()
+  {
+    loaded_files: loaded_files,
+    cwd: Process.cwd()
+  }
+end

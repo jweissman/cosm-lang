@@ -168,7 +168,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.19");
+        cosmRoot.fields.version = Construct.string("0.3.13.20");
       }
       return repository;
     }
@@ -225,6 +225,9 @@ namespace Cosm {
         createEnv: (parent, options) => this.createEnv(parent, options),
         evalInEnv: (source, env) => this.evalInEnv(source, env),
       });
+      for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm", "cosm/dotenv.cosm"]) {
+        Bootstrap.installLoadedModuleConstant(repository, name);
+      }
       const enumerableModule = repository.modules["cosm/enumerable.cosm"];
       if (enumerableModule?.type === "object" && enumerableModule.className === "Module") {
         repository.classes.Array.includeModule(enumerableModule);
@@ -541,6 +544,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.19";
+    export const version = "0.3.13.20";
 }
 export default Cosm;

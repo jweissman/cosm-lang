@@ -122,6 +122,7 @@ export class Bootstrap {
       health: () => AiRuntime.health(this.currentRepository?.classes.Namespace),
       complete: (prompt) => AiRuntime.complete(prompt),
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
+      chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema),
       compare: (left, right) => AiRuntime.compare(left, right),
       stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
       invoke: (callee, args, selfValue, env) => runtime.invokeFunction(callee, args, selfValue, env),
@@ -648,5 +649,12 @@ export class Bootstrap {
 
   static setCurrentRepository(repository: RuntimeRepository): void {
     this.currentRepository = repository;
+  }
+
+  static installLoadedModuleConstant(repository: RuntimeRepository, moduleName: string): void {
+    const moduleValue = repository.modules[moduleName];
+    if (moduleValue) {
+      this.installModuleConstant(repository.globals, repository.classes, moduleName, moduleValue);
+    }
   }
 }

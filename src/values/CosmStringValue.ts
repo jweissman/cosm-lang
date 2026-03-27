@@ -4,6 +4,7 @@ import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmValueBase } from "./CosmValueBase";
 import { CosmAiValue } from "./CosmAiValue";
+import { CosmArrayValue } from "./CosmArrayValue";
 
 
 export class CosmStringValue extends CosmValueBase {
@@ -88,6 +89,45 @@ export class CosmStringValue extends CosmValueBase {
         return CosmAiValue.compareStrings(selfValue.value, args[0].value, undefined, env);
       });
     }
+    if (name === 'trim') {
+      return new CosmFunctionValue('trim', (args, selfValue) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: trim expects a string receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method trim expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmStringValue(selfValue.value.trim());
+      });
+    }
+    if (name === 'split') {
+      return new CosmFunctionValue('split', (args, selfValue) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: split expects a string receiver');
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: method split expects 1 arguments, got ${args.length}`);
+        }
+        if (!(args[0] instanceof CosmStringValue)) {
+          throw new Error('Type error: split expects a string separator');
+        }
+        return new CosmArrayValue(selfValue.value.split(args[0].value).map((entry) => new CosmStringValue(entry)));
+      });
+    }
+    if (name === 'startsWith') {
+      return new CosmFunctionValue('startsWith', (args, selfValue) => {
+        if (!(selfValue instanceof CosmStringValue)) {
+          throw new Error('Type error: startsWith expects a string receiver');
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: method startsWith expects 1 arguments, got ${args.length}`);
+        }
+        if (!(args[0] instanceof CosmStringValue)) {
+          throw new Error('Type error: startsWith expects a string prefix');
+        }
+        return new CosmBoolValue(selfValue.value.startsWith(args[0].value));
+      });
+    }
     return undefined;
   }
 
@@ -103,7 +143,7 @@ export class CosmStringValue extends CosmValueBase {
   }
 
   override visibleNativeMethodNames(): string[] {
-    return ['plus', 'semanticEq', 'to_i', 'to_f'];
+    return ['plus', 'semanticEq', 'split', 'startsWith', 'to_i', 'to_f', 'trim'];
   }
 
   override toCosmString(): string {

@@ -1,5 +1,7 @@
+require "cosm/dotenv"
 require "lib/agent/service"
 require "lib/agent/config"
 
 let listen_port = Agent::Config.agent_port()
+puts("[agent-server] listening on :" + listen_port.to_s() + " for /slack/events (webhook-driven, DM + mention-driven channels)")
 let server = http.serve(listen_port, Agent::Service::AgentService.build())

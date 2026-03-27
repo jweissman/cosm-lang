@@ -12,6 +12,7 @@ afterEach(() => {
     health: () => AiRuntime.health(),
     complete: (prompt) => AiRuntime.complete(prompt),
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
+    chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
     stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
   });
@@ -57,6 +58,13 @@ test("pure Cosm support chat transcript helpers stay stable", () => {
 test("support controller provides a thin conversation contract for shared chat flows", () => {
   CosmAiValue.installRuntimeHooks({
     cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+      should_reply: true,
+      text: "Reset the session with the Reset Session button in the notebook UI.",
+      rationale: "mocked controller reply",
+      tool_calls: false,
+      tool_results: false,
+    })),
+    chatCast: (_messages, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
       should_reply: true,
       text: "Reset the session with the Reset Session button in the notebook UI.",
       rationale: "mocked controller reply",

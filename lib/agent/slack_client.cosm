@@ -1,15 +1,21 @@
 require "lib/agent/config"
 
-def post_message(channel_id, text, thread_ts = false)
+def api_method_url(method_name)
+  let configured = Agent::Config.slack_api_url()
+  let parts = configured.split("/")
+  let prefix = parts.take(parts.length - 1).join("/")
+  prefix + "/" + method_name
+end
+
+def slack_request(method_name, payload = false)
   let bot_token = Agent::Config.slack_bot_token()
   if bot_token == false then
     { ok: false, error: "Slack bot token is not configured" }
   else
-    let payload = thread_ts == false ? { channel: channel_id, text: text } : { channel: channel_id, text: text, thread_ts: thread_ts }
     let request = Kernel.try(->() {
-      http.request("POST", Agent::Config.slack_api_url(), {
+      http.request("POST", api_method_url(method_name), {
         headers: Kernel.parseJson("{\"authorization\":\"Bearer " + bot_token + "\",\"content-type\":\"application/json; charset=utf-8\"}"),
-        body: Kernel.json(payload)
+        body: payload == false ? "{}" : Kernel.json(payload)
       })
     })
     if request.ok == false then
@@ -20,20 +26,73 @@ def post_message(channel_id, text, thread_ts = false)
         { ok: false, error: "Slack API returned invalid JSON" }
       else
         if parsed.value.ok == true then
-          let returned_channel = Kernel.try(->() { parsed.value.channel })
-          let returned_ts = Kernel.try(->() { parsed.value.ts })
-          {
-            ok: true,
-            status: request.value.status,
-            channel_id: returned_channel.ok ? returned_channel.value : channel_id,
-            ts: returned_ts.ok ? returned_ts.value : false,
-            body: parsed.value
-          }
+          { ok: true, status: request.value.status, body: parsed.value }
         else
           let api_error = Kernel.try(->() { parsed.value.error })
           { ok: false, error: api_error.ok ? api_error.value : "unknown_error" }
         end
       end
     end
+  end
+end
+
+def post_message(channel_id, text, thread_ts = false)
+  let payload = thread_ts == false ? { channel: channel_id, text: text } : { channel: channel_id, text: text, thread_ts: thread_ts }
+  let request = slack_request("chat.postMessage", payload)
+  if request.ok == false then
+    request
+  else
+    let returned_channel = Kernel.try(->() { request.body.channel })
+    let returned_ts = Kernel.try(->() { request.body.ts })
+    {
+      ok: true,
+      status: request.status,
+      channel_id: returned_channel.ok ? returned_channel.value : channel_id,
+      ts: returned_ts.ok ? returned_ts.value : false,
+      body: request.body
+    }
+  end
+end
+
+def auth_status() = slack_request("auth.test");
+
+def list_conversations()
+  let response = slack_request("conversations.list", {
+    exclude_archived: true,
+    limit: 200,
+    types: "public_channel,private_channel,im"
+  })
+  if response.ok == false then
+    response
+  else
+    let channels = Kernel.try(->() { response.body.channels })
+    channels.ok ? { ok: true, conversations: channels.value, body: response.body } : { ok: false, error: "Slack API returned no channels list" }
+  end
+end
+
+def conversation_history(channel_id)
+  let response = slack_request("conversations.history", {
+    channel: channel_id,
+    limit: 20
+  })
+  if response.ok == false then
+    response
+  else
+    let messages = Kernel.try(->() { response.body.messages })
+    messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no message history" }
+  end
+end
+
+def conversation_thread(channel_id, thread_ts)
+  let response = slack_request("conversations.replies", {
+    channel: channel_id,
+    ts: thread_ts,
+    limit: 50
+  })
+  if response.ok == false then
+    response
+  else
+    let messages = Kernel.try(->() { response.body.messages })
+    messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no thread replies" }
   end
 end

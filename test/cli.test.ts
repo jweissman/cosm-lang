@@ -9,14 +9,15 @@ function decode(output: Uint8Array | undefined): string {
   return new TextDecoder().decode(output ?? new Uint8Array());
 }
 
-function runCli(args: string[]) {
-  const proc = Bun.spawnSync(["bun", "bin/cosm", ...args], {
-    cwd: process.cwd(),
+function runCli(args: string[], envOverrides: Record<string, string | undefined> = {}, cwd = process.cwd()) {
+  const proc = Bun.spawnSync(["bun", join(process.cwd(), "bin/cosm"), ...args], {
+    cwd,
     stdout: "pipe",
     stderr: "pipe",
     env: {
       ...process.env,
       COSM_AI_AUTO_DISCOVER_MODEL: process.env.COSM_AI_AUTO_DISCOVER_MODEL ?? "0",
+      ...envOverrides,
     },
   });
 
@@ -241,6 +242,54 @@ test("cli can sketch a tiny Cosm-native test harness", () => {
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# smoke");
   expect(result.stdout).toContain("ok - passes");
+});
+
+test("cli exposes slack diagnostics through agent subcommands", () => {
+  const status = runCli(["agent", "slack:status"], {
+    SLACK_ALLOWED_CHANNELS: "C123,G123",
+  });
+  expect(status.exitCode).toBe(0);
+  expect(status.stderr).toBe("");
+  expect(JSON.parse(status.stdout)).toMatchObject({
+    ok: false,
+    ingress: {
+      webhook_driven: true,
+      dm_enabled: true,
+      channel_mentions_enabled: true,
+      allowed_channels: ["C123", "G123"],
+    },
+  });
+
+  const historyMissingArg = runCli(["agent", "slack:history"]);
+  expect(historyMissingArg.exitCode).toBe(1);
+  expect(historyMissingArg.stderr).toContain("agent slack:history expects a channel_id");
+
+  const threadMissingArg = runCli(["agent", "slack:thread"]);
+  expect(threadMissingArg.exitCode).toBe(1);
+  expect(threadMissingArg.stderr).toContain("agent slack:thread expects a channel_id and thread_ts");
+});
+
+test("requiring cosm/dotenv loads .env files explicitly while preserving shell env precedence", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-dotenv-"));
+  writeFileSync(join(tempDir, ".env"), "DOTENV_BASE=from_env\nDOTENV_SHARED=from_env\n");
+  writeFileSync(join(tempDir, ".env.local"), "DOTENV_LOCAL=from_local\nDOTENV_SHARED=from_local\n");
+  const sourcePath = join(tempDir, "dotenv.cosm");
+  writeFileSync(
+    sourcePath,
+    'require "cosm/dotenv"; puts(Kernel.inspect({ base: Process.env("DOTENV_BASE"), local: Process.env("DOTENV_LOCAL"), shared: Process.env("DOTENV_SHARED"), shell: Process.env("DOTENV_SHELL") }))\n',
+  );
+
+  const result = runCli([sourcePath], {
+    DOTENV_SHARED: "from_shell",
+    DOTENV_SHELL: "present",
+  }, tempDir);
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain('base: "from_env"');
+  expect(result.stdout).toContain('local: "from_local"');
+  expect(result.stdout).toContain('shared: "from_shell"');
+  expect(result.stdout).toContain('shell: "present"');
 });
 
 test("cli test mode injects implicit spec helpers", () => {

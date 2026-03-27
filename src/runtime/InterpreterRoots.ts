@@ -4,6 +4,8 @@ import { Construct } from "../Construct";
 import { CosmClass, CosmEnv, CosmObject, CosmValue } from "../types";
 import { CosmModuleValue } from "../values/CosmModuleValue";
 
+const REPO_ROOT = resolve(import.meta.dir, "..", "..");
+
 type Repository = {
   globals: Record<string, CosmValue>;
   classes: Record<string, CosmClass>;
@@ -16,8 +18,12 @@ type RootHooks = {
 };
 
 export class InterpreterRoots {
+  private static sourcePath(name: string): string {
+    return name.startsWith("cosm/") ? resolve(REPO_ROOT, name) : resolve(process.cwd(), name);
+  }
+
   static preloadStdlibModules(repository: Repository, hooks: RootHooks): void {
-    for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm"]) {
+    for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm", "cosm/dotenv.cosm"]) {
       const loaded = this.loadModuleIntoRepository(name, repository, hooks);
       if (loaded) {
         repository.modules[name] = loaded;
@@ -35,7 +41,7 @@ export class InterpreterRoots {
       if (cachedTemplate instanceof CosmModuleValue) {
         return cachedTemplate;
       }
-      const source = readFileSync(resolve(process.cwd(), name), "utf8");
+      const source = readFileSync(this.sourcePath(name), "utf8");
       const templateModule = Construct.module(name, {
         source: Construct.string(source),
         render: Construct.nativeFunc("render", (args) => {
@@ -53,7 +59,7 @@ export class InterpreterRoots {
     if (cachedModule instanceof CosmModuleValue) {
       return cachedModule;
     }
-    const source = readFileSync(resolve(process.cwd(), name), "utf8");
+    const source = readFileSync(this.sourcePath(name), "utf8");
     const moduleEnv = hooks.createEnv();
     hooks.evalInEnv(source, moduleEnv);
     const loadedModule = Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);

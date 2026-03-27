@@ -112,6 +112,13 @@ end
 
 def fallback_reply(conversation, inbound, error_message) = Support::Controller.fallback(conversation, inbound, error_message);
 
+def activity_summary(turn)
+  let base = turn.command == false ? turn.outcome : "command:" + turn.command
+  let text = turn.reply.text
+  let preview = text.length > 80 ? "[truncated] " + text.length.to_s() + " chars" : text
+  base + " " + preview
+end
+
 def from_controller_turn(conversation, inbound)
   let outcome = Kernel.try(->() { Support::Controller.turn(conversation, inbound) })
   let turn = outcome.ok ? outcome.value : {
@@ -143,6 +150,7 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   let conversation = load_conversation(inbound, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
+  Agent::Store.note_activity(saved.key, turn.outcome, activity_summary(turn))
   let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
   Support::Models.agent_turn_result.validate(value)
   value
@@ -153,6 +161,7 @@ def execute_stored_turn_for_target(target, text, transcript = false, context = f
   let conversation = load_conversation_for_target(target, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
+  Agent::Store.note_activity(saved.key, turn.outcome, activity_summary(turn))
   let value = { conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome }
   Support::Models.agent_turn_result.validate(value)
   value
@@ -165,7 +174,11 @@ def status()
   let ai_status = { configured: ai_config.configured, health: ai_health.ok }
   let slack_status = {
     signing_secret: Agent::Config.slack_signing_secret() != false,
-    bot_token: Agent::Config.slack_bot_token() != false
+    bot_token: Agent::Config.slack_bot_token() != false,
+    dm_enabled: true,
+    mention_mode: true,
+    channel_mentions_enabled: Agent::Config.slack_channel_ingress_enabled(),
+    allowed_channels: Agent::Config.slack_allowed_channels()
   }
   let value = {
     name: identity().name,

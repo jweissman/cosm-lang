@@ -32,6 +32,10 @@ function usage(): string {
     "  cosm --version",
     "  cosm -e '<source>'",
     "  cosm test [file.cosm|spec/|test/]",
+    "  cosm agent slack:status",
+    "  cosm agent slack:channels",
+    "  cosm agent slack:history <channel_id>",
+    "  cosm agent slack:thread <channel_id> <thread_ts>",
     "  cosm <file.cosm>",
     "  cosm <file.cosm> [args...]",
     "  cosm help",
@@ -66,6 +70,7 @@ type CliMode =
   | { kind: "eval"; source: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "run"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "test"; filePath?: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "agent"; command: string; args: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
   | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
 
 type TraceSurfaceNode = {
@@ -107,6 +112,14 @@ function parseArgs(args: string[]): CliMode {
 
   if (args.length === 1 && (args[0] === "help" || args[0] === "--help")) {
     return { kind: "help", traceSurface, traceCore, traceIr, traceSend, vm };
+  }
+
+  if (args[0] === "agent") {
+    const command = args[1];
+    if (!command) {
+      throw new Error("agent expects a subcommand");
+    }
+    return { kind: "agent", command, args: args.slice(2), traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   const modes = new Set<"test" | "watch">();
@@ -480,6 +493,34 @@ function runTestMode(filePath: string | undefined, scriptArgs: string[], mode: {
   process.exit(failedTargets > 0 ? 1 : 0);
 }
 
+function runAgentMode(command: string, args: string[]): never {
+  let source: string;
+  if (command === "slack:status") {
+    source = 'require "cosm/dotenv"; require "lib/agent/slack_diag"; Agent::SlackDiag.status()';
+  } else if (command === "slack:channels") {
+    source = 'require "cosm/dotenv"; require "lib/agent/slack_diag"; Agent::SlackDiag.visible_conversations()';
+  } else if (command === "slack:history") {
+    const channelId = args[0];
+    if (!channelId) {
+      throw new Error("agent slack:history expects a channel_id");
+    }
+    source = `require "cosm/dotenv"; require "lib/agent/slack_diag"; Agent::SlackDiag.history(${JSON.stringify(channelId)})`;
+  } else if (command === "slack:thread") {
+    const channelId = args[0];
+    const threadTs = args[1];
+    if (!channelId || !threadTs) {
+      throw new Error("agent slack:thread expects a channel_id and thread_ts");
+    }
+    source = `require "cosm/dotenv"; require "lib/agent/slack_diag"; Agent::SlackDiag.thread(${JSON.stringify(channelId)}, ${JSON.stringify(threadTs)})`;
+  } else {
+    throw new Error(`unknown agent subcommand '${command}'`);
+  }
+
+  const result = ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source));
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(0);
+}
+
 if (require.main === module) {
   let mode: CliMode;
   try {
@@ -510,6 +551,13 @@ if (require.main === module) {
     repl();
   } else if (mode.kind === "watch") {
     watchFileRunner(mode.filePath, mode);
+  } else if (mode.kind === "agent") {
+    try {
+      runAgentMode(mode.command, mode.args);
+    } catch (e) {
+      console.error("Error:", formatCliError(e));
+      process.exit(1);
+    }
   } else {
     const originalArgv = [...process.argv];
     try {

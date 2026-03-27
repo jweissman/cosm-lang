@@ -23,6 +23,19 @@ def slack_storage_dir()
   configured == false ? "var/slack/threads" : configured
 end
 
+def slack_allowed_channels_raw = env("SLACK_ALLOWED_CHANNELS");
+
+def slack_allowed_channels()
+  let raw = slack_allowed_channels_raw()
+  if raw == false then
+    []
+  else
+    raw.split(",").map(->(entry) { entry.trim() }).filter(->(entry) { entry != "" })
+  end
+end
+
+def slack_channel_ingress_enabled() = slack_allowed_channels().length > 0;
+
 def agent_port()
   let configured = env("AGENT_PORT", "COSM_AGENT_PORT")
   configured == false ? 12456 : configured.to_i()
@@ -36,6 +49,8 @@ def slack_config_status()
     client_id: slack_client_id() != false,
     client_secret: slack_client_secret() != false,
     api_url: slack_api_url(),
-    storage_dir: slack_storage_dir()
+    storage_dir: slack_storage_dir(),
+    allowed_channels: slack_allowed_channels(),
+    channel_ingress_enabled: slack_channel_ingress_enabled()
   }
 end

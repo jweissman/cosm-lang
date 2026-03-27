@@ -1,3 +1,4 @@
+require "cosm/dotenv"
 require "lib/agent/chat"
 
 let argv = Process.argv()

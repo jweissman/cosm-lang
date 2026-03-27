@@ -31,6 +31,7 @@ afterEach(() => {
     health: () => AiRuntime.health(),
     complete: (prompt) => AiRuntime.complete(prompt),
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
+    chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
   });
 });
@@ -40,7 +41,7 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
   process.env.SLACK_STORAGE_DIR = dir;
 
   CosmAiValue.installRuntimeHooks({
-    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
+    chatCast: (_messages, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
       should_reply: true,
       text: "Reset it from the notebook session controls.",
       rationale: "mocked",
@@ -69,6 +70,53 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("agent runtime sends system, history, and latest user input as ordered chat messages", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cosm-agent-runtime-messages-"));
+  process.env.SLACK_STORAGE_DIR = dir;
+
+  const seen: Array<{ role: string; content: string }> = [];
+  CosmAiValue.installRuntimeHooks({
+    chatCast: (messages, schema) => {
+      seen.splice(0, seen.length, ...messages);
+      return schema.validateAndReturn(ValueAdapter.jsToCosm({
+        should_reply: true,
+        text: "Message-native reply.",
+        rationale: "mocked",
+      }));
+    },
+  });
+
+  expect(cosmEval(`
+    require "lib/agent/runtime"
+    let inbound = { channel: "D101", thread: "1710000101.000001", user: "U101", text: "Second question", ts: "1710000101.000001" }
+    let target = Agent::Runtime.target("D101", "1710000101.000001", "slack", "U101")
+    let existing = Agent::Runtime.conversation_for_target(target)
+    let with_history = {
+      agent: existing.agent,
+      transport: existing.transport,
+      key: existing.key,
+      channel: existing.channel,
+      thread: existing.thread,
+      messages: [{ role: "user", user: "U101", text: "First question", ts: "1710000100.000001" }],
+      session_name: existing.session_name,
+      session_length: 1,
+      transcript: false,
+      context: false,
+      created_at: existing.created_at,
+      updated_at: existing.updated_at
+    }
+    Agent::Runtime.save_conversation(with_history)
+    Agent::Runtime.execute_stored_turn(inbound).reply.text
+  `)).toBe("Message-native reply.");
+
+  expect(seen.map((entry) => entry.role)).toEqual(["system", "user", "user"]);
+  expect(seen[0]?.content).toContain("Iapetus");
+  expect(seen[1]?.content).toBe("First question");
+  expect(seen[2]?.content).toBe("Second question");
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("agent runtime handles commands transport-agnostically", () => {
   expect(cosmEval(`
     require "lib/agent/runtime"
@@ -92,8 +140,8 @@ test("local Iapetus chat reuses the shared runtime and durable store", () => {
   process.env.SLACK_STORAGE_DIR = dir;
 
   CosmAiValue.installRuntimeHooks({
-    cast: (prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
-      prompt.includes("Session.default().reset()")
+    chatCast: (messages, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm(
+      messages.some((entry) => entry.content.includes("Session.default().reset()"))
         ? {
             should_reply: true,
             text: "You can also inspect the current stored conversation with status.",
@@ -121,7 +169,8 @@ test("local Iapetus chat reuses the shared runtime and durable store", () => {
       second_reply: second.reply.text,
       session_name: second.conversation.session_name,
       messages: status.messages,
-      known_conversations: status.runtime.storage.known_conversations
+      known_conversations: status.runtime.storage.known_conversations,
+      recent_activity: status.runtime.storage.recent_activity.length > 0
     }
   `)).toEqual({
     first_reply: "You can call Session.default().reset() to clear it in code.",
@@ -129,6 +178,7 @@ test("local Iapetus chat reuses the shared runtime and durable store", () => {
     session_name: "agent:local:cli:iapetus",
     messages: 4,
     known_conversations: 1,
+    recent_activity: true,
   });
 
   rmSync(dir, { recursive: true, force: true });
@@ -166,7 +216,7 @@ test("local Iapetus chat exposes prompt-focused inspection helpers", () => {
     }
   `)).toEqual({
     prompt_loaded: true,
-    preview_kind: "Prompt",
+    preview_kind: "Array",
   });
 });
 

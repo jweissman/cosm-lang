@@ -3,6 +3,7 @@ require "lib/agent/config"
 require "lib/agent/runtime"
 require "lib/agent/store"
 require "lib/agent/slack_client"
+require "lib/agent/slack_diag"
 require "cosm/ai"
 
 def slack_config() = Agent::Config.slack_config_status();
@@ -29,6 +30,13 @@ def ready_payload(path)
     ok: ok,
     path: path,
     slack: {
+      webhook_driven: true,
+      dm_enabled: true,
+      mention_mode: true,
+      channel_mentions_enabled: Agent::Config.slack_channel_ingress_enabled(),
+      allowed_channels: Agent::Config.slack_allowed_channels(),
+      expected_events: Agent::SlackDiag.expected_events(),
+      required_scopes: Agent::SlackDiag.required_ingress_scopes(),
       signing_secret: signing_secret_ok,
       bot_token: bot_token_ok,
       app_id: cfg.app_id,
@@ -52,7 +60,13 @@ def status_payload(path)
     path: path,
     slack: {
       transport: "slack",
-      dm_only: true,
+      webhook_driven: true,
+      dm_enabled: true,
+      mention_mode: true,
+      channel_mentions_enabled: Agent::Config.slack_channel_ingress_enabled(),
+      allowed_channels: Agent::Config.slack_allowed_channels(),
+      expected_events: Agent::SlackDiag.expected_events(),
+      required_scopes: Agent::SlackDiag.required_ingress_scopes(),
       config: slack_config(),
       storage_writable: Agent::Store.writable()
     },
@@ -88,22 +102,27 @@ def events(req)
       puts("[slack] invalid json payload")
       HttpResponse.json({ ok: false, error: "Slack request body must be valid JSON" }, 400)
     else
-      let payload = payload_result.value
-      let challenge = url_verification(payload)
-      if challenge != false then
-        HttpResponse.json({ challenge: challenge }, 200)
-      else
-        let inbound = extract_inbound(payload)
-        if inbound == false then
-          puts("[slack] ignored non-dm or bot event")
-          HttpResponse.json({ ok: true, ignored: true }, 200)
+        let payload = payload_result.value
+        let challenge = url_verification(payload)
+        if challenge != false then
+          puts("[slack] received url_verification challenge")
+          HttpResponse.json({ challenge: challenge }, 200)
         else
-          let event_key = event_key(payload, inbound)
-          if Agent::Runtime.processed(inbound, event_key) then
-            puts("[slack] deduped delivery " + event_key)
-            HttpResponse.json({ ok: true, deduped: true }, 200)
+          let inbound = extract_inbound(payload)
+          if inbound == false then
+            Agent::Store.note_activity("slack", "ignored", "ignored inbound Slack event")
+            puts("[slack] ignored unsupported, unallowed, or bot event")
+            HttpResponse.json({ ok: true, ignored: true }, 200)
           else
-            handle_inbound(inbound, event_key)
+            let event_key = event_key(payload, inbound)
+            Agent::Store.note_activity(inbound.channel + ":" + inbound.thread, "accepted", inbound.source + " " + inbound.channel)
+            puts("[slack] accepted inbound " + inbound.source + " " + inbound.channel + " thread " + inbound.thread + " event " + event_key)
+            if Agent::Runtime.processed(inbound, event_key) then
+              Agent::Store.note_activity(inbound.channel + ":" + inbound.thread, "deduped", event_key)
+              puts("[slack] deduped delivery " + event_key)
+              HttpResponse.json({ ok: true, deduped: true }, 200)
+            else
+              handle_inbound(inbound, event_key)
           end
         end
       end
@@ -113,9 +132,18 @@ end
 
 def handle_inbound(inbound, event_key)
   let turn = Agent::Runtime.execute_stored_turn(inbound)
+  puts("[slack] turn " + turn.outcome + " for " + turn.conversation.key)
+  if turn.reply.degraded == true then
+    let reason = turn.reply.failure_reason == false ? "unknown" : turn.reply.failure_reason
+    puts("[slack] degraded reply for " + turn.conversation.key + ": " + reason)
+  else
+    true
+  end
   let posted = post_reply(turn.conversation, turn.reply.text)
   if posted.ok then
     Agent::Runtime.mark_processed(turn.conversation, event_key)
+    Agent::Store.note_activity(turn.conversation.key, "replied", turn.reply.text.length > 60 ? "reply posted" : turn.reply.text)
+    puts("[slack] reply posted for " + turn.conversation.key)
     HttpResponse.json({
       ok: true,
       replied: true,
@@ -124,6 +152,7 @@ def handle_inbound(inbound, event_key)
     }, 200)
   else
     let message = turn.command == false ? "[slack] outbound failure for thread " + inbound.thread + ": " + posted.error : "[slack] outbound failure for command " + turn.command + ": " + posted.error
+    Agent::Store.note_activity(turn.conversation.key, "outbound_failure", posted.error)
     puts(message)
     HttpResponse.json({ ok: false, error: posted.error }, 502)
   end
@@ -186,25 +215,83 @@ def extract_inbound(payload)
       let ts = Kernel.try(->() { event.ts })
       let bot_id = Kernel.try(->() { event.bot_id })
       let subtype = Kernel.try(->() { event.subtype })
-      if type_value.ok == false || channel_type.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
+      if type_value.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
         false
       else
-        if type_value.value != "message" || channel_type.value != "im" || bot_id.ok || subtype.ok then
+        if bot_id.ok || subtype.ok then
           false
         else
-          let thread_value = Kernel.try(->() { event.thread_ts })
-          let value = {
-            channel: channel.value,
-            thread: thread_value.ok ? thread_value.value : ts.value,
-            user: user.value,
-            text: text.value,
-            ts: ts.value
-          }
-          Support::Models.inbound_message.validate(value)
-          value
+          let effective_channel_kind = channel_type.ok ? channel_type.value : inferred_channel_kind(channel.value)
+          let kind = inbound_kind(type_value.value, effective_channel_kind)
+          if kind == false then
+            false
+          else
+            let thread_value = Kernel.try(->() { event.thread_ts })
+            let thread = thread_value.ok ? thread_value.value : ts.value
+            if allowed_inbound(kind, channel.value, thread) == false then
+              false
+            else
+              let value = {
+                channel: channel.value,
+                thread: thread,
+                user: user.value,
+                text: sanitized_text(kind, text.value),
+                ts: ts.value,
+                source: kind,
+                channel_kind: effective_channel_kind
+              }
+              Support::Models.inbound_message.validate(value)
+              value
+            end
+          end
         end
       end
     end
+  end
+end
+
+def inferred_channel_kind(channel_id)
+  channel_id.startsWith("D") ? "im" : (channel_id.startsWith("G") ? "group" : "channel")
+end
+
+def inbound_kind(event_type, channel_kind)
+  if event_type == "app_mention" then
+    channel_kind == "channel" || channel_kind == "group" ? "app_mention" : false
+  else
+    if event_type != "message" then
+      false
+    else
+      channel_kind == "im" ? "dm" : (channel_kind == "channel" || channel_kind == "group" ? "thread_reply" : false)
+    end
+  end
+end
+
+def allowed_channel(channel_id)
+  Agent::Config.slack_allowed_channels().find(->(entry) { entry == channel_id }) != false
+end
+
+def activated_thread(channel_id, thread)
+  Agent::Store.load_record(Agent::Runtime.conversation_key(channel_id, thread, "slack")) != false
+end
+
+def allowed_inbound(kind, channel_id, thread)
+  if kind == "dm" then
+    true
+  else
+    if allowed_channel(channel_id) == false then
+      false
+    else
+      kind == "app_mention" ? true : activated_thread(channel_id, thread)
+    end
+  end
+end
+
+def sanitized_text(kind, text)
+  if kind == "app_mention" then
+    let trimmed = text.trim()
+    trimmed == "" ? "help" : trimmed
+  else
+    text
   end
 end
 

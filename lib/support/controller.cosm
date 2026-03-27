@@ -103,7 +103,7 @@ def current_transcript(conversation) = conversation.transcript == false ? Suppor
 def reply(conversation, inbound)
   Support::Models.conversation.validate(conversation)
   Support::Models.inbound_message.validate(inbound)
-  conversation.context == false ? Support::Agent.reply_for_transcript(current_transcript(conversation), inbound.text) : Support::Agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context)
+  conversation.transcript == false && conversation.context == false ? Support::Agent.reply_for_conversation(conversation, inbound) : (conversation.context == false ? Support::Agent.reply_for_transcript(current_transcript(conversation), inbound.text) : Support::Agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context))
 end
 
 def stream_reply(conversation, inbound)

@@ -10,12 +10,14 @@ import { CosmErrorValue } from "./CosmErrorValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmNumberValue } from "./CosmNumberValue";
+import { ValueAdapter } from "../ValueAdapter";
 
 export class CosmAiValue extends CosmObjectValue {
   private static statusHandler?: () => CosmValue;
   private static healthHandler?: () => CosmValue;
   private static completeHandler?: (prompt: string, env?: CosmEnv) => CosmValue;
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
+  private static chatCastHandler?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
   private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
@@ -25,6 +27,7 @@ export class CosmAiValue extends CosmObjectValue {
     health?: () => CosmValue;
     complete?: (prompt: string, env?: CosmEnv) => CosmValue;
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
+    chatCast?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
     stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
     invoke?: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
@@ -40,6 +43,9 @@ export class CosmAiValue extends CosmObjectValue {
     }
     if ("cast" in hooks) {
       this.castHandler = hooks.cast;
+    }
+    if ("chatCast" in hooks) {
+      this.chatCastHandler = hooks.chatCast;
     }
     if ("compare" in hooks) {
       this.compareHandler = hooks.compare;
@@ -119,6 +125,26 @@ export class CosmAiValue extends CosmObjectValue {
         }
         return CosmAiValue.castHandler(prompt, args[1], env);
       }),
+      chat_cast: () => new CosmFunctionValue("chat_cast", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: chat_cast expects an Ai receiver");
+        }
+        if (args.length !== 2) {
+          throw new Error(`Arity error: cosm.ai.chat_cast expects 2 arguments, got ${args.length}`);
+        }
+        if (!(args[1] instanceof CosmSchemaValue)) {
+          throw new Error("Type error: cosm.ai.chat_cast expects a Schema");
+        }
+        const messages = selfValue.expectMessages(args[0], "cosm.ai.chat_cast");
+        if (CosmAiValue.chatCastHandler) {
+          return CosmAiValue.chatCastHandler(messages, args[1], env);
+        }
+        if (!CosmAiValue.castHandler) {
+          CosmErrorValue.raise(new CosmStringValue("AI backend is not configured for cast"), selfValue.errorClassRef);
+        }
+        const flattened = messages.map((entry) => `${entry.role}: ${entry.content}`).join("\n\n");
+        return CosmAiValue.castHandler(flattened, args[1], env);
+      }),
       compare: () => new CosmFunctionValue("compare", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {
           throw new Error("Type error: compare expects an Ai receiver");
@@ -194,6 +220,24 @@ export class CosmAiValue extends CosmObjectValue {
       throw new Error(`Type error: ${context} expects a Prompt or string`);
     }
     return source;
+  }
+
+  private expectMessages(value: CosmValue, context: string): Array<{ role: string; content: string }> {
+    const candidate = ValueAdapter.cosmToJS(value);
+    if (!Array.isArray(candidate)) {
+      throw new Error(`Type error: ${context} expects an Array of message hashes`);
+    }
+    return candidate.map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        throw new Error(`Type error: ${context} expects an Array of message hashes`);
+      }
+      const role = (entry as Record<string, unknown>).role;
+      const content = (entry as Record<string, unknown>).content;
+      if (typeof role !== "string" || typeof content !== "string") {
+        throw new Error(`Type error: ${context} expects message hashes with string role and content`);
+      }
+      return { role, content };
+    });
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {

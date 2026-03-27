@@ -14,10 +14,12 @@ slow-test:
   {{dev-bun}} run test:slow
 
 http-test:
-  COSM_HTTP_INTEGRATION=1 {{dev-bun}} test test/http.integration.slow.ts
+  COSM_HTTP_INTEGRATION=1 {{dev-bun}} test test/http.integration.test.ts
 
 live-ai-test:
   COSM_AI_LIVE=1 {{dev-bun}} test test/ai.integration.test.ts
+
+test-all: slow-test http-test live-ai-test fast-test
 
 lint:
   {{dev-bun}} run lint

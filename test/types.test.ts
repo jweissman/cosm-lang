@@ -45,6 +45,9 @@ test("primitive runtime values carry behavior", () => {
   expect(Val.number(20).plus(Val.number(22))).toMatchObject({ type: "number", value: 42 });
   expect(Val.string("co").plus(Val.string("sm"))).toMatchObject({ type: "string", value: "cosm" });
   expect(Val.string("answer: ").plus(Val.number(42))).toMatchObject({ type: "string", value: "answer: 42" });
+  expect(Val.string("  cosm  ").nativeMethod("trim")?.nativeCall?.([], Val.string("  cosm  "))).toMatchObject({ type: "string", value: "cosm" });
+  expect(Val.string("C123,G123").nativeMethod("split")?.nativeCall?.([Val.string(",")], Val.string("C123,G123"))).toMatchObject({ type: "array" });
+  expect(Val.string("C123").nativeMethod("startsWith")?.nativeCall?.([Val.string("C")], Val.string("C123"))).toMatchObject({ type: "bool", value: true });
   expect(Val.number(42).toCosmString()).toBe("42");
   expect(Val.bool(true).toCosmString()).toBe("true");
   expect(Val.symbol("ok").toCosmString()).toBe(":ok");
@@ -292,7 +295,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     "warn",
     "writeText",
   ]);
-  expect(Object.keys(processMethods).sort()).toEqual(["arch", "argv", "cwd", "env", "exit", "pid", "platform"]);
+  expect(Object.keys(processMethods).sort()).toEqual(["arch", "argv", "cwd", "env", "exit", "load_env_file", "pid", "platform"]);
   expect(Object.keys(timeMethods).sort()).toEqual(["fromIso", "iso", "isoNow", "now"]);
   expect(Object.keys(randomMethods).sort()).toEqual(["choice", "float", "int"]);
   expect(Object.keys(httpMethods).sort()).toEqual(["request", "serve"]);
@@ -309,7 +312,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(schemaClassMethods).sort()).toEqual(["array", "boolean", "enum", "number", "object", "optional", "string"]);
   expect(Object.keys(promptMethods)).toEqual([]);
   expect(Object.keys(promptClassMethods)).toEqual(["text"]);
-  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "compare", "complete", "config", "health", "status", "stream"]);
+  expect(Object.keys(aiMethods).sort()).toEqual(["cast", "chat_cast", "compare", "complete", "config", "health", "status", "stream"]);
   expect(Object.keys(sessionMethods).sort()).toEqual(["eval", "history", "inspect", "reset", "to_s", "tryEval"]);
   expect(Object.keys(sessionClassMethods).sort()).toEqual(["default", "named"]);
 });

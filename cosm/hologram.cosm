@@ -13,6 +13,6 @@ def wrap(value)
     mode: "placeholder",
     translation: false,
     target_class: value.class.name,
-    note: "Use Mirror.reflect(...) for readonly inspection in 0.3.13.19."
+    note: "Use Mirror.reflect(...) for readonly inspection in 0.3.13.20."
   }
 end

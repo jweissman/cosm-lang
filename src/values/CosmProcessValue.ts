@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
@@ -6,6 +8,7 @@ import { CosmStringValue } from "./CosmStringValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmNumberValue } from "./CosmNumberValue";
+import { CosmHashValue } from "./CosmHashValue";
 
 export class CosmProcessValue extends CosmObjectValue {
   private static exitHandler?: (code?: number) => never;
@@ -14,6 +17,72 @@ export class CosmProcessValue extends CosmObjectValue {
     exit?: (code?: number) => never;
   }): void {
     this.exitHandler = hooks.exit;
+  }
+
+  private static stripQuotes(value: string): string {
+    if (value.length >= 2) {
+      const first = value[0];
+      const last = value[value.length - 1];
+      if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+        return value.slice(1, -1);
+      }
+    }
+    return value;
+  }
+
+  private static loadEnvFile(path: string, overwrite = false): CosmHashValue {
+    const resolvedPath = resolve(process.cwd(), path);
+    if (!existsSync(resolvedPath)) {
+      return new CosmHashValue({
+        ok: new CosmBoolValue(false),
+        path: new CosmStringValue(path),
+        loaded: new CosmBoolValue(false),
+        count: new CosmNumberValue(0),
+        overwritten: new CosmNumberValue(0),
+      });
+    }
+
+    const source = readFileSync(resolvedPath, "utf8");
+    let loaded = 0;
+    let overwrittenCount = 0;
+
+    for (const rawLine of source.split(/\r?\n/u)) {
+      const trimmed = rawLine.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const normalized = trimmed.startsWith("export ") ? trimmed.slice("export ".length).trim() : trimmed;
+      const separatorIndex = normalized.indexOf("=");
+      if (separatorIndex <= 0) {
+        continue;
+      }
+
+      const key = normalized.slice(0, separatorIndex).trim();
+      if (!key) {
+        continue;
+      }
+
+      if (!overwrite && process.env[key] !== undefined) {
+        continue;
+      }
+
+      if (overwrite && process.env[key] !== undefined) {
+        overwrittenCount += 1;
+      }
+
+      const rawValue = normalized.slice(separatorIndex + 1).trim();
+      process.env[key] = this.stripQuotes(rawValue);
+      loaded += 1;
+    }
+
+    return new CosmHashValue({
+      ok: new CosmBoolValue(true),
+      path: new CosmStringValue(path),
+      loaded: new CosmBoolValue(true),
+      count: new CosmNumberValue(loaded),
+      overwritten: new CosmNumberValue(overwrittenCount),
+    });
   }
 
   static readonly manifest: RuntimeValueManifest<CosmProcessValue> = {
@@ -34,6 +103,19 @@ export class CosmProcessValue extends CosmObjectValue {
         }
         const value = process.env[name.value];
         return value === undefined ? new CosmBoolValue(false) : new CosmStringValue(value);
+      }),
+      load_env_file: () => new CosmFunctionValue('load_env_file', (args) => {
+        if (args.length < 1 || args.length > 2) {
+          throw new Error(`Arity error: load_env_file expects 1 or 2 arguments, got ${args.length}`);
+        }
+        const [pathValue, overwriteValue] = args;
+        if (!(pathValue instanceof CosmStringValue)) {
+          throw new Error("Type error: load_env_file expects a string path");
+        }
+        if (overwriteValue && !(overwriteValue instanceof CosmBoolValue)) {
+          throw new Error("Type error: load_env_file expects an optional boolean overwrite flag");
+        }
+        return this.loadEnvFile(pathValue.value, overwriteValue?.value ?? false);
       }),
       argv: () => new CosmFunctionValue('argv', (args) => {
         if (args.length !== 0) {

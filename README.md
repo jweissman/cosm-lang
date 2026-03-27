@@ -86,6 +86,9 @@ Common commands:
 - `./script/bunx bin/cosm test spec/core.cosm`
 - `./script/bunx bin/cosm test spec/`
 - `./script/bunx bin/cosm test test/`
+- `./script/bunx bin/cosm agent slack:status`
+- `./script/bunx bin/cosm agent slack:channels`
+- `./script/bunx bin/cosm agent slack:thread <channel_id> <thread_ts>`
 - `./script/bunx bin/cosm spec/core.cosm`
 - `./script/bunx bin/cosm test spec/runtime/baseline.cosm`
 - `./script/bunx bin/cosm --version`
@@ -104,17 +107,23 @@ Common commands:
 
 Iapetus workflow:
 
-- `just agent-server` starts the DM-first Slack-facing service at the canonical `lib/agent/server.cosm` entrypoint
+- `just agent-server` starts the Slack-facing service at the canonical `lib/agent/server.cosm` entrypoint
 - `just chat` starts the local terminal loop against the same `Agent::Runtime` and file-backed store
-- inside local chat, `prompt`, `preview`, and `runtime` expose the current system prompt, a sample structured reply prompt, and local runtime/session status
-- `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM it
+- maintained agent entrypoints explicitly `require "cosm/dotenv"` so `.env` and `.env.local` are loaded on startup without ambient CLI magic
+- `agent-server` is webhook-driven, not channel-polling: it does not take a channel id, and Slack delivers accepted DM and mention-driven channel events to `POST /slack/events`
+- inside local chat, `prompt`, `preview`, and `runtime` expose the current system prompt, the real message list that will be sent to the model, and local runtime/session status
+- `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM or mention it, including recent activity summaries
+- `cosm agent slack:status`, `slack:channels`, `slack:history <channel_id>`, and `slack:thread <channel_id> <thread_ts>` provide narrow read-only Slack diagnostics
 
 Slack smoke testing:
 
 - outbound post only needs `SLACK_BOT_TOKEN`
 - inbound `/slack/events` verification also needs `SLACK_SIGNING_SECRET`
+- allowed channel mentions use `SLACK_ALLOWED_CHANNELS=<id1,id2,...>`
+- mention-driven channels also need the Slack `app_mention` event plus `app_mentions:read`
 - the one-shot DM helper expects a Slack conversation id such as `D...`
-- the current agent service and local chat loop both reuse the same durable runtime/store path
+- the current agent service and local chat loop both reuse the same durable runtime/store path and structured message history
+- current durable wedge state is file-backed under `var/` unless you override the storage env vars
 
 ## Docs
 

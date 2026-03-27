@@ -2,9 +2,19 @@ require "lib/support/models"
 require "lib/agent/config"
 
 let agent_thread_record = Data.model("agent_thread_record", {
+  version: Data.number(),
   conversation: Support::Models.conversation,
   processed_events: Data.array(Data.string())
 })
+
+let activity_event = Data.model("activity_event", {
+  key: Data.string(),
+  kind: Data.string(),
+  summary: Data.string(),
+  at: Data.string()
+})
+
+let activity_log = Data.array(activity_event)
 
 def storage_dir = Agent::Config.slack_storage_dir();
 
@@ -12,17 +22,22 @@ def ready_probe_path = storage_dir() + "/.ready";
 
 def record_path(key) = storage_dir() + "/" + Kernel.hmacSha256("cosm-agent-store", key) + ".json";
 
+def activity_log_path = storage_dir() + "/activity.json";
+
 def record(conversation, processed_events = [])
-  let value = { conversation: conversation, processed_events: processed_events }
+  let value = { version: 2, conversation: conversation, processed_events: processed_events }
   agent_thread_record.validate(value)
   value
 end
 
 def load_record(key)
   if Kernel.exists(record_path(key)) then
-    let value = Kernel.parseJson(Kernel.readText(record_path(key)))
-    agent_thread_record.validate(value)
-    value
+    let loaded = Kernel.try(->() {
+      let value = Kernel.parseJson(Kernel.readText(record_path(key)))
+      agent_thread_record.validate(value)
+      value
+    })
+    loaded.ok ? loaded.value : false
   else
     false
   end
@@ -33,6 +48,38 @@ def save_record(key, value)
   Kernel.writeText(record_path(key), Kernel.json(value))
   value
 end
+
+def load_activity_log()
+  if Kernel.exists(activity_log_path()) then
+    let loaded = Kernel.try(->() {
+      let value = Kernel.parseJson(Kernel.readText(activity_log_path()))
+      activity_log.validate(value)
+      value
+    })
+    loaded.ok ? loaded.value : []
+  else
+    []
+  end
+end
+
+def save_activity_log(events)
+  activity_log.validate(events)
+  Kernel.writeText(activity_log_path(), Kernel.json(events))
+  events
+end
+
+def activity(key, kind, summary, at = Time.isoNow())
+  let value = { key: key, kind: kind, summary: summary, at: at }
+  activity_event.validate(value)
+  value
+end
+
+def note_activity(key, kind, summary)
+  let next = load_activity_log().append(activity(key, kind, summary))
+  save_activity_log(next)
+end
+
+def recent_activity() = load_activity_log();
 
 def save_conversation(conversation)
   let key = conversation.key
@@ -73,13 +120,14 @@ def writable()
 end
 
 def known_conversation_count()
-  Kernel.listDir(storage_dir()).filter(->(entry) { entry != ".ready" }).length
+  Kernel.listDir(storage_dir()).filter(->(entry) { entry != ".ready" && entry != "activity.json" }).length
 end
 
 def status()
   {
     storage_dir: storage_dir(),
     storage_writable: writable(),
-    known_conversations: known_conversation_count()
+    known_conversations: known_conversation_count(),
+    recent_activity: recent_activity()
   }
 end

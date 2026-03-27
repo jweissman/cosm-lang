@@ -55,4 +55,24 @@ Latest user message:
 #{latest_text}
 """);
 
+def system_message() = { role: "system", content: Support::PromptData.iapetus_system() };
+
+def context_message(context) = { role: "system", content: "Attached page context:\n" + context };
+
+def legacy_transcript_message(transcript) = { role: "system", content: "Legacy transcript so far:\n" + transcript };
+
+def history_messages(conversation) = conversation.messages.map(->(entry) { { role: entry.role, content: entry.text } });
+
+def latest_user_message(inbound) = { role: "user", content: inbound.text };
+
+def reply_messages(conversation, inbound)
+  let base = [system_message()]
+  let with_context = conversation.context == false ? base : base.append(context_message(conversation.context))
+  let with_transcript = conversation.transcript == false ? with_context : with_context.append(legacy_transcript_message(conversation.transcript))
+  let with_history = history_messages(conversation).reduce(with_transcript, ->(acc, entry) { acc.append(entry) })
+  with_history.append(latest_user_message(inbound))
+end
+
+def reply_messages_preview(conversation, inbound) = reply_messages(conversation, inbound);
+
 def reply_prompt(conversation, inbound) = reply_prompt_from_transcript(Kernel.inspect(conversation.messages), inbound.text);

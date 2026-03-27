@@ -13,7 +13,7 @@ type LmStudioConfig = {
   configured: boolean;
 };
 
-type ChatMessage = {
+export type ChatMessage = {
   role: string;
   content: string;
 };
@@ -197,6 +197,15 @@ export class AiRuntime {
       { role: "user", content: prompt },
     ], {
       responseFormat: this.jsonSchemaResponseFormat("cosm_cast", schemaObject as Record<string, unknown>),
+    });
+    return parseStructuredCompletionText(content, schema);
+  }
+
+  static chatCast(messages: ChatMessage[], schema: CosmSchemaValue) {
+    const schemaValue = schema.nativeMethod("jsonSchema")?.nativeCall?.([], schema);
+    const schemaObject = schemaValue ? ValueAdapter.cosmToJS(schemaValue) : {};
+    const content = this.chat(messages, {
+      responseFormat: this.jsonSchemaResponseFormat("cosm_chat_cast", schemaObject as Record<string, unknown>),
     });
     return parseStructuredCompletionText(content, schema);
   }

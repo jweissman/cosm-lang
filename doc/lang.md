@@ -433,7 +433,7 @@ Class.class.name
 - `Mirror.reflect(value)`
   Returns a readonly reflective wrapper around `value`.
 - `require "cosm/hologram"` then `Cosm::Hologram.status()` / `Cosm::Hologram.wrap(value)`
-  Placeholder module for future host-value translation; in `0.3.13.19` it is intentionally not a JS bridge yet.
+  Placeholder module for future host-value translation; in `0.3.13.21` it is intentionally not a JS bridge yet.
 - `mirror.targetClass`
 - `mirror.inspect()`
 - `mirror.methods()`
@@ -597,7 +597,7 @@ do let x = 1; x + 2 end
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape.
-- `Cosm::Hologram` is only a placeholder in `0.3.13.19`; it documents future host-value translation intent but does not yet perform boundary conversion.
+- `Cosm::Hologram` is only a placeholder in `0.3.13.20`; it documents future host-value translation intent but does not yet perform boundary conversion.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
