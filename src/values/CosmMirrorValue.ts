@@ -6,6 +6,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmSymbolValue } from "./CosmSymbolValue";
+import { CosmArrayValue } from "./CosmArrayValue";
+import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { ValueAdapter } from "../ValueAdapter";
 
 export class CosmMirrorValue extends CosmObjectValue {
@@ -87,6 +89,32 @@ export class CosmMirrorValue extends CosmObjectValue {
       }),
     },
     classMethods: {
+      status: () => new CosmFunctionValue("status", (args, selfValue) => {
+        if (!(selfValue instanceof CosmClassValue)) {
+          throw new Error("Type error: Mirror.status expects a class receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: Mirror.status expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmNamespaceValue({
+          ready: new CosmBoolValue(true),
+          mode: new CosmStringValue("readonly-observer"),
+          observes_runtime_values: new CosmBoolValue(true),
+          observes_host_backed_values: new CosmBoolValue(true),
+          writable: new CosmBoolValue(false),
+          readable_surface: new CosmArrayValue([
+            new CosmStringValue("targetClass"),
+            new CosmStringValue("inspect"),
+            new CosmStringValue("methods"),
+            new CosmStringValue("get"),
+            new CosmStringValue("has"),
+          ]),
+          rejects: new CosmArrayValue([
+            new CosmStringValue("mutation"),
+            new CosmStringValue("raw_host_shape"),
+          ]),
+        }, selfValue);
+      }),
       reflect: () => new CosmFunctionValue("reflect", (args, selfValue) => {
         if (!(selfValue instanceof CosmClassValue)) {
           throw new Error("Type error: Mirror.reflect expects a class receiver");

@@ -2,7 +2,7 @@
 
 Cosm is a small reflective programming language for interactive tooling, service objects, and explicit runtime boundaries.
 
-It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, and narrower separate assistant and Slack-facing agent wedges.
+It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, narrower separate assistant and Slack-facing agent wedges, and a more explicit boundary story around `Mirror`, `Hologram`, and `Cosm::AI`.
 
 ## What Cosm Emphasizes
 
@@ -13,6 +13,7 @@ It is designed to stay legible about classes, message send, modules, validation,
 - object-first services through `HttpRouter`, `HttpRequest`, and `HttpResponse`
 - a narrow but real block story through trailing `do ... end`, `yield(...)`, and block-native collection sends
 - structured validation and AI boundaries through `Schema`, `Data`, `Prompt`, and `Cosm::AI`
+- explicit readonly/writable boundary seams through `Mirror` and `Cosm::Hologram`
 
 ## A Few Examples
 

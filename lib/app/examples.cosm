@@ -86,6 +86,26 @@ def prompt_data()
   example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require \"lib/support/prompt_data\"; Support::PromptData.iapetus_system()")
 end
 
+def mirror_boundary()
+  example("Boundaries", "Mirror boundary", "Mirror stays readonly and reports the visible Cosm surface of a value.", "Mirror.status()")
+end
+
+def mirror_runtime_value()
+  example("Boundaries", "Mirror on runtime value", "Observe a live receiver without mutating it.", "Mirror.reflect(Kernel).methods()")
+end
+
+def hologram_boundary()
+  example("Boundaries", "Hologram boundary", "Hologram is the narrow writable translation seam, not a general JS bridge.", "require \"cosm/hologram\"; Cosm::Hologram.status()")
+end
+
+def hologram_mutation()
+  example("Boundaries", "Hologram mutation", "Wrap a supported target and write through the narrow boundary.", "require \"cosm/hologram\"; holo = Cosm::Hologram.wrap({ answer: 1 }); holo.set(:answer, 2); holo.get(:answer)")
+end
+
+def ai_boundary()
+  example("Boundaries", "AI boundary", "AI operations stay explicit runtime surfaces rather than hidden helpers.", "require \"cosm/ai\"; Cosm::AI.boundary()")
+end
+
 def support_chat_step()
   example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require \"lib/support/chat\"; Support::Chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
 end
@@ -134,6 +154,10 @@ def ai()
   [prompt_object(), ai_status(), ai_health(), ai_cast_helper(), prompt_data()]
 end
 
+def boundaries()
+  [mirror_boundary(), mirror_runtime_value(), hologram_boundary(), hologram_mutation(), ai_boundary()]
+end
+
 def services()
   [router_sketch()]
 end
@@ -143,5 +167,5 @@ def support()
 end
 
 def catalog()
-  [math_reflection(), object_surface_split(), receiver_reflection(), method_lookup(), text_protocol(), core_tower(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by(), collection_lattice(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), prompt_data(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
+  [math_reflection(), object_surface_split(), receiver_reflection(), method_lookup(), text_protocol(), core_tower(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by(), collection_lattice(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), prompt_data(), mirror_boundary(), mirror_runtime_value(), hologram_boundary(), hologram_mutation(), ai_boundary(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
 end

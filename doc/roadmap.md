@@ -42,7 +42,7 @@ That overlap is fine, but the roadmap should describe what is true now rather th
 - persistence:
   durable state is still file-backed wedge storage under `var/`, not a real store boundary
 - boundary semantics:
-  `Mirror`, `Hologram`, AI casting, and host-backed value translation still need one cleaner conceptual model
+  `Mirror`, `Hologram`, AI casting, and host-backed value translation now have a first clearer runtime story, but they still need deeper consolidation before semantic operators or broad interop
 - broader tool/runtime work:
   intentionally deferred while the language/runtime story stabilizes
 
@@ -123,10 +123,10 @@ Current priority:
 
 ### `0.3.13.27`: Boundary Semantics
 
-- define what `Mirror` is for host-backed values
-- define what `Hologram` actually is as a writable translation seam
+- make the `Mirror` readonly contract explicit for runtime and host-backed values
+- make `Hologram` explicit as a narrow writable translation seam for a small supported subset
 - sharpen AI casting and semantic comparison as visible boundary operations, not just API helpers
-- decide whether `~=` / `~` become the canonical visible seam for semantic computation
+- defer `~=` / `~` expansion until the boundary model is calmer
 
 ### `0.3.13.28`: Persistence and Runtime State
 

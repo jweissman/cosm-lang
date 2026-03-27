@@ -8,6 +8,17 @@ def complete(prompt) = ai.complete(prompt);
 
 def compare(left, right) = ai.compare(left, right);
 
+def boundary()
+  {
+    mode: "explicit-semantic-boundary",
+    cast: "Cosm::AI.cast(prompt, schema_or_model)",
+    compare: "Cosm::AI.compare(left, right)",
+    semantic_eq: "\"left\" ~= \"right\"",
+    deterministic_validation: "Schema.validate(...) / Data.model(...).validate(...)",
+    configured: ai.config().configured
+  }
+end
+
 def schema_for(target)
   let maybe_schema = Kernel.try(->() { target.schema() })
   if maybe_schema.ok then

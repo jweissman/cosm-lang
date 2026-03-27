@@ -94,13 +94,31 @@ export class CosmHologramHandleValue extends CosmObjectValue {
         }
         return new CosmNamespaceValue({
           ready: new CosmBoolValue(true),
-          mode: new CosmStringValue("narrow-writable"),
-          translation: new CosmBoolValue(false),
+          mode: new CosmStringValue("narrow-writable-boundary"),
+          translation: new CosmBoolValue(true),
+          observes_runtime_values: new CosmBoolValue(true),
+          observes_host_backed_values: new CosmBoolValue(true),
+          writable: new CosmBoolValue(true),
           writable_targets: new CosmArrayValue([
             new CosmStringValue("Hash"),
             new CosmStringValue("Object"),
             new CosmStringValue("Namespace"),
             new CosmStringValue("Module"),
+          ]),
+          readable_surface: new CosmArrayValue([
+            new CosmStringValue("targetClass"),
+            new CosmStringValue("inspect"),
+            new CosmStringValue("keys"),
+            new CosmStringValue("has"),
+            new CosmStringValue("get"),
+            new CosmStringValue("set"),
+          ]),
+          rejects: new CosmArrayValue([
+            new CosmStringValue("Number"),
+            new CosmStringValue("Boolean"),
+            new CosmStringValue("String"),
+            new CosmStringValue("Array"),
+            new CosmStringValue("general-js-bridge"),
           ]),
         });
       }),

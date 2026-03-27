@@ -33,7 +33,7 @@ class NotebookExamples
     end
 
     def boundary_markup()
-      category("Boundaries", "Prompt objects, runtime AI config, and explicit AI-assisted cast remain visible, but they stay secondary to the notebook's object-model teaching path.", card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()) + card(App::Examples.prompt_data()))
+      category("Boundaries", "Mirror stays readonly, Hologram stays narrow and writable only for a small subset, and AI operations remain explicit runtime seams rather than hidden helpers.", card(App::Examples.mirror_boundary()) + card(App::Examples.mirror_runtime_value()) + card(App::Examples.hologram_boundary()) + card(App::Examples.hologram_mutation()) + card(App::Examples.ai_boundary()) + card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()))
     end
 
     def notebook_markup()

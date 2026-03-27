@@ -458,6 +458,8 @@ Class.class.name
   Performs an explicit helper-form message send where `message` is a string or symbol.
 - `Mirror.reflect(value)`
   Returns a readonly reflective wrapper around `value`.
+- `Mirror.status()`
+  Returns a small reflective summary of the readonly mirror boundary.
 - `require "cosm/hologram"` then `Cosm::Hologram.status()` / `Cosm::Hologram.wrap(value)`
   Small module facade over the first narrow writable boundary wedge. It is still intentionally not a JS bridge.
 - `mirror.targetClass`
@@ -546,6 +548,7 @@ Random.int(10)
 Random.choice(["red", "green", "blue"])
 Mirror.reflect({ answer: 42 }).inspect()
 Mirror.reflect(Kernel).get(:assert)
+Mirror.status().mode
 begin
   Kernel.raise("boom", { code: 7 })
 rescue err
@@ -554,6 +557,8 @@ end
 require "cosm/hologram"
 Cosm::Hologram.status().mode
 Cosm::Hologram.wrap({ answer: 41 }).set(:answer, 42)
+require "cosm/ai"
+Cosm::AI.boundary().mode
 Kernel.expectEqual([1, 2], [1, 2])
 HttpResponse.html("<h1>ok</h1>", 200)
 HttpResponse.text("ok", 201)
@@ -637,8 +642,8 @@ do let x = 1; x + 2 end
 - `Kernel.inspect`, `Kernel.send`, `Kernel.dispatch`, `Kernel.trace`, and `Kernel.readline` now live on the TS-backed `Kernel` runtime value rather than only being interpreter-installed helpers.
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
-- `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape.
-- `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge.
+- `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape. `Mirror.status()` now makes that contract explicit.
+- `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge. `Cosm::Hologram.status()` is the supported way to inspect that narrow writable subset.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.

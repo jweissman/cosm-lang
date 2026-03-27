@@ -286,4 +286,23 @@ test("real authored modules and Hologram wrappers expose the object model more h
     require "cosm/hologram"
     Cosm::Hologram.wrap(Kernel).has(:assert)
   `)).toBe(true);
+  expect(cosmEval("Mirror.status().mode")).toBe("readonly-observer");
+  expect(cosmEval("Mirror.status().writable")).toBe(false);
+  expect(cosmEval("Mirror.status().rejects")).toEqual(["mutation", "raw_host_shape"]);
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Cosm::Hologram.status().mode
+  `)).toBe("narrow-writable-boundary");
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Cosm::Hologram.status().translation
+  `)).toBe(true);
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Cosm::Hologram.status().rejects
+  `)).toEqual(["Number", "Boolean", "String", "Array", "general-js-bridge"]);
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Kernel.try(->() { Cosm::Hologram.wrap(42) }).error.message
+  `)).toContain("Hologram.wrap currently supports Hash and object-like values");
 });

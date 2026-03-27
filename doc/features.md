@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.26
+## Current Release Target: 0.3.13.27
 
-`0.3.13.24`-`0.3.13.26` are best read as the hardening and canonicalization line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.27` are best read as the hardening, canonicalization, and first boundary-semantics line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -13,6 +13,7 @@
 - start migrating runtime hook boundaries toward an explicit invocation context instead of optional positional `self/env`
 - use the notebook as the main learning and experimentation wedge
 - make the object protocol easier to teach directly through the notebook and authored core surfaces
+- make `Mirror`, `Hologram`, and explicit AI operations easier to explain as named runtime boundaries
 - keep the Slack agent runtime available, but secondary
 - keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
 
@@ -55,7 +56,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - `Data` is now a module-backed ergonomic layer on top of `Schema`, with `Data.string()`, `Data.number()`, `Data.boolean()`, `Data.enum(...)`, `Data.array(...)`, `Data.optional(...)`, `Data.object(...)`, `Data.model(name, fields)`, and `Data.Model` values that expose `schema()`, `validate(...)`, and `jsonSchema()`.
 - Local schema/model work is validation-only in the taught surface; explicit scalar conversion now lives on core values through methods like `to_s()`, `to_i()`, and `to_f()`, while `cast(...)` is reserved for AI-assisted structured completion through `cosm.ai.cast(...)`.
 - A first narrow VM-prep artifact now exists through a VM-oriented IR plus `cosm --trace-ir` / `cosm --vm` for a small supported subset.
-- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `config()`, `health()`, `complete(...)`, `stream(...)`, and `compare(...)`.
+- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `config()`, `health()`, `complete(...)`, `stream(...)`, `compare(...)`, and `boundary()`.
 - `require("lib/app/examples.cosm")` now provides a small Cosm-authored examples surface with structured example records that the notebook can draw from without hardcoding all example source in view helpers.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`. `handler` may be a function, a bound method, or a service object that implements `handle(req)`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.
@@ -69,7 +70,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - `Kernel.escapeHtml(string)` now exists as a tiny view-safety helper for server-rendered HTML.
 - The demo app now includes split `app`/`views` modules, router-level logging middleware, and one tiny Tailwind-via-CDN notebook page with live-ish partial updates, debounced live eval, visible examples, and one explicit default session per process.
 - The demo app’s pages now render through a dedicated layout template plus page/fragment templates, rather than manual shell-string assembly in the view helper module.
-- `Mirror.reflect(value)` now provides the first readonly reflective wrapper for inspection-oriented use cases.
+- `Mirror.reflect(value)` now provides the readonly reflective wrapper for inspection-oriented use cases, and `Mirror.status()` makes that readonly boundary explicit.
 - `class << self ... end` now exists as an explicit class-side authoring form alongside existing `def self.name(...)`.
 - TS-backed interned `Symbol` values via `Symbol.intern("name")`.
 - Explicit message-passing infrastructure via `receiver.send(...)` and `Kernel.dispatch(...)`, plus `Kernel.inspect(...)` for Cosm-oriented inspection. `Kernel.send(...)` remains temporarily compatible for `Kernel` as a receiver, but is no longer the taught helper-form API.
@@ -103,7 +104,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - `Data` and `Data.Model` make schema-backed data contracts ergonomic enough to use directly in notebook/app code.
 - `cosm/ai.cosm` proves that a real helper layer can now live in Cosm on top of the TS host boundary.
 - `methods()` works on ordinary receivers as a symbol-list view of the same visible callable surface that runtime dispatch can actually invoke.
-- `Mirror` remains the readonly observational wrapper, but its `methods()` view now aligns with ordinary receiver reflection instead of exposing a parallel story.
+- `Mirror` remains the readonly observational wrapper, its `methods()` view now aligns with ordinary receiver reflection, and `Mirror.status()` now makes the readonly/no-mutation contract visible.
 - `.ecosm` supports preferred `<%= ... %>` interpolation without breaking `#{...}` compatibility.
 - The notebook page visibly teaches the current layering: `Schema`, `Data`, `cosm.ai`, `require("cosm/ai.cosm")`, linear workflow helpers, and named page sessions.
 - The notebook examples now also teach repaired receiver reflection through a small Cosm-authored examples module.

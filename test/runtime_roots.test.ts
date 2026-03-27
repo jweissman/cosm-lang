@@ -100,7 +100,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require "lib/app/examples"; App::Examples.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/examples"; App::Examples.receiver_reflection().code')).toBe("Object.new().methods()");
   expect(cosmEval('require "lib/app/examples"; App::Examples.dispatch_helper().code')).toBe("Kernel.dispatch(1, :plus, 2)");
-  expect(cosmEval('require "lib/app/examples"; App::Examples.catalog().length')).toBe(28);
+  expect(cosmEval('require "lib/app/examples"; App::Examples.catalog().length')).toBe(33);
   expect(cosmEval('require "lib/app/app"; App.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/views/index"; App::Views.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/app"; App::App.class.name')).toBe("App class");
@@ -111,13 +111,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.26");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.27");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.26");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.27");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -223,9 +223,11 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval("Mirror.reflect(Object.new()).methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval('require "cosm/test"; Mirror.reflect(Cosm::Test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
-  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().mode')).toBe("narrow-writable");
+  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().mode')).toBe("narrow-writable-boundary");
   expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.wrap(Kernel).target_class.name')).toBe("Kernel");
   expect(cosmEval('require "cosm/hologram"; holo = Cosm::Hologram.wrap({ answer: 1 }); holo.set(:answer, 2); holo.get(:answer)')).toBe(2);
+  expect(cosmEval('Mirror.status().mode')).toBe("readonly-observer");
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().mode')).toBe("explicit-semantic-boundary");
   expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
 });
 
