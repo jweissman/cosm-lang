@@ -225,7 +225,7 @@ namespace Cosm {
         createEnv: (parent, options) => this.createEnv(parent, options),
         evalInEnv: (source, env) => this.evalInEnv(source, env),
       });
-      for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm", "cosm/dotenv.cosm"]) {
+      for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm"]) {
         Bootstrap.installLoadedModuleConstant(repository, name);
       }
       const enumerableModule = repository.modules["cosm/enumerable.cosm"];

@@ -259,5 +259,15 @@ test("slack dm smoke helper usage describes channel ids clearly", () => {
   expect(cosmEval(`
     require "lib/agent/slack_dm"
     Agent::SlackDM.usage()
-  `)).toContain("usually starting with D");
+  `)).toContain("D... (DM), C... (public channel), or G... (private channel)");
+});
+
+test("slack dm smoke helper keeps the full trailing text payload when parsing argv", () => {
+  expect(cosmEval(`
+    require "lib/agent/slack_dm"
+    Agent::SlackDM.args_from(["bun", "bin/cosm", "lib/agent/send_dm.cosm", "C0ANW5L6ENP", "hello", "from", "Cosm"])
+  `)).toEqual({
+    channel_id: "C0ANW5L6ENP",
+    text: "hello from Cosm",
+  });
 });

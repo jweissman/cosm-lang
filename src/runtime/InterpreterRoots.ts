@@ -23,7 +23,7 @@ export class InterpreterRoots {
   }
 
   static preloadStdlibModules(repository: Repository, hooks: RootHooks): void {
-    for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm", "cosm/dotenv.cosm"]) {
+    for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm"]) {
       const loaded = this.loadModuleIntoRepository(name, repository, hooks);
       if (loaded) {
         repository.modules[name] = loaded;

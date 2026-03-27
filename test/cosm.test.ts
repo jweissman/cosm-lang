@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { expect, test } from "bun:test";
 import Cosm from '../src/cosm';
 import { ValueAdapter } from "../src/ValueAdapter";
@@ -8,6 +10,20 @@ process.env.COSM_AI_AUTO_DISCOVER_MODEL ??= "0";
 const cosmEval = (input: string) => {
   const cosmValue = Cosm.Interpreter.eval(input);
   return ValueAdapter.cosmToJS(cosmValue);
+};
+
+const cosmEvalWithoutAi = (input: string) => {
+  const repoRoot = process.cwd();
+  const env = { ...process.env, COSM_AI_AUTO_DISCOVER_MODEL: "0" };
+  delete env.COSM_AI_BACKEND;
+  delete env.COSM_AI_BASE_URL;
+  delete env.COSM_AI_MODEL;
+  const bunPath = Bun.which("bun") ?? "bun";
+  return execFileSync(bunPath, [join(repoRoot, "bin/cosm"), "-e", `puts(${input})`], {
+    cwd: "/tmp",
+    env,
+    encoding: "utf8",
+  }).trim();
 };
 
 
@@ -285,9 +301,9 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Kernel.try(->() { Kernel.raise("boom") }).error.message')).toBe("boom");
   expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.message')).toContain("Schema validation failed");
   expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.details.path')).toBe("$");
-  expect(cosmEval('Kernel.try(->() { require "cosm/ai"; Cosm::AI.complete("hi") }).error.message')).toContain("AI backend is not configured");
-  expect(cosmEval('Kernel.try(->() { require "cosm/ai"; Cosm::AI.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
-  expect(cosmEval('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEvalWithoutAi('Kernel.try(->() { require "cosm/ai"; Cosm::AI.complete("hi") }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEvalWithoutAi('Kernel.try(->() { require "cosm/ai"; Cosm::AI.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEvalWithoutAi('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).inspect()')).toBe('#<Data::Model "Reason">');
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).schema().inspect()')).toBe('Schema.object({ answer: Schema.string() })');
   expect(cosmEval('Kernel.try(->() { Data.model("Reason", { answer: Data.string() }).validate({ answer: 1 }) }).error.details.path')).toBe("$.answer");

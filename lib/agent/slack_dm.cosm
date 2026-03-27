@@ -1,10 +1,11 @@
+require "lib/agent/config"
 require "lib/agent/slack_client"
 
 def usage()
   """Usage: bun bin/cosm lib/agent/send_dm.cosm <channel_id> <text>
 
-<channel_id> is a Slack conversation id, usually starting with D for a DM.
-Example: bun bin/cosm lib/agent/send_dm.cosm D01234567 "hello from Cosm"
+<channel_id> is a Slack conversation id such as D... (DM), C... (public channel), or G... (private channel).
+Example: bun bin/cosm lib/agent/send_dm.cosm C01234567 "hello from Cosm"
 """
 end
 
@@ -12,10 +13,34 @@ def post_message(channel_id, text)
   Agent::SlackClient.post_message(channel_id, text)
 end
 
+def debug_config(channel_id = false, text = false)
+  {
+    target_channel_id: channel_id,
+    text: text,
+    config: Agent::Config.slack_config_status()
+  }
+end
+
 def args_from(argv)
-  let text = argv.reduce(false, ->(_acc, entry) { entry })
-  let channel_id = argv.take(argv.length - 1).reduce(false, ->(_acc, entry) { entry })
-  if channel_id == false || text == false || channel_id == text then
+  let index = 0
+  let channel_id = false
+  let text_parts = []
+
+  argv.each(->(entry) {
+    if index == 3 then
+      channel_id = entry
+    else
+      if index > 3 then
+        text_parts = text_parts.append(entry)
+      else
+        true
+      end
+    end
+    index = index + 1
+  })
+
+  let text = text_parts.length == 0 ? false : text_parts.join(" ")
+  if channel_id == false || text == false then
     false
   else
     { channel_id: channel_id, text: text }
@@ -29,6 +54,7 @@ def run(argv = false)
     warn(usage())
     Process.exit(1)
   else
+    puts("posting to channel_id: " + parsed.channel_id)
     let result = post_message(parsed.channel_id, parsed.text)
     if result.ok then
       let ts_text = result.ts == false ? "(none)" : result.ts
@@ -38,6 +64,7 @@ def run(argv = false)
       result
     else
       warn("slack dm failed: " + result.error)
+      warn(Kernel.inspect(debug_config(parsed.channel_id, parsed.text)))
       Process.exit(1)
     end
   end

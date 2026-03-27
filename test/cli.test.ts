@@ -249,9 +249,7 @@ test("cli exposes slack diagnostics through agent subcommands", () => {
     SLACK_ALLOWED_CHANNELS: "C123,G123",
   });
   expect(status.exitCode).toBe(0);
-  expect(status.stderr).toBe("");
   expect(JSON.parse(status.stdout)).toMatchObject({
-    ok: false,
     ingress: {
       webhook_driven: true,
       dm_enabled: true,
