@@ -1,3 +1,7 @@
-module Array
+class Array < Object
   def second() = self.length > 1 ? self.take(2).last() : false;
 end
+
+Array.include(Cosm::Core::Collection)
+Array.include(Cosm::Enumerable)
+Array.include(Cosm::Core::Sequence)

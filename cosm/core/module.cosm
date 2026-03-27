@@ -1,4 +1,4 @@
-module Module
+class Module < Object
   def entry_names()
     self.keys().map(->(name) { name.name })
   end

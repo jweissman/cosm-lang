@@ -65,16 +65,15 @@ Current priorities:
 
 ## Current Release Line
 
-### `0.3.13.22`
+### `0.3.13.23`
 
-This release is about stabilization, not breadth:
+This release is about making the authored core story match the runtime:
 
-- settling the `BasicObject` / `Object` / `Module` / `Class` tower
-- moving more visible protocol behavior into authored core facades
-- stabilizing the `Collection` / `Enumerable` / `Sequence` / `Mapping` lattice
-- sharpening the notebook as the current flagship wedge
-- keeping the agent/tool runtime intentionally secondary and narrow
-- making the VM story more honest through clearer parity fixtures and supported-subset docs
+- keeping the `BasicObject` / `Object` / `Module` / `Class` tower explicit
+- turning `cosm/core/*` facades for `BasicObject`, `Object`, `Module`, `Class`, `Array`, and `Hash` into real authored classes
+- making collection includes explicit in authored Cosm code rather than bootstrap-only wiring
+- adding method-send trailing blocks so collection code can become more block-native
+- keeping the notebook flagship wedge while the agent/tool runtime stays intentionally secondary
 
 Explicitly not the goal of `0.3.13.x`:
 

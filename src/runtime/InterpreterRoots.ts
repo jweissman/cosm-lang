@@ -27,15 +27,9 @@ export class InterpreterRoots {
       "cosm/ai.cosm",
       "cosm/spec.cosm",
       "cosm/enumerable.cosm",
-      "cosm/core/basic_object.cosm",
-      "cosm/core/object.cosm",
-      "cosm/core/module.cosm",
-      "cosm/core/class.cosm",
       "cosm/core/collection.cosm",
       "cosm/core/sequence.cosm",
       "cosm/core/mapping.cosm",
-      "cosm/core/array.cosm",
-      "cosm/core/hash.cosm",
     ]) {
       const loaded = this.loadModuleIntoRepository(name, repository, hooks);
       if (loaded) {
@@ -79,6 +73,17 @@ export class InterpreterRoots {
     const loadedModule = directExport ?? Construct.module(name, { ...moduleEnv.bindings }, repository.classes.Module);
     repository.modules[name] = loadedModule;
     return loadedModule;
+  }
+
+  static loadCoreClassFacade(name: string, className: string, hooks: RootHooks): CosmClass {
+    const source = readFileSync(this.sourcePath(name), "utf8");
+    const facadeEnv = hooks.createEnv(undefined, { allowTopLevelRebinds: true });
+    hooks.evalInEnv(source, facadeEnv);
+    const exported = facadeEnv.bindings[className];
+    if (exported?.type !== "class") {
+      throw new Error(`Load error: expected ${name} to export class ${className}`);
+    }
+    return exported;
   }
 
   private static directModuleExport(name: string, bindings: Record<string, CosmValue>): CosmObject | undefined {

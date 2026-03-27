@@ -207,8 +207,8 @@ test("core scalar values expose explicit conversion helpers", () => {
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
   expect(cosmEval('Cosm::Enumerable.class.name')).toBe("Module");
   expect(cosmEval('Cosm::Enumerable.name')).toBe("Enumerable");
-  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Collection", "Enumerable", "Sequence", "Array"]));
-  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Collection", "Enumerable", "Mapping", "Hash"]));
+  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(["Collection", "Enumerable", "Sequence"]);
+  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(["Collection", "Enumerable", "Mapping"]);
   expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
@@ -233,6 +233,8 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('[1, 2, 3].reject(->(value) { value > 1 })')).toEqual([1]);
   expect(cosmEval('[1, 2, 3].take(2)')).toEqual([1, 2]);
   expect(cosmEval('[1, 2, 3].reduce(0, ->(acc, value) { acc + value })')).toBe(6);
+  expect(cosmEval('[1, 2, 3].map do |value| value + 1 end')).toEqual([2, 3, 4]);
+  expect(cosmEval('{ a: 1, b: 2 }.map do |key, value| [key, value] end')).toEqual([["a", 1], ["b", 2]]);
   expect(cosmEval('["co", "sm"].join("-")')).toBe("co-sm");
   expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
   expect(cosmEval('{ a: 1, b: 2 }.keys()')).toEqual(["a", "b"]);

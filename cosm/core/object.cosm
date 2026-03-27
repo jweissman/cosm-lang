@@ -1,4 +1,4 @@
-module Object
+class Object < BasicObject
   def receiver_name() = self.class.name;
 
   def method_names()

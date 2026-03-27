@@ -1,18 +1,18 @@
 module Mapping
   def first()
-    let pairs = self.take(1).map(->(key, value) { [key, value] })
+    let pairs = self.take(1).map do |key, value| [key, value] end
     pairs.length == 1 ? pairs.first() : false
   end
 
   def keys()
-    self.map(->(key, _value) { key })
+    self.map do |key, _value| key end
   end
 
   def values()
-    self.map(->(_key, value) { value })
+    self.map do |_key, value| value end
   end
 
   def has_key(target)
-    self.find(->(key, _value) { key == target }) != false
+    self.find do |key, _value| key == target end != false
   end
 end

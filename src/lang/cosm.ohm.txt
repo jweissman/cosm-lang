@@ -141,6 +141,8 @@ Cosm {
 
   PostExp
     = PostExp "::" const_name  -- const_access
+    | PostExp "." name "(" CallArgs? ")" TrailingBlock?  -- method_call
+    | PostExp "." name TrailingBlock  -- access_block
     | PostExp "." name  -- access
     | PostExp "(" CallArgs? ")" TrailingBlock?  -- call
     | PriExp

@@ -7,10 +7,11 @@ It is designed to stay legible about classes, message send, modules, validation,
 ## What Cosm Emphasizes
 
 - reflective classes, metaclasses, modules, and message send
+- an explicit `BasicObject` / `Object` / `Module` / `Class` tower with authored Cosm core facades
 - explicit runtime roots like `Kernel`, `Process`, `Time`, `Random`, `Schema`, and `Data`
 - constant-backed modules loaded with `require "path"` and accessed through `::`
 - object-first services through `HttpRouter`, `HttpRequest`, and `HttpResponse`
-- a narrow but real block story through trailing `do ... end` and `yield(...)`
+- a narrow but real block story through trailing `do ... end`, `yield(...)`, and block-native collection sends
 - structured validation and AI boundaries through `Schema`, `Data`, `Prompt`, and `Cosm::AI`
 
 ## A Few Examples

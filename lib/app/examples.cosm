@@ -39,19 +39,19 @@ def scalar_casts()
 end
 
 def enumerable_reduce()
-  example("Collections", "Enumerable reduce", "Use the small functional collection surface from Cosm itself.", "[1, 2, 3].reduce(0, ->(acc, value) { acc + value })")
+  example("Collections", "Enumerable reduce", "Use the small functional collection surface from Cosm itself.", "[1, 2, 3].reduce(0) do |acc, value| acc + value end")
 end
 
 def enumerable_filter()
-  example("Collections", "Enumerable filter", "Array and Hash pick up the authored Enumerable mixin through include.", "{ reset: true, note: false }.filter(->(key, value) { value })")
+  example("Collections", "Enumerable filter", "Array and Hash pick up the authored Enumerable mixin through include.", "{ reset: true, note: false }.filter do |key, value| value end")
 end
 
 def enumerable_compact_map()
-  example("Collections", "Enumerable compact_map", "Build and filter in one pass through a small Cosm-authored helper.", "[1, 2, 3].compact_map(->(value) { value > 1 ? value + 10 : false })")
+  example("Collections", "Enumerable compact_map", "Build and filter in one pass through a small Cosm-authored helper.", "[1, 2, 3].compact_map do |value| value > 1 ? value + 10 : false end")
 end
 
 def enumerable_sum_by()
-  example("Collections", "Enumerable sum_by", "Aggregate through a helper that keeps the callback object-first.", "{ a: 1, b: 2 }.sum_by(->(_key, value) { value })")
+  example("Collections", "Enumerable sum_by", "Aggregate through a helper that keeps the callback object-first.", "{ a: 1, b: 2 }.sum_by do |_key, value| value end")
 end
 
 def collection_lattice()

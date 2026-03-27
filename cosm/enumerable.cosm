@@ -2,9 +2,9 @@ module Enumerable
   def any(callback = false) = callback == false ? self.present() : self.find(callback) != false;
 
   def all(callback)
-    self.reduce(true, ->(acc, value) {
+    self.reduce(true) do |acc, value|
       acc == false ? false : callback(value)
-    })
+    end
   end
 
   def none() = self.empty();
@@ -15,41 +15,43 @@ module Enumerable
 
   def compact_map(callback)
     let missing = :__cosm_compact_map_missing__
-    self.reduce([], ->(acc, first, second = missing) {
+    self.reduce([]) do |acc, first, second = missing|
       let mapped = second == missing ? callback(first) : callback(first, second)
       mapped == false ? acc : acc.append(mapped)
-    })
+    end
   end
 
   def find_map(callback)
     let missing = :__cosm_find_map_missing__
-    let result = self.reduce(missing, ->(acc, first, second = missing) {
+    let result = self.reduce(missing) do |acc, first, second = missing|
       if acc != missing then
         acc
       else
         let mapped = second == missing ? callback(first) : callback(first, second)
         mapped == false ? missing : mapped
       end
-    })
+    end
     result == missing ? false : result
   end
 
   def flat_map(callback)
-    self.map(callback).reduce([], ->(acc, value) {
+    self.map(callback).reduce([]) do |acc, value|
       if value.class.name == "Array" then
-        value.reduce(acc, ->(next, item) { next.append(item) })
+        value.reduce(acc) do |next, item|
+          next.append(item)
+        end
       else
         acc.append(value)
       end
-    })
+    end
   end
 
-  def sum() = self.reduce(0, ->(acc, value) { acc + value });
+  def sum() = self.reduce(0) do |acc, value| acc + value end;
 
   def sum_by(callback)
     let missing = :__cosm_sum_by_missing__
-    self.reduce(0, ->(acc, first, second = missing) {
+    self.reduce(0) do |acc, first, second = missing|
       acc + (second == missing ? callback(first) : callback(first, second))
-    })
+    end
   end
 end

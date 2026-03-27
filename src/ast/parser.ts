@@ -579,6 +579,36 @@ export class Parser {
         UnaryExp_not: (_op, expr) => ({ kind: 'not', value: '', left: expr.ast() }),
         UnaryExp_pos: (_op, expr) => ({ kind: 'pos', value: '', left: expr.ast() }),
         UnaryExp_neg: (_op, expr) => ({ kind: 'neg', value: '', left: expr.ast() }),
+        PostExp_method_call: (left, _dot, property, _open, args, _close, trailingBlock) => {
+          const callNode: SurfaceNode = {
+            kind: 'call',
+            value: '',
+            left: {
+              kind: 'access',
+              value: property.sourceString,
+              left: left.ast(),
+            },
+            children: Parser.listChildren(args.ast()),
+          };
+          const trailingAst = trailingBlock.ast();
+          if (trailingAst.kind === 'list' && (trailingAst.children?.length ?? 0) === 0) {
+            return callNode;
+          }
+          return Parser.appendTrailingBlock(callNode, trailingAst);
+        },
+        PostExp_access_block: (left, _dot, property, trailingBlock) => {
+          const callNode: SurfaceNode = {
+            kind: 'call',
+            value: '',
+            left: {
+              kind: 'access',
+              value: property.sourceString,
+              left: left.ast(),
+            },
+            children: [],
+          };
+          return Parser.appendTrailingBlock(callNode, trailingBlock.ast());
+        },
         PostExp_access: (left, _dot, property) => ({ kind: 'access', value: property.sourceString, left: left.ast() }),
         PostExp_call: (callee, _open, args, _close, trailingBlock) => {
           const callNode: SurfaceNode = {

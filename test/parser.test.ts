@@ -87,6 +87,8 @@ test("parser lowers trailing do-end blocks on calls", () => {
   expect(() => Parser.parse('describe("smoke") do test("ok", ->() { assert(true) }) end')).not.toThrow();
   expect(() => Parser.parse('router.use do |req, next| next() end')).not.toThrow();
   expect(() => Parser.parse('router.draw do get "/" do |req| HttpResponse.text(req.path, 200) end end')).not.toThrow();
+  expect(() => Parser.parse('[1, 2, 3].map do |value| value + 1 end')).not.toThrow();
+  expect(() => Parser.parse('{ a: 1, b: 2 }.map do |key, value| [key, value] end')).not.toThrow();
   expect(() => Parser.parse('do let x = 1; x end')).not.toThrow();
   expect(() => Parser.parse('router.draw do |req| req end')).not.toThrow();
   expect(() => Parser.parse('router.use do |req, next, &block| next() end')).toThrow("Parse error:");

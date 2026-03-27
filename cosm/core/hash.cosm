@@ -1,7 +1,11 @@
-module Hash
+class Hash < Object
   def at(key)
-    self.find_map(->(current_key, value) {
+    self.find_map do |current_key, value|
       current_key == key ? value : false
-    })
+    end
   end
 end
+
+Hash.include(Cosm::Core::Collection)
+Hash.include(Cosm::Enumerable)
+Hash.include(Cosm::Core::Mapping)

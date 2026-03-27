@@ -1,4 +1,4 @@
-module Class
+class Class < Module
   def lineage()
     let labels = [self.name]
     self.superclass == false ? labels : labels.append(self.superclass.name)

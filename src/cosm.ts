@@ -172,7 +172,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.22");
+        cosmRoot.fields.version = Construct.string("0.3.13.23");
       }
       return repository;
     }
@@ -233,50 +233,53 @@ namespace Cosm {
         "cosm/ai.cosm",
         "cosm/spec.cosm",
         "cosm/enumerable.cosm",
-        "cosm/core/basic_object.cosm",
-        "cosm/core/object.cosm",
-        "cosm/core/module.cosm",
-        "cosm/core/class.cosm",
         "cosm/core/collection.cosm",
         "cosm/core/sequence.cosm",
         "cosm/core/mapping.cosm",
-        "cosm/core/array.cosm",
-        "cosm/core/hash.cosm",
       ]) {
         Bootstrap.installLoadedModuleConstant(repository, name);
       }
-      this.installCoreFacades(repository);
+      this.installCoreClassFacades(repository);
     }
 
-    private static installCoreFacades(repository: Repository): void {
-      const includeInto = (className: string, moduleName: string) => {
-        const moduleValue = repository.modules[moduleName];
-        if (moduleValue?.type === "object" && moduleValue.className === "Module") {
-          repository.classes[className].includeModule(moduleValue);
+    private static installCoreClassFacades(repository: Repository): void {
+      const mergeFacade = (className: string, fileName: string) => {
+        const authoredClass = InterpreterRoots.loadCoreClassFacade(fileName, className, {
+          createEnv: (parent, options) => this.createEnv(parent, options),
+          evalInEnv: (source, env) => this.evalInEnv(source, env),
+        });
+        const targetClass = repository.classes[className];
+
+        targetClass.includedModules.splice(0, targetClass.includedModules.length);
+
+        for (const method of Object.values(authoredClass.methods)) {
+          method.declaringOwner = targetClass;
+          method.declaringOwnerToken = `class:${targetClass.name}`;
+        }
+        Object.assign(targetClass.methods, authoredClass.methods);
+
+        if (targetClass.classRef && authoredClass.classRef) {
+          for (const method of Object.values(authoredClass.classRef.methods)) {
+            method.declaringOwner = targetClass.classRef;
+            method.declaringOwnerToken = `class:${targetClass.classRef.name}`;
+          }
+          Object.assign(targetClass.classRef.methods, authoredClass.classRef.methods);
+        }
+
+        for (const moduleValue of authoredClass.includedModules) {
+          targetClass.includeModule(moduleValue);
         }
       };
 
-      includeInto("BasicObject", "cosm/core/basic_object.cosm");
-      includeInto("Object", "cosm/core/object.cosm");
-      includeInto("Module", "cosm/core/module.cosm");
-      includeInto("Class", "cosm/core/class.cosm");
-
-      for (const moduleName of [
-        "cosm/core/collection.cosm",
-        "cosm/enumerable.cosm",
-        "cosm/core/sequence.cosm",
-        "cosm/core/array.cosm",
-      ]) {
-        includeInto("Array", moduleName);
-      }
-
-      for (const moduleName of [
-        "cosm/core/collection.cosm",
-        "cosm/enumerable.cosm",
-        "cosm/core/mapping.cosm",
-        "cosm/core/hash.cosm",
-      ]) {
-        includeInto("Hash", moduleName);
+      for (const [className, fileName] of [
+        ["BasicObject", "cosm/core/basic_object.cosm"],
+        ["Object", "cosm/core/object.cosm"],
+        ["Module", "cosm/core/module.cosm"],
+        ["Class", "cosm/core/class.cosm"],
+        ["Array", "cosm/core/array.cosm"],
+        ["Hash", "cosm/core/hash.cosm"],
+      ] as const) {
+        mergeFacade(className, fileName);
       }
     }
 
@@ -644,6 +647,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.22";
+    export const version = "0.3.13.23";
 }
 export default Cosm;

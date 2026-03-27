@@ -1,12 +1,14 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.22
+## Current Release Target: 0.3.13.23
 
-`0.3.13.22` is best read as a stabilization slice on top of the core-tower refoundation:
+`0.3.13.23` is best read as the slice that makes the authored Cosm surface match the runtime tower more honestly:
 
-- settle the explicit `BasicObject` / `Object` / `Module` / `Class` split
-- move more visible protocol behavior into authored `cosm/core/*` facades
-- make `Collection`, `Enumerable`, `Sequence`, and `Mapping` the taught collection story
+- keep the explicit `BasicObject` / `Object` / `Module` / `Class` split
+- turn the `cosm/core/*` core facade layer into real authored classes rather than module overlays
+- make `Collection`, `Enumerable`, `Sequence`, and `Mapping` the explicit authored collection story
+- make collection includes explicit in authored Cosm code
+- make method-send trailing blocks work for collection methods
 - keep the notebook as the main learning and experimentation wedge
 - keep the Slack agent runtime available, but secondary
 - keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
@@ -15,6 +17,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 
 - `router.draw do ... end` is in
 - `get "/" do |req| ... end` is in
+- `[1, 2, 3].map do |x| ... end` is now in
 - ampersand block capture/passing is out
 - richer block capture and variadics are out
 - lexical `module ... end` is now in for narrow authored modules and mixins

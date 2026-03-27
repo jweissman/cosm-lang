@@ -1,7 +1,7 @@
 module Sequence
-  def compact() = self.select(->(value) { value != false });
+  def compact() = self.select do |value| value != false end;
 
   def first() = self.length > 0 ? self.take(1).last() : false;
 
-  def last() = self.reduce(false, ->(_acc, value) { value });
+  def last() = self.reduce(false) do |_acc, value| value end;
 end

@@ -45,7 +45,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.cosm",
-				"match": "\\b(class|def|do|else|end|if|let|require|then|yield|super)\\b"
+				"match": "\\b(begin|class|def|do|else|end|if|let|module|require|rescue|then|yield|super)\\b"
 			},
 			{
 				"name": "storage.type.function.cosm",
@@ -81,6 +81,10 @@
 				{
 					"name": "entity.name.type.class.cosm",
 					"match": "\\bclass\\s+([A-Za-z][A-Za-z0-9]*)\\b"
+				},
+				{
+					"name": "entity.name.type.module.cosm",
+					"match": "\\bmodule\\s+([A-Za-z][A-Za-z0-9]*(?:::[A-Za-z][A-Za-z0-9]*)*)\\b"
 				},
 				{
 					"name": "entity.other.inherited-class.cosm",
