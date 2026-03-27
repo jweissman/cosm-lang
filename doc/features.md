@@ -1,48 +1,17 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.12
+## Current Release Target: 0.3.13.22
 
-`0.3.13.12` is now best read as a cleanup-and-legibility slice on top of the persistent notebook, OO cleanup, and separate Slack DM service work:
+`0.3.13.22` is best read as a stabilization slice on top of the core-tower refoundation:
 
-- keep shrinking evaluator-owned behavior in favor of runtime-owned dispatch/invoke seams
-- make tiny server authoring feel real through `HttpRouter`, middleware, and HTML responses
-- add trailing `do ... end` call sugar with block params on calls
-- add real narrow `yield(...)` for invoking the current implicit trailing block
-- add one simple reflective primitive through `Mirror`
-- make class-side authoring less provisional through `class << self`
-- improve testability and inspection while proving a persistent notebook workbench
-- make the canonical app shape module-organized with dedicated view modules
-- align `.ecosm` layout composition with narrow `yield()`
-- make `inspect()` and `to_s()` real object protocols rather than mostly host formatting
-- make `Session` the explicit notebook/server eval surface
-- keep `Prompt`, `Schema`, `cosm.ai`, and `~=` explicit while making LM Studio the default local backend path
-- add a library-first `Data` module plus `Data.Model` on top of `Schema`
-- move one real helper layer into Cosm through `cosm/ai.cosm`
-- simplify receiver-side reflection through universal `methods()` returning symbol lists, with `method(:name)` for concrete lookup
-- separate helper-form dispatch into `Kernel.dispatch(...)`
-- add a last small tie-your-shoes pass through `Kernel.uuid()`, `Kernel.tryValidate(...)`, `Kernel.trace(...)`, `Kernel.readline(...)`, and `Random.choice(...)`
-- make `cast(...)` AI-owned in the taught surface, while local schema/model work becomes validation-only
-- add a narrow VM-oriented IR plus `--trace-ir` / `--vm` for a supported subset
-- add a first runtime-backed `include(...)` path for reusable module-backed instance behavior
-- add default arguments for `def` and lambdas through the shared invoke path
-- keep an explicit AI streaming surface through `cosm.ai.stream(...)` and `require("cosm/ai.cosm").stream(...)`
-- split AI config discovery from health probing through `cosm.ai.status()` / `cosm.ai.config()` vs `cosm.ai.health()`
-- make the chat CLI actually stream from the backend with a real spinner while waiting for the first chunk
-- make `Enumerable`-style authoring less provisional through helpers like `any`, `none`, `one`, `first`, `find`, `reject`, and `join`
-- add a tiny page-backed support conversation wedge through the existing server app shape
-- start lifting more harness behavior into Cosm through `require("cosm/spec.cosm")`
-- make `.ecosm` feel more HTML-native through preferred `<%= ... %>` interpolation while keeping `#{...}` for compatibility
-- make the notebook feel more like a persistent workbench through saved pages, whole-page execution, attached assistant state, and Cosm-inspected output
-- ship a tiny DM-first Slack service with durable local per-thread memory while keeping broader agent/runtime ambitions narrow
-- keep a pure Cosm CLI chatbot as the canonical proving surface, with the Slack service reusing the same support core
-- remove the Slack-specific runtime root in favor of generic host primitives like `http.request(...)` and `Kernel.hmacSha256(...)`
-- add a real Cosm-owned agent runtime so Slack stays a transport adapter instead of the control plane
-- add a one-shot DM smoke command for install and outbound-path testing
-- add small CLI ergonomics through `cosm --version` and `cosm -e '<source>'`
-- make explicit module binding through `let mod = require("path")` the canonical style
-- add narrow expression ternary support through `condition ? left : right`
+- settle the explicit `BasicObject` / `Object` / `Module` / `Class` split
+- move more visible protocol behavior into authored `cosm/core/*` facades
+- make `Collection`, `Enumerable`, `Sequence`, and `Mapping` the taught collection story
+- keep the notebook as the main learning and experimentation wedge
+- keep the Slack agent runtime available, but secondary
+- keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
 
-For `0.3.12.x`, the callable boundary still stays intentionally narrow:
+For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 
 - `router.draw do ... end` is in
 - `get "/" do |req| ... end` is in
@@ -114,7 +83,7 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - Keeping syntax cleanup staged rather than ad hoc: class/def `do` elision is in, while semicolon elision, variadics, and block capture are still deliberate next-step design work.
 - Keeping advanced OO research concepts visible while bootstrap semantics settle: mirrors, holograms, delegation wrappers, and possible later template-driven structure forms.
 
-## v0.3.13.12 Definition Of Done
+## `0.3.13.x` Stabilization Definition Of Done
 
 - Core TS-backed runtime classes keep one explicit reflective/native surface protocol.
 - Evaluator ownership continues shrinking toward AST evaluation, lexical scope, control flow, and invoke/send orchestration.
@@ -132,14 +101,14 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 - `.ecosm` supports preferred `<%= ... %>` interpolation without breaking `#{...}` compatibility.
 - The notebook page visibly teaches the current layering: `Schema`, `Data`, `cosm.ai`, `require("cosm/ai.cosm")`, linear workflow helpers, and named page sessions.
 - The notebook examples now also teach repaired receiver reflection through a small Cosm-authored examples module.
-- The notebook supports persistent pages, whole-page execution, an attached assistant transcript, and one named session per page.
+- The notebook supports persistent pages, whole-page execution, one named session per page, and examples that teach the core tower and collection lattice.
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
 - REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
-- The separate Slack service entrypoint (`agent/service.cosm` plus `agent/server.cosm`) stays narrow, DM-only, and durable before reaching for tools or staged agent behavior.
+- The separate Slack service entrypoint (`agent/service.cosm` plus `agent/server.cosm`) stays narrow, durable, and explicitly secondary before reaching for tools or staged agent behavior.
 - A tiny one-shot DM smoke command exists so install testing is faster than replaying whole Slack deliveries by hand.
 
-## Explicitly Not In v0.3.12.x
+## Explicitly Not In `0.3.13.x`
 
 - ampersand block capture or forwarding
 - notebook UI beyond the tiny shared-session demo page
@@ -168,3 +137,4 @@ For `0.3.12.x`, the callable boundary still stays intentionally narrow:
 ## Current Reference Target
 
 - A simple web notebook with a persistent Cosm session, structured inspect output, and enough runtime reflection to explore the object model live.
+- Narrow interpreter/VM parity fixtures under `test/fixtures/vm/` that keep the experimental VM honest about its current supported subset.

@@ -1,4 +1,9 @@
 module Mapping
+  def first()
+    let pairs = self.take(1).map(->(key, value) { [key, value] })
+    pairs.length == 1 ? pairs.first() : false
+  end
+
   def keys()
     self.map(->(key, _value) { key })
   end

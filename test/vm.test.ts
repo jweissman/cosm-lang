@@ -33,31 +33,31 @@ test("vm mode can execute a narrow subset with the same result as the interprete
 });
 
 test("vm mode can execute if expressions and scoped blocks in a dedicated smoke file", () => {
-  const source = readFileSync("test/vm.cosm", "utf8");
+  const source = readFileSync("test/fixtures/vm/basic_dispatch.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe(3);
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
 test("vm mode can execute array/hash-shaped support smoke", () => {
-  const source = readFileSync("test/vm_support.cosm", "utf8");
+  const source = readFileSync("test/fixtures/vm/support_transcript.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe("user: hello\nassistant: Try the Reset Session button.");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
 test("vm mode can execute controller-shaped hash and sequencing smoke", () => {
-  const source = readFileSync("test/vm_controller.cosm", "utf8");
+  const source = readFileSync("test/fixtures/vm/controller_conversation.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe("Use the Reset Session button.");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
 test("vm mode can execute page-shaped transcript and collection smoke", () => {
-  const source = readFileSync("test/vm_page.cosm", "utf8");
+  const source = readFileSync("test/fixtures/vm/notebook_preview.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe("user: hello\nassistant: hi");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });
 
-test("vm mode can execute assistant-shaped app smoke", () => {
-  const source = readFileSync("test/vm_assistant.cosm", "utf8");
+test("vm mode can execute page-assistant-shaped parity smoke", () => {
+  const source = readFileSync("test/fixtures/vm/assistant_page.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe("user: hello\nassistant: Use the Reset Session button. [offline]");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
 });

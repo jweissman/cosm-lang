@@ -208,14 +208,14 @@ test("cli can execute a narrow program through vm mode", () => {
 });
 
 test("cli can execute the dedicated vm smoke file", () => {
-  const result = runCli(["test/vm.cosm", "--vm"]);
+  const result = runCli(["test/fixtures/vm/basic_dispatch.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toBe("");
 });
 
-test("cli can execute the assistant-shaped vm smoke file", () => {
-  const result = runCli(["test/vm_assistant.cosm", "--vm"]);
+test("cli can execute the assistant-shaped vm parity fixture", () => {
+  const result = runCli(["test/fixtures/vm/assistant_page.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toBe("");
@@ -508,7 +508,7 @@ test("cli test accepts the narrow test/ directory shorthand", () => {
 });
 
 test("cli can execute the support-oriented vm smoke file", () => {
-  const result = runCli(["test/vm_support.cosm", "--vm"]);
+  const result = runCli(["test/fixtures/vm/support_transcript.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toBe("");

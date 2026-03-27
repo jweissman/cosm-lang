@@ -15,7 +15,7 @@ The long-running goals are:
 4. A credible VM target
    A send-first execution core that clarifies semantics before it tries to optimize them.
 5. A narrow proving-app family
-   Notebook, CLI chat, `/assistant`, and a separate Slack agent service pressure the same runtime instead of becoming separate product lines.
+   Notebook is the flagship wedge, while CLI chat, `/assistant`, and the Slack agent service remain narrower secondary pressures on the same runtime.
 
 ## Current Tracks
 
@@ -26,7 +26,7 @@ This is the main center of gravity.
 Current priorities:
 
 - keep shrinking interpreter-owned semantic policy
-- keep explicit module bindings and real `Module` objects legible in newer Cosm-authored code
+- keep explicit module bindings, real `Module` objects, and authored `cosm/core/*` facades legible in newer Cosm-authored code
 - keep runtime dispatch, lookup, invocation, and block forwarding aligned
 - keep reflection (`methods()`, `method(:name)`, `Kernel.dispatch(...)`, `yield(...)`) consistent with actual runtime behavior
 - keep `Schema`, `Data`, and `cosm.ai` explicit rather than ambient
@@ -47,7 +47,7 @@ The VM is still a down payment, not a second full runtime.
 
 ### Proving-App Track
 
-The proving wedge is intentionally small and shared:
+The proving wedge is intentionally small, with one clear center:
 
 - notebook
 - CLI chat
@@ -56,28 +56,25 @@ The proving wedge is intentionally small and shared:
 
 Current priorities:
 
+- keep the notebook as the main teaching and experimentation surface
+- keep notebook flows centered on language exploration, saved pages, and runtime inspection
 - keep the shared support/controller core explicit and Cosm-authored where practical
-- keep the Slack service thin
+- keep the Slack service thin and secondary
 - keep the notebook as a workbench, not a framework/product layer
 - keep the app surfaces teaching the real runtime instead of implying larger hidden machinery
 
 ## Current Release Line
 
-### `0.3.13.x`
+### `0.3.13.22`
 
-This patch line is about hardening, not breadth:
+This release is about stabilization, not breadth:
 
-- interpreter/runtime cleanup
-- stronger OO semantics around inheritance, `super(...)`, mixins, and metaclass chains
-- better message-passing seams
-- explicit AI config vs health semantics
-- honest streaming semantics
-- a slightly richer Enumerable-style authoring surface
-- a tiny page-backed assistant wedge
-- a durable DM-first Slack assistant service with explicit per-thread local memory
-- a small transport-agnostic agent runtime so future tools and transports do not start life inside the Slack transport layer
-- more Cosm-authored support and harness code
-- staged cleanup away from basename-injected `require(...)` style toward explicit local module bindings
+- settling the `BasicObject` / `Object` / `Module` / `Class` tower
+- moving more visible protocol behavior into authored core facades
+- stabilizing the `Collection` / `Enumerable` / `Sequence` / `Mapping` lattice
+- sharpening the notebook as the current flagship wedge
+- keeping the agent/tool runtime intentionally secondary and narrow
+- making the VM story more honest through clearer parity fixtures and supported-subset docs
 
 Explicitly not the goal of `0.3.13.x`:
 
@@ -98,8 +95,8 @@ Explicitly not the goal of `0.3.13.x`:
 
 ### Milestone B: Better Cosm Authoring
 
-- keep `include(...)` usable without adding new module syntax
-- grow the small functional/Enumerable layer where it clearly reduces friction
+- keep the authored `cosm/core/*` facades as the first place to look for ordinary object behavior
+- keep the `Collection` / `Enumerable` / `Sequence` / `Mapping` lattice small and intentional
 - move more support/spec/prompt logic into Cosm above the low-level runtime boundary
 
 ### Milestone C: Honest AI Boundary
@@ -110,7 +107,7 @@ Explicitly not the goal of `0.3.13.x`:
 
 ### Milestone D: Shared Interactive Tool Family
 
-- notebook, CLI chat, `/assistant`, and the Slack agent service should feel like one small family
+- notebook should remain the flagship wedge, with CLI chat, `/assistant`, and the Slack agent service as narrower secondary pressures
 - keep one shared support/controller core
 - keep persistence/session boundaries explicit and narrow
 
@@ -122,7 +119,7 @@ Explicitly not the goal of `0.3.13.x`:
 
 ## What Feels Real Already
 
-- classes, metaclasses, class-side methods, and reflective modules
+- `BasicObject`, `Object`, `Module`, `Class`, and reflective modules
 - message send and explicit helper dispatch
 - `Kernel`, `Session`, `Schema`, `Data`, and `cosm.ai`
 - object-first HTTP routing and `.ecosm` templates

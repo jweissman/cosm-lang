@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ValueAdapter } from "../../src/ValueAdapter";
 import { CosmAiValue } from "../../src/values/CosmAiValue";
-import { ValueAdapter as Adapter } from "../../src/ValueAdapter";
 import { dispatchService } from "../support/request_spec";
 
 const appSource = 'require "lib/app/app"; App::App.build()';
@@ -35,8 +34,8 @@ test("persistent notebook pages can be created, saved, run, and reloaded through
     expect(ValueAdapter.cosmToJS(notebook.nativeProperty?.("status"))).toBe(200);
     const notebookBody = ValueAdapter.cosmToJS(notebook.nativeProperty?.("body"));
     expect(notebookBody).toContain("Saved Cosm block pages");
-    expect(notebookBody).toContain("Attached Assistant");
     expect(notebookBody).toContain("Run Whole Page");
+    expect(notebookBody).toContain("core object model directly");
 
     const created = dispatchService(appSource, "POST", "/notebook/create", { body: "title=Runbook" });
     const createdBody = ValueAdapter.cosmToJS(created.nativeProperty?.("body"));
@@ -70,40 +69,6 @@ test("persistent notebook pages can be created, saved, run, and reloaded through
   });
 }, 15000);
 
-test("notebook attached assistant persists transcript across requests", () => {
-  withNotebookDir(() => {
-    CosmAiValue.installRuntimeHooks({
-      cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
-        should_reply: true,
-        text: "I can see this notebook page and its recent execution summary.",
-        rationale: "mocked notebook assistant reply",
-        tool_calls: false,
-        tool_results: false,
-      })),
-    });
-
-    const created = dispatchService(appSource, "POST", "/notebook/create", { body: "title=Agent%20Page" });
-    const createdBody = ValueAdapter.cosmToJS(created.nativeProperty?.("body"));
-    const pageId = extractPageId(String(createdBody));
-    const blocks = JSON.stringify([{ kind: "cosm", content: "1 + 1" }]);
-
-    const turn = dispatchService(appSource, "POST", "/notebook/agent", {
-      body: new URLSearchParams({
-        id: pageId,
-        title: "Agent Page",
-        blocks,
-        message: "What do you know about this page?",
-      }).toString(),
-    });
-    const turnBody = ValueAdapter.cosmToJS(turn.nativeProperty?.("body"));
-    expect(turnBody).toContain("I can see this notebook page and its recent execution summary.");
-
-    const reloaded = dispatchService(appSource, "GET", "/notebook", { query: { id: pageId } });
-    const reloadedBody = ValueAdapter.cosmToJS(reloaded.nativeProperty?.("body"));
-    expect(reloadedBody).toContain("assistant: I can see this notebook page and its recent execution summary.");
-  });
-}, 15000);
-
 test("web-layer request specs render notebook execution errors without leaking TypeScript paths", () => {
   withNotebookDir(() => {
     const blocks = JSON.stringify([{ kind: "cosm", content: "Prompt.complete" }]);
@@ -120,7 +85,7 @@ test("web-layer request specs render notebook execution errors without leaking T
 
 test("assistant page can still reuse the shared controller core through the app wedge", () => {
   CosmAiValue.installRuntimeHooks({
-    cast: (_prompt, schema) => schema.validateAndReturn(Adapter.jsToCosm({
+    cast: (_prompt, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
       should_reply: true,
       text: "Use the Reset Session button in the notebook.",
       rationale: "mocked assistant page reply",

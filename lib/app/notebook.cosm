@@ -33,19 +33,15 @@ class NotebookExamples
     end
 
     def collections_markup()
-      category("Collections", "Enumerable-style helpers now make small Cosm-authored transforms clearer without broadening the language surface.", card(App::Examples.enumerable_reduce()) + card(App::Examples.enumerable_filter()))
+      category("Collections", "Collection, Enumerable, Sequence, and Mapping now explain the small authored collection surface more honestly.", card(App::Examples.enumerable_reduce()) + card(App::Examples.enumerable_filter()) + card(App::Examples.collection_lattice()))
     end
 
     def ai_markup()
-      category("AI", "Prompt objects, runtime AI config vs health, AI-assisted cast, and the shared support-assistant helper story stay explicit through Cosm::AI and Cosm-authored modules.", card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()) + card(App::Examples.support_agent_preview()) + card(App::Examples.prompt_data()))
-    end
-
-    def support_markup()
-      category("Support", "The proving wedge now includes persistent notebook pages with an attached assistant, while the pure Cosm chat core stays primary and the Slack service remains a thin adapter.", card(App::Examples.support_chat_step()) + card(App::Examples.support_step_model()) + card(App::Examples.support_page()))
+      category("AI", "Prompt objects, runtime AI config vs health, and explicit AI-assisted cast remain available without becoming the center of the notebook wedge.", card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()) + card(App::Examples.prompt_data()))
     end
 
     def notebook_markup()
-      category("Notebook", "Persistent block pages, page-scoped sessions, and small ordered workflow helpers make the notebook the main wedge in this slice.", card(App::Examples.notebook_page()) + card(App::Examples.workflow_run()) + card(App::Examples.named_session()))
+      category("Notebook", "Persistent block pages, page-scoped sessions, and core-tower examples make the notebook the main wedge in this slice.", card(App::Examples.notebook_page()) + card(App::Examples.workflow_run()) + card(App::Examples.named_session()) + card(App::Examples.core_tower()))
     end
 
     def services_markup()
@@ -53,7 +49,7 @@ class NotebookExamples
     end
 
     def markup()
-      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + dispatch_markup() + data_markup() + collections_markup() + ai_markup() + support_markup() + notebook_markup() + services_markup() })
+      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + dispatch_markup() + data_markup() + collections_markup() + ai_markup() + notebook_markup() + services_markup() })
     end
 
     def category(title, description, cards)
@@ -102,7 +98,6 @@ class NotebookView
         blocks_json: App::Rendering::HtmlView.escape(Kernel.json(current_page.blocks)),
         page_list_markup: page_list_markup(pages, current_page),
         output: results_markup(execution),
-        assistant_markup: assistant_markup(current_page, reply),
         pid: Process.pid(),
         platform: App::Rendering::HtmlView.escape(Process.platform()),
         arch: App::Rendering::HtmlView.escape(Process.arch()),
@@ -170,11 +165,5 @@ class NotebookView
       end
     end
 
-    def assistant_markup(current_page, reply)
-      let transcript = if current_page.agent_transcript == false || current_page.agent_transcript == "" then "No assistant turns yet." else current_page.agent_transcript end
-      let reply_text = if reply == false then false else reply.text end
-      let reply_markup = if reply_text == false then "" else "<div class=\"mt-4 rounded-2xl border border-cyan-900 bg-cyan-950/30 p-4 text-sm text-cyan-100\">" + App::Rendering::HtmlView.escape(reply_text) + "</div>" end
-      "<div class=\"rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6\"><p class=\"text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300\">Attached Assistant</p><p class=\"mt-3 text-sm text-slate-400\">This assistant is attached to the current page key and sees the saved page content plus recent execution summary.</p><pre class=\"mt-4 min-h-[12rem] whitespace-pre-wrap break-words rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200\">" + App::Rendering::HtmlView.escape(transcript) + "</pre>" + reply_markup + "<form id=\"notebook-agent-form\" class=\"mt-4 space-y-3\" method=\"post\" action=\"/notebook/agent\"><input type=\"hidden\" name=\"id\" value=\"" + App::Rendering::HtmlView.escape(current_page.id) + "\" /><input type=\"hidden\" name=\"title\" class=\"notebook-sync-title\" value=\"" + App::Rendering::HtmlView.escape(current_page.title) + "\" /><input type=\"hidden\" name=\"blocks\" class=\"notebook-sync-blocks\" value=\"" + App::Rendering::HtmlView.escape(Kernel.json(current_page.blocks)) + "\" /><textarea name=\"message\" class=\"min-h-[7rem] w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-4 text-sm text-slate-100 outline-none\" placeholder=\"Ask about this page or its most recent execution...\"></textarea><div class=\"flex flex-wrap gap-3\"><button class=\"rounded-full bg-fuchsia-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-fuchsia-300\" type=\"submit\">Ask Attached Assistant</button><button class=\"rounded-full border border-slate-700 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-amber-400 hover:text-amber-200\" type=\"submit\" formaction=\"/notebook/agent/reset\">Reset Assistant</button></div></form></div>"
-    end
   end
 end

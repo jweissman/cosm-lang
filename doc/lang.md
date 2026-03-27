@@ -55,6 +55,7 @@ Inside instance methods, `@name` is shorthand for reading the instance field nam
 Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
 Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` and `Point.metaclass.name` are both `Point class`, `Point.metaclass.class.name` is `Class`, and `Class.class.name` stays `Class`.
 At the moment, `.class` on a class object is intentionally the same reflective link as `.metaclass`. That is transparent, but still somewhat provisional; richer class-side authoring syntax may come later once the underlying model feels less surprising.
+The visible core tower is explicit: `BasicObject` is the minimal root, `Object < BasicObject`, `Module < Object`, and `Class < Module`.
 Class bodies also now support an explicit class-side block form:
 
 ```cosm
@@ -127,6 +128,7 @@ answer + 2
 ### Modules
 
 - `Module`
+- `module Name ... end`
 - `require "cosm/spec.cosm"`
 
 Cosm has a small reflective `Module` runtime object with constant-backed access paths.
@@ -147,6 +149,7 @@ assert_equal(2 + 2, 4)
 ```
 
 Maintained code should use module constants such as `Cosm::Spec`, `Cosm::AI`, `Support::Chat`, and `App::App` rather than older ambient lowercase wrappers.
+Maintained code should also prefer authored `module ... end` definitions and explicit `include(...)` relationships over bootstrap-only special casing.
 
 Local `.cosm` and `.ecosm` files may also be loaded through `require "path"`, which installs their exported module constants into the current environment.
 
@@ -172,6 +175,26 @@ Local `.cosm` and `.ecosm` files may also be loaded through `require "path"`, wh
 - `.with_defaults(defaults)`
 - `.jsonSchema()`
 - `.inspect()`
+
+### Core Tower and Collections
+
+The built-in repository exposes an explicit reflective core tower:
+
+- `BasicObject`
+- `Object`
+- `Module`
+- `Class`
+- `Array`
+- `Hash`
+
+Collections are taught through a small authored lattice:
+
+- `Collection`
+- `Enumerable`
+- `Sequence`
+- `Mapping`
+
+`Array` and `Hash` remain TS-backed at the storage/dispatch level, but their visible helper layering is taught through those authored modules.
 
 ### Blocks and Conditionals
 
@@ -463,6 +486,8 @@ Class.class.name
   Reflective object for host time access like `now()`.
 - `Random`
   Reflective object for host randomness like `float()` and `int(max)`.
+- `BasicObject`
+  Minimal root class. It deliberately stays smaller than `Object`.
 - `Module`
   Reflective class for loaded module objects like `Cosm::Spec`.
 - `Mirror`
@@ -479,7 +504,7 @@ Class.class.name
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `Class`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
+  `BasicObject`, `Class`, `Module`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
 
 Examples:
 
@@ -586,6 +611,7 @@ do let x = 1; x + 2 end
 - Triple-quoted strings remain the small inline multiline template form in `0.3.12.x`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
 - `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.12.x` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
 - `methods()` on live receivers is now the intended everyday reflection path; `Mirror` stays the readonly wrapper path, and `.methods` / `.classMethods` on class objects remain the explicit class-table views.
+- `BasicObject` is now the minimal root. Everyday reflection and text protocol begin on `Object`, not on every possible receiver.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `module Name ... end` is now the narrow authored-module form for mixins and grouped helper surfaces.
 - `begin ... rescue err ... end` is now the first structured error-handling form. It currently supports one rescue clause and no `ensure`.
@@ -613,6 +639,7 @@ do let x = 1; x + 2 end
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape.
 - `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge.
+- The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.

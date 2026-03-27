@@ -117,12 +117,9 @@ let notebook_page = Data.model("notebook_page", {
   id: Data.string(),
   title: Data.string(),
   blocks: Data.array(notebook_block),
-  agent_key: Data.string(),
-  agent_transcript: Data.optional(Data.string()),
   last_execution_summary: Data.optional(Data.string()),
   created_at: Data.string(),
   updated_at: Data.string()
 }, {
-  agent_transcript: false,
   last_execution_summary: false
 })

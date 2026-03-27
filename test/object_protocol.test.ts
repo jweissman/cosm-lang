@@ -28,6 +28,8 @@ test("receiver-side inspect stays available on representative objects", () => {
 });
 
 test("receiver-side methods() exposes visible reflective methods consistently", () => {
+  expect(cosmEval("BasicObject.new().basic_object_root()")).toBe(true);
+  expect(() => cosmEval("BasicObject.new().methods()")).toThrow("object of class BasicObject has no property 'methods'");
   expect(cosmEval("Object.new().methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval("Object.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }, { kind: "symbol", name: "new" }]));
   expect(cosmEval("1.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "plus" }]));
@@ -205,6 +207,8 @@ test("core scalar values expose explicit conversion helpers", () => {
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
   expect(cosmEval('Cosm::Enumerable.class.name')).toBe("Module");
   expect(cosmEval('Cosm::Enumerable.name')).toBe("Enumerable");
+  expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Collection", "Enumerable", "Sequence", "Array"]));
+  expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Collection", "Enumerable", "Mapping", "Hash"]));
   expect(cosmEval('Array.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval('Hash.includedModules.map(->(mod) { mod.name })')).toEqual(expect.arrayContaining(["Enumerable"]));
   expect(cosmEval("[1, 2, 3].count()")).toBe(3);
@@ -231,6 +235,7 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('[1, 2, 3].reduce(0, ->(acc, value) { acc + value })')).toBe(6);
   expect(cosmEval('["co", "sm"].join("-")')).toBe("co-sm");
   expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
+  expect(cosmEval('{ a: 1, b: 2 }.keys()')).toEqual(["a", "b"]);
   expect(cosmEval('{ a: 1, b: 2 }.find(->(key, value) { value > 1 })')).toEqual(["b", 2]);
   expect(cosmEval('{ a: 1, b: 2 }.find_map(->(key, value) { value > 1 ? key + value.to_s() : false })')).toBe("b2");
   expect(cosmEval('{ a: 1, b: 2 }.reject(->(key, value) { value > 1 })')).toEqual({ a: 1 });

@@ -62,14 +62,6 @@ class App
         post "/notebook/reset" do |req|
           App.notebook_reset(req)
         end
-
-        post "/notebook/agent" do |req|
-          App.notebook_agent(req)
-        end
-
-        post "/notebook/agent/reset" do |req|
-          App.notebook_agent_reset(req)
-        end
       end
 
       App.new(router)
@@ -138,20 +130,6 @@ class App
     def notebook_reset(req)
       let draft = App.notebook_draft(req)
       let page = notebook_runtime.reset_page_session(draft)
-      HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
-    end
-
-    def notebook_agent(req)
-      let draft = App.notebook_draft(req)
-      let form = req.form()
-      let message_value = Kernel.try(->() { form.get("message") })
-      let outcome = notebook_runtime.agent_turn(draft, if message_value.ok then message_value.value else "" end)
-      HttpResponse.html(views.notebook_view.page(outcome.page, notebook_store.list_pages(), false, outcome.reply), 200)
-    end
-
-    def notebook_agent_reset(req)
-      let draft = App.notebook_draft(req)
-      let page = notebook_runtime.reset_agent(draft)
       HttpResponse.html(views.notebook_view.page(page, notebook_store.list_pages(), false, false), 200)
     end
 

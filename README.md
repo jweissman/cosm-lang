@@ -2,7 +2,7 @@
 
 Cosm is a small reflective programming language for interactive tooling, service objects, and explicit runtime boundaries.
 
-It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-style app wedge, and a separate Slack-facing agent service.
+It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, and a narrower separate Slack-facing agent service.
 
 ## What Cosm Emphasizes
 
@@ -75,6 +75,7 @@ end
 - `cosm/` contains Cosm-authored stdlib-ish helpers
 - `spec/` contains Cosm-native language/runtime specs
 - `test/` contains Bun tests for parser/runtime/CLI/integration behavior
+- `test/fixtures/vm/` contains interpreter/VM parity smoke programs for the supported VM subset
 - `lib/` contains project-local Cosm-authored modules, including `lib/app/`, `lib/agent/`, and `lib/support/`
 
 ## Development
@@ -107,6 +108,13 @@ Common commands:
 - `just chat`
 - `just send-dm <channel_id> <text>`
 - `just self-test`
+
+Notebook workflow:
+
+- `just server` starts the notebook-first app wedge
+- `/notebook` is the current flagship surface for learning the language and exploring the runtime
+- notebook pages are durable local block documents with one named session per page
+- notebook examples focus on the core tower, collection lattice, and explicit runtime objects
 
 Iapetus workflow:
 
@@ -146,6 +154,6 @@ Cosm is intentionally still narrow in a few places:
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
 - `Mirror` is still readonly reflection only, and `Cosm::Hologram` is now only a tiny writable boundary wedge, not a full JS bridge
-- no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks
+- no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks against the smoke fixtures under `test/fixtures/vm/`
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

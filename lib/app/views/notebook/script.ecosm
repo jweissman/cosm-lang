@@ -2,10 +2,8 @@
   const form = document.getElementById("notebook-form");
   const blocks = document.getElementById("notebook-blocks");
   const blocksInput = document.getElementById("notebook-blocks-json");
-  const titleInput = document.getElementById("notebook-title");
   const addMarkdown = document.getElementById("add-markdown-block");
   const addCosm = document.getElementById("add-cosm-block");
-  const assistantForm = document.getElementById("notebook-agent-form");
 
   const createBlock = (kind, content = "") => {
     const article = document.createElement("article");
@@ -28,16 +26,6 @@
     return article;
   };
 
-  const syncAgentFields = () => {
-    if (!assistantForm || !titleInput || !blocksInput) {
-      return;
-    }
-    const syncedTitle = assistantForm.querySelector(".notebook-sync-title");
-    const syncedBlocks = assistantForm.querySelector(".notebook-sync-blocks");
-    if (syncedTitle) syncedTitle.value = titleInput.value;
-    if (syncedBlocks) syncedBlocks.value = blocksInput.value;
-  };
-
   const serializeBlocks = () => {
     if (!blocks || !blocksInput) {
       return;
@@ -47,7 +35,6 @@
       content: block.querySelector(".notebook-block-content")?.value || "",
     }));
     blocksInput.value = JSON.stringify(payload);
-    syncAgentFields();
   };
 
   const bindBlock = (block) => {
@@ -97,18 +84,8 @@
     });
   }
 
-  if (titleInput) {
-    titleInput.addEventListener("input", syncAgentFields);
-  }
-
   if (form) {
     form.addEventListener("submit", () => {
-      serializeBlocks();
-    });
-  }
-
-  if (assistantForm) {
-    assistantForm.addEventListener("submit", () => {
       serializeBlocks();
     });
   }

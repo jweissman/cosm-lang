@@ -1,5 +1,7 @@
 module Sequence
   def compact() = self.select(->(value) { value != false });
 
+  def first() = self.length > 0 ? self.take(1).last() : false;
+
   def last() = self.reduce(false, ->(_acc, value) { value });
 end

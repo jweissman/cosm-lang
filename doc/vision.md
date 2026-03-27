@@ -13,7 +13,7 @@ The language should feel:
 
 ## The Kind Of Thing We Want To Build
 
-The first concrete product target should be a simple web notebook.
+The first concrete product target should be a simple web notebook, and it should remain the flagship wedge until the language/runtime feels calm and teachable.
 
 That notebook would let us:
 
@@ -72,6 +72,7 @@ The runtime should gradually move toward these principles:
 - math/random/time/process-ish helpers
 - namespaces/modules
 - test harnesses
+- authored core facades for the everyday object protocol
 
 ### 3. Host Boundary
 
@@ -110,8 +111,9 @@ The narrow `0.3` milestone should keep consolidating that runtime core while pro
 - a small but real standard surface through `Kernel`, `Namespace`, `cosm`, and `classes`
 - a first deliberate host boundary through `http`, `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter`
 - a first readonly reflective primitive through `Mirror`
+- a notebook-first workbench that teaches the core tower and collection lattice directly
 
-That means the notebook, richer host/server layers, holograms, and any `template`-style structure forms should stay visible as design targets, but land after the reflective core is stable enough to explain itself cleanly.
+That means the notebook should stay the flagship proving surface, while richer host/server layers, broader agent/tool work, holograms, and any `template`-style structure forms stay visible as design targets that land after the reflective core is stable enough to explain itself cleanly.
 
 The advanced OO research direction should stay visible while we do that:
 

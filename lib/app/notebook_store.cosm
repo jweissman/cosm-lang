@@ -16,16 +16,14 @@ def block(kind, content)
 end
 
 def default_blocks()
-  [block("markdown", "# Cosm notebook page. This page is persisted locally and can carry an attached assistant transcript."), block("cosm", "1 + 2")]
+  [block("markdown", "# Cosm notebook page. This page is persisted locally and keeps one named session for whole-page execution."), block("cosm", "1 + 2")]
 end
 
-def page(id, title, blocks, agent_transcript = false, last_execution_summary = false, created_at = Time.isoNow(), updated_at = Time.isoNow())
+def page(id, title, blocks, last_execution_summary = false, created_at = Time.isoNow(), updated_at = Time.isoNow())
   Support::Models.notebook_page.build({
     id: id,
     title: title,
     blocks: blocks,
-    agent_key: "notebook-agent:" + id,
-    agent_transcript: agent_transcript,
     last_execution_summary: last_execution_summary,
     created_at: created_at,
     updated_at: updated_at
@@ -64,8 +62,6 @@ def save_page(target)
     id: target.id,
     title: target.title,
     blocks: normalize_blocks(target.blocks),
-    agent_key: target.agent_key,
-    agent_transcript: target.agent_transcript,
     last_execution_summary: target.last_execution_summary,
     created_at: target.created_at,
     updated_at: Time.isoNow()
@@ -76,7 +72,7 @@ end
 
 def create_page(title = "Untitled notebook page")
   let now = Time.isoNow()
-  save_page(page(Kernel.uuid(), title, default_blocks(), false, false, now, now))
+  save_page(page(Kernel.uuid(), title, default_blocks(), false, now, now))
 end
 
 def list_pages()
@@ -108,12 +104,10 @@ end
 def save_draft(id, title, raw_blocks)
   let existing = if id == false then false else load_page(id) end
   let now = Time.isoNow()
-  let base = if existing == false then page(Kernel.uuid(), title, parse_blocks(raw_blocks), false, false, now, now) else {
+  let base = if existing == false then page(Kernel.uuid(), title, parse_blocks(raw_blocks), false, now, now) else {
     id: existing.id,
     title: title,
     blocks: parse_blocks(raw_blocks),
-    agent_key: existing.agent_key,
-    agent_transcript: existing.agent_transcript,
     last_execution_summary: existing.last_execution_summary,
     created_at: existing.created_at,
     updated_at: now
@@ -126,22 +120,7 @@ def save_execution(target, summary)
     id: target.id,
     title: target.title,
     blocks: target.blocks,
-    agent_key: target.agent_key,
-    agent_transcript: target.agent_transcript,
     last_execution_summary: summary,
-    created_at: target.created_at,
-    updated_at: target.updated_at
-  })
-end
-
-def save_transcript(target, transcript)
-  save_page({
-    id: target.id,
-    title: target.title,
-    blocks: target.blocks,
-    agent_key: target.agent_key,
-    agent_transcript: transcript,
-    last_execution_summary: target.last_execution_summary,
     created_at: target.created_at,
     updated_at: target.updated_at
   })

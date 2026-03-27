@@ -1,7 +1,5 @@
 require "lib/app/notebook_store"
-require "lib/support/controller"
 require "cosm/workflow"
-require "lib/agent/runtime"
 
 def session_name(page)
   "notebook-page:" + page.id
@@ -92,24 +90,3 @@ def reset_page_session(page)
   session_for(page).reset()
   App::NotebookStore.save_execution(page, false)
 end
-
-def agent_context(page)
-  let block_summary = page.blocks.map(->(block) {
-    "[" + block.kind + "]\n" + block.content
-  }).join("\n\n")
-  let execution = if page.last_execution_summary == false then "No execution has run yet." else page.last_execution_summary end
-  "Notebook title: " + page.title + "\n\nBlocks:\n" + block_summary + "\n\nRecent execution:\n" + execution
-end
-
-def attached_conversation(page)
-  Support::Controller.page_conversation(page.agent_key, if page.agent_transcript == false then "" else page.agent_transcript end, agent_context(page))
-end
-
-def agent_turn(page, message)
-  let inbound = Support::Controller.page_inbound(page.agent_key, message)
-  let turn = Agent::Runtime.execute_turn(attached_conversation(page), inbound)
-  let saved_page = App::NotebookStore.save_transcript(page, turn.conversation.transcript)
-  { page: saved_page, reply: turn.reply }
-end
-
-def reset_agent(page) = App::NotebookStore.save_transcript(page, "");
