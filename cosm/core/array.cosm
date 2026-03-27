@@ -1,0 +1,3 @@
+module Array
+  def second() = self.length > 1 ? self.take(2).last() : false;
+end

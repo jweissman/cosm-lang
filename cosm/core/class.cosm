@@ -1,0 +1,10 @@
+module Class
+  def lineage()
+    let labels = [self.name]
+    self.superclass == false ? labels : labels.append(self.superclass.name)
+  end
+
+  def included_module_names()
+    self.includedModules.map(->(mod) { mod.name })
+  end
+end

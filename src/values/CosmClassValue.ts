@@ -26,10 +26,10 @@ export class CosmClassValue extends CosmValueBase {
       metaclass: (self) => self.classRef,
       superclass: (self) => self.superclass,
       slots: (self) => new CosmArrayValue(self.slots.map((slot) => new CosmStringValue(slot))),
-      methods: (self) => new CosmNamespaceValue(self.visibleInstanceMethods(), self.classRef),
+      methods: (self) => new CosmNamespaceValue(self.visibleInstanceMethods()),
       classMethods: (self) => {
         const classMethodOwner = self.classRef && self.classRef !== self ? self.classRef : undefined;
-        return new CosmNamespaceValue(classMethodOwner?.visibleInstanceMethods() ?? self.classMethods, self.classRef);
+        return new CosmNamespaceValue(classMethodOwner?.visibleInstanceMethods() ?? self.classMethods);
       },
       includedModules: (self) => new CosmArrayValue(self.includedModules.map((moduleValue) => moduleValue)),
     },
@@ -195,6 +195,10 @@ export class CosmClassValue extends CosmValueBase {
     const inherited = super.nativeMethod(name);
     if (inherited) {
       return inherited;
+    }
+    const objectProtocol = manifestMethod(this as unknown as CosmValue, name, CosmValueBase.objectManifest);
+    if (objectProtocol) {
+      return objectProtocol;
     }
     return manifestMethod(this, name, CosmClassValue.manifest);
   }

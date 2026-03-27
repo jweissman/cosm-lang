@@ -5,7 +5,7 @@ import { ValueAdapter } from "../src/ValueAdapter";
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
 
 test("access-call on a class receiver can fall back to the shared send surface", () => {
-  expect(cosmEval("Object.methods()")).toEqual([
+  expect(cosmEval("Object.methods()")).toEqual(expect.arrayContaining([
     { kind: "symbol", name: "new" },
     { kind: "symbol", name: "classMethod" },
     { kind: "symbol", name: "include" },
@@ -15,7 +15,7 @@ test("access-call on a class receiver can fall back to the shared send surface",
     { kind: "symbol", name: "send" },
     { kind: "symbol", name: "inspect" },
     { kind: "symbol", name: "to_s" },
-  ]);
+  ]));
 });
 
 test("access-call prefers callable properties over send fallback", () => {

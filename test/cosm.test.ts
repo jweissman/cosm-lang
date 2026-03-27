@@ -70,6 +70,10 @@ test("boolean logic respects precedence", () => {
 });
 
 test("member access can inspect the class repository", () => {
+  expect(cosmEval("classes.BasicObject.name")).toBe("BasicObject");
+  expect(cosmEval("classes.Object.superclass.name")).toBe("BasicObject");
+  expect(cosmEval("classes.Module.superclass.name")).toBe("Object");
+  expect(cosmEval("classes.Class.superclass.name")).toBe("Module");
   expect(cosmEval("classes.Number.name")).toBe("Number");
   expect(cosmEval("classes.Boolean.superclass.name")).toBe("Object");
   expect(cosmEval("classes.Class.name")).toBe("Class");
@@ -101,6 +105,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Symbol.classMethods.intern.name")).toBe("intern");
   expect(cosmEval("classes.Namespace.methods.keys.name")).toBe("keys");
   expect(cosmEval("classes.Module.methods.get.name")).toBe("get");
+  expect(cosmEval("BasicObject.class.name")).toBe("BasicObject class");
   expect(cosmEval("classes.Kernel.methods.assert.name")).toBe("assert");
   expect(cosmEval("classes.Process.methods.cwd.name")).toBe("cwd");
   expect(cosmEval("classes.Process.methods.argv.name")).toBe("argv");

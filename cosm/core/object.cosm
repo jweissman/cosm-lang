@@ -1,0 +1,7 @@
+module Object
+  def receiver_name() = self.class.name;
+
+  def method_names()
+    self.methods().map(->(name) { name.name })
+  end
+end

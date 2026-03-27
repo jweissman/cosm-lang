@@ -1,0 +1,7 @@
+module Hash
+  def at(key)
+    self.find_map(->(current_key, value) {
+      current_key == key ? value : false
+    })
+  end
+end

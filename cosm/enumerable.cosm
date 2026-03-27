@@ -1,10 +1,4 @@
 module Enumerable
-  def count() = self.length;
-
-  def empty() = self.length == 0;
-
-  def present() = self.length > 0;
-
   def any(callback = false) = callback == false ? self.present() : self.find(callback) != false;
 
   def all(callback)
@@ -18,10 +12,6 @@ module Enumerable
   def one() = self.length == 1;
 
   def filter(callback) = self.select(callback);
-
-  def compact() = self.select(->(value) { value != false });
-
-  def presence() = self.present() ? self : false;
 
   def compact_map(callback)
     let missing = :__cosm_compact_map_missing__

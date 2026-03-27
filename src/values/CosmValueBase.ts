@@ -29,7 +29,7 @@ export abstract class CosmValueBase {
 
   abstract readonly type: string;
 
-  static readonly manifest: RuntimeValueManifest<CosmValue> = {
+  static readonly basicManifest: RuntimeValueManifest<CosmValue> = {
     properties: {
       class: (self) => {
         if (!CosmValueBase.classOfHandler) {
@@ -38,6 +38,24 @@ export abstract class CosmValueBase {
         return CosmValueBase.classOfHandler(self);
       },
     },
+    methods: {
+      send: () => new CosmFunctionValue('send', (args, selfValue, env) => {
+        if (!selfValue) {
+          throw new Error('Type error: send expects a receiver');
+        }
+        if (args.length < 1) {
+          throw new Error(`Arity error: method send expects at least 1 arguments, got ${args.length}`);
+        }
+        if (!CosmValueBase.sendHandler) {
+          throw new Error('Value runtime error: send handler is not installed');
+        }
+        const [messageValue, ...messageArgs] = args;
+        return CosmValueBase.sendHandler(selfValue, messageValue, messageArgs, env);
+      }),
+    },
+  };
+
+  static readonly objectManifest: RuntimeValueManifest<CosmValue> = {
     methods: {
       eq: () => new CosmFunctionValue('eq', (args, selfValue) => {
         if (!selfValue) {
@@ -75,19 +93,6 @@ export abstract class CosmValueBase {
         }
         return CosmValueBase.methodsLookupHandler(selfValue);
       }),
-      send: () => new CosmFunctionValue('send', (args, selfValue, env) => {
-        if (!selfValue) {
-          throw new Error('Type error: send expects a receiver');
-        }
-        if (args.length < 1) {
-          throw new Error(`Arity error: method send expects at least 1 arguments, got ${args.length}`);
-        }
-        if (!CosmValueBase.sendHandler) {
-          throw new Error('Value runtime error: send handler is not installed');
-        }
-        const [messageValue, ...messageArgs] = args;
-        return CosmValueBase.sendHandler(selfValue, messageValue, messageArgs, env);
-      }),
       inspect: () => new CosmFunctionValue('inspect', (args, selfValue) => {
         if (!selfValue) {
           throw new Error('Type error: inspect expects a receiver');
@@ -113,16 +118,27 @@ export abstract class CosmValueBase {
     },
   };
 
+  static readonly manifest: RuntimeValueManifest<CosmValue> = {
+    properties: {
+      ...(CosmValueBase.basicManifest.properties ?? {}),
+      ...(CosmValueBase.objectManifest.properties ?? {}),
+    },
+    methods: {
+      ...(CosmValueBase.basicManifest.methods ?? {}),
+      ...(CosmValueBase.objectManifest.methods ?? {}),
+    },
+  };
+
   plus(_right: CosmValue): CosmValue {
     throw new Error('Type error: add expects numeric operands or string concatenation');
   }
 
   nativeProperty(name: string): CosmValue | undefined {
-    return manifestProperty(this as unknown as CosmValue, name, CosmValueBase.manifest);
+    return manifestProperty(this as unknown as CosmValue, name, CosmValueBase.basicManifest);
   }
 
   nativeMethod(name: string): CosmFunctionValue | undefined {
-    return manifestMethod(this as unknown as CosmValue, name, CosmValueBase.manifest);
+    return manifestMethod(this as unknown as CosmValue, name, CosmValueBase.basicManifest);
   }
 
   visibleNativeMethodNames(): string[] {

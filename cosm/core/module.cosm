@@ -1,0 +1,7 @@
+module Module
+  def entry_names()
+    self.keys().map(->(name) { name.name })
+  end
+
+  def include_into(target) = target.include(self);
+end

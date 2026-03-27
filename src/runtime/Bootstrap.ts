@@ -157,17 +157,23 @@ export class Bootstrap {
   private static currentRepository?: RuntimeRepository;
 
   private static createCoreClasses(): Record<string, CosmClass> {
-    const objectClass = Construct.class('Object');
-    const classClass = Construct.class('Class', 'Object', [], {}, {}, objectClass);
+    const basicObjectClass = Construct.class('BasicObject');
+    const objectClass = Construct.class('Object', 'BasicObject', [], {}, {}, basicObjectClass);
+    const moduleClass = Construct.class('Module', 'Object', [], {}, {}, objectClass);
+    const classClass = Construct.class('Class', 'Module', [], {}, {}, moduleClass);
     classClass.classRef = classClass;
-    objectClass.classRef = this.createMetaclass('Object', classClass, {}, classClass);
+    basicObjectClass.classRef = this.createMetaclass('BasicObject', classClass, {}, classClass);
+    objectClass.classRef = this.createMetaclass('Object', basicObjectClass.classRef ?? classClass, {}, classClass);
+    moduleClass.classRef = this.createMetaclass('Module', objectClass.classRef ?? classClass, {}, classClass);
 
     const classes: Record<string, CosmClass> = {
+      BasicObject: basicObjectClass,
       Class: classClass,
+      Module: moduleClass,
       Object: objectClass,
     };
 
-    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Module', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'HologramHandle', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
+    for (const name of ['Number', 'Boolean', 'String', 'Symbol', 'Array', 'Hash', 'Function', 'Method', 'Namespace', 'Kernel', 'Process', 'Time', 'Random', 'Mirror', 'HologramHandle', 'Error', 'Schema', 'Prompt', 'Ai', 'Session', 'DataModel', 'Http', 'HttpRequest', 'HttpResponse', 'HttpServer', 'HttpRouter']) {
       classes[name] = this.createBootClass(name, objectClass, classClass);
     }
 
@@ -175,9 +181,13 @@ export class Bootstrap {
   }
 
   private static installBootNativeMethods(classes: Record<string, CosmClass>, _runtime: BootstrapRuntime): void {
+    Object.assign(classes.BasicObject.methods, manifestMethods(
+      new CosmObjectValue('BasicObject', {}, classes.BasicObject),
+      CosmValueBase.basicManifest,
+    ));
     Object.assign(classes.Object.methods, manifestMethods(
       new CosmObjectValue('Object', {}, classes.Object),
-      CosmValueBase.manifest,
+      CosmValueBase.objectManifest,
     ));
     Object.assign(classes.Class.methods, manifestMethods(classes.Class, CosmClassValue.manifest));
     Object.assign(classes.Function.methods, manifestMethods(
@@ -320,6 +330,7 @@ export class Bootstrap {
   private static createCoreGlobals(classes: Record<string, CosmClass>): Record<string, CosmValue> {
     return {
       Class: classes.Class,
+      BasicObject: classes.BasicObject,
       Object: classes.Object,
       Number: classes.Number,
       Boolean: classes.Boolean,
@@ -553,6 +564,10 @@ export class Bootstrap {
 
   private static installConstantRootFields(globals: Record<string, CosmValue>, modules: Record<string, CosmObject>): void {
     const cosmRoot = globals.Cosm as CosmModuleValue;
+    cosmRoot.fields.BasicObject = globals.BasicObject;
+    cosmRoot.fields.Object = globals.Object;
+    cosmRoot.fields.Module = globals.Module;
+    cosmRoot.fields.Class = globals.Class;
     cosmRoot.fields.Kernel = globals.Kernel;
     cosmRoot.fields.Process = globals.Process;
     cosmRoot.fields.Time = globals.Time;

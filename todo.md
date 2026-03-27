@@ -120,3 +120,30 @@ more stdlib lifting
 real Enumerable mixin/module
 cleaner base classes and mixin use
 perhaps a lightweight record/model pattern if persistence has stabilized
+
+---
+
+0.3.13.22: Core Tower Clarification
+
+add BasicObject
+make Object < BasicObject
+decide exactly what lives on each
+keep TS as bootstrap/runtime substrate, but expose the tower explicitly
+
+0.3.13.23: Cosm-Authored Core Facades
+
+add real Cosm-authored definitions for Object, Module, Class, Array, Hash
+these don’t need to fully replace TS storage/dispatch yet
+but they should author the visible method surfaces and mixins more honestly
+
+0.3.13.24: Collection Layer Lift
+
+deepen Enumerable
+maybe split out Sequence or Mapping if needed
+move more collection behavior from TS into Cosm-authored code
+make Array and Hash feel like real descendants with included modules, not special cases
+
+0.3.13.25: Object Protocol Paydown
+
+push more inspect, to_s, reflection, and maybe equality semantics into authored Cosm surfaces
+reduce the amount of “mystery native behavior”

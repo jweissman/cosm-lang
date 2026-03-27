@@ -1,0 +1,13 @@
+module Mapping
+  def keys()
+    self.map(->(key, _value) { key })
+  end
+
+  def values()
+    self.map(->(_key, value) { value })
+  end
+
+  def has_key(target)
+    self.find(->(key, _value) { key == target }) != false
+  end
+end

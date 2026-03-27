@@ -229,13 +229,54 @@ namespace Cosm {
         createEnv: (parent, options) => this.createEnv(parent, options),
         evalInEnv: (source, env) => this.evalInEnv(source, env),
       });
-      for (const name of ["cosm/ai.cosm", "cosm/spec.cosm", "cosm/enumerable.cosm"]) {
+      for (const name of [
+        "cosm/ai.cosm",
+        "cosm/spec.cosm",
+        "cosm/enumerable.cosm",
+        "cosm/core/basic_object.cosm",
+        "cosm/core/object.cosm",
+        "cosm/core/module.cosm",
+        "cosm/core/class.cosm",
+        "cosm/core/collection.cosm",
+        "cosm/core/sequence.cosm",
+        "cosm/core/mapping.cosm",
+        "cosm/core/array.cosm",
+        "cosm/core/hash.cosm",
+      ]) {
         Bootstrap.installLoadedModuleConstant(repository, name);
       }
-      const enumerableModule = repository.modules["cosm/enumerable.cosm"];
-      if (enumerableModule?.type === "object" && enumerableModule.className === "Module") {
-        repository.classes.Array.includeModule(enumerableModule);
-        repository.classes.Hash.includeModule(enumerableModule);
+      this.installCoreFacades(repository);
+    }
+
+    private static installCoreFacades(repository: Repository): void {
+      const includeInto = (className: string, moduleName: string) => {
+        const moduleValue = repository.modules[moduleName];
+        if (moduleValue?.type === "object" && moduleValue.className === "Module") {
+          repository.classes[className].includeModule(moduleValue);
+        }
+      };
+
+      includeInto("BasicObject", "cosm/core/basic_object.cosm");
+      includeInto("Object", "cosm/core/object.cosm");
+      includeInto("Module", "cosm/core/module.cosm");
+      includeInto("Class", "cosm/core/class.cosm");
+
+      for (const moduleName of [
+        "cosm/core/collection.cosm",
+        "cosm/enumerable.cosm",
+        "cosm/core/sequence.cosm",
+        "cosm/core/array.cosm",
+      ]) {
+        includeInto("Array", moduleName);
+      }
+
+      for (const moduleName of [
+        "cosm/core/collection.cosm",
+        "cosm/enumerable.cosm",
+        "cosm/core/mapping.cosm",
+        "cosm/core/hash.cosm",
+      ]) {
+        includeInto("Hash", moduleName);
       }
     }
 
@@ -385,9 +426,6 @@ namespace Cosm {
       }
       if (Object.hasOwn(env.bindings, name) && !env.allowTopLevelRebinds) {
         throw new Error(`Name error: duplicate local '${name}'`);
-      }
-      if (!Object.hasOwn(env.bindings, name) && Object.hasOwn(this.repo().globals, name)) {
-        throw new Error(`Name error: duplicate constant '${name}'`);
       }
       env.bindings[name] = value;
     }

@@ -1,0 +1,9 @@
+module Collection
+  def count() = self.length;
+
+  def empty() = self.length == 0;
+
+  def present() = self.length > 0;
+
+  def presence() = self.present() ? self : false;
+end
