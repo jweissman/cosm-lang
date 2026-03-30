@@ -30,11 +30,11 @@ end
 
 def load_record(key)
   if Kernel.exists(record_path(key)) then
-    let loaded = Kernel.try(->() {
+    let loaded = Kernel.try do
       let value = Kernel.parseJson(Kernel.readText(record_path(key)))
       agent_thread_record.validate(value)
       value
-    })
+    end
     loaded.ok ? loaded.value : false
   else
     false
@@ -49,11 +49,11 @@ end
 
 def load_activity_log()
   if Kernel.exists(activity_log_path()) then
-    let loaded = Kernel.try(->() {
+    let loaded = Kernel.try do
       let value = Kernel.parseJson(Kernel.readText(activity_log_path()))
       activity_log.validate(value)
       value
-    })
+    end
     loaded.ok ? loaded.value : []
   else
     []
@@ -89,7 +89,10 @@ def processed(key, event_key)
   if loaded == false then
     false
   else
-    loaded.processed_events.find(->(entry) { entry == event_key }) != false
+    let matched = loaded.processed_events.find do |entry|
+      entry == event_key
+    end
+    matched != false
   end
 end
 
@@ -97,7 +100,10 @@ def next_processed_events(loaded, event_key)
   if loaded == false then
     [event_key]
   else
-    if loaded.processed_events.find(->(entry) { entry == event_key }) != false then
+    let matched = loaded.processed_events.find do |entry|
+      entry == event_key
+    end
+    if matched != false then
       loaded.processed_events
     else
       loaded.processed_events.append(event_key)
@@ -111,12 +117,17 @@ def mark_processed(conversation, event_key)
 end
 
 def writable()
-  let outcome = Kernel.try(->() { Kernel.writeText(ready_probe_path(), Time.isoNow()) })
+  let outcome = Kernel.try do
+    Kernel.writeText(ready_probe_path(), Time.isoNow())
+  end
   outcome.ok
 end
 
 def known_conversation_count()
-  Kernel.listDir(storage_dir()).filter(->(entry) { entry != ".ready" && entry != "activity.json" }).length
+  let known = Kernel.listDir(storage_dir()).filter do |entry|
+    entry != ".ready" && entry != "activity.json"
+  end
+  known.length
 end
 
 def status()

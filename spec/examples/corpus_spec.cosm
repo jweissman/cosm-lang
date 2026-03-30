@@ -1,14 +1,14 @@
 require "cosm/spec.cosm"
 require "examples/spec/index.cosm"
 
-suite("Example corpus", ->() {
+suite("Example corpus") do
   Examples::Spec.catalog().map do |example|
-    it(example.title, ->() {
+    it(example.title) do
       let session = Session.new()
       let result = session.eval(Kernel.readText(example.path))
       assert_equal(result, example.expected)
-    })
+    end
   end
-})
+end
 
 "example corpus spec complete"

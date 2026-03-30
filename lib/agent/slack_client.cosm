@@ -12,23 +12,27 @@ def slack_request(method_name, payload = false)
   if bot_token == false then
     { ok: false, error: "Slack bot token is not configured" }
   else
-    let request = Kernel.try(->() {
+    let request = Kernel.try do
       http.request("POST", api_method_url(method_name), {
         headers: Kernel.parseJson("{\"authorization\":\"Bearer " + bot_token + "\",\"content-type\":\"application/json; charset=utf-8\"}"),
         body: payload == false ? "{}" : Kernel.json(payload)
       })
-    })
+    end
     if request.ok == false then
       { ok: false, error: request.error.message }
     else
-      let parsed = Kernel.try(->() { Kernel.parseJson(request.value.body) })
+      let parsed = Kernel.try do
+        Kernel.parseJson(request.value.body)
+      end
       if parsed.ok == false then
         { ok: false, error: "Slack API returned invalid JSON" }
       else
         if parsed.value.ok == true then
           { ok: true, status: request.value.status, body: parsed.value }
         else
-          let api_error = Kernel.try(->() { parsed.value.error })
+          let api_error = Kernel.try do
+            parsed.value.error
+          end
           { ok: false, error: api_error.ok ? api_error.value : "unknown_error" }
         end
       end
@@ -42,8 +46,12 @@ def post_message(channel_id, text, thread_ts = false)
   if request.ok == false then
     request
   else
-    let returned_channel = Kernel.try(->() { request.body.channel })
-    let returned_ts = Kernel.try(->() { request.body.ts })
+    let returned_channel = Kernel.try do
+      request.body.channel
+    end
+    let returned_ts = Kernel.try do
+      request.body.ts
+    end
     {
       ok: true,
       status: request.status,
@@ -65,7 +73,9 @@ def list_conversations()
   if response.ok == false then
     response
   else
-    let channels = Kernel.try(->() { response.body.channels })
+    let channels = Kernel.try do
+      response.body.channels
+    end
     channels.ok ? { ok: true, conversations: channels.value, body: response.body } : { ok: false, error: "Slack API returned no channels list" }
   end
 end
@@ -78,7 +88,9 @@ def conversation_history(channel_id)
   if response.ok == false then
     response
   else
-    let messages = Kernel.try(->() { response.body.messages })
+    let messages = Kernel.try do
+      response.body.messages
+    end
     messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no message history" }
   end
 end
@@ -92,7 +104,9 @@ def conversation_thread(channel_id, thread_ts)
   if response.ok == false then
     response
   else
-    let messages = Kernel.try(->() { response.body.messages })
+    let messages = Kernel.try do
+      response.body.messages
+    end
     messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no thread replies" }
   end
 end

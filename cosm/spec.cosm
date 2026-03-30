@@ -1,8 +1,20 @@
 require "cosm/test"
 
-def suite(name, body) = Cosm::Test.describe(name, body);
+def with_block_or(callable = false)
+  if callable != false then
+    callable
+  else
+    if Kernel.blockGiven() then
+      ->() { yield() }
+    else
+      Kernel.raise("Block error: expected a callback or trailing block")
+    end
+  end
+end
 
-def it(name, body) = Cosm::Test.test(name, body);
+def suite(name, body = false) = Cosm::Test.describe(name, with_block_or(body));
+
+def it(name, body = false) = Cosm::Test.test(name, with_block_or(body));
 
 def assert(value, message = false)
   if message == false then

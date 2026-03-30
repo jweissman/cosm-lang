@@ -58,7 +58,9 @@ end
 def run_page(page)
   let session = session_for(page)
   let steps = page.blocks.map do |block|
-    Cosm::Workflow.step(block.kind, ->() { run_block(session, block) })
+    Cosm::Workflow.step(block.kind) do
+      run_block(session, block)
+    end
   end
   let step_results = Cosm::Workflow.run(steps)
   let results = step_results.map do |entry|

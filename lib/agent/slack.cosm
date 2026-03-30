@@ -6,7 +6,7 @@ require "lib/agent/slack_client"
 require "lib/agent/slack_diag"
 require "cosm/ai"
 
-def slack_config() = Agent::Config.slack_config_status();
+def slack_config = Agent::Config.slack_config_status()
 
 def health_payload(path)
   {
@@ -97,7 +97,9 @@ def events(req)
     puts("[slack] verification failed: " + verification.error)
     HttpResponse.json({ ok: false, error: verification.error }, verification.status)
   else
-    let payload_result = Kernel.try(->() { Kernel.parseJson(req.bodyText()) })
+    let payload_result = Kernel.try do
+      Kernel.parseJson(req.bodyText())
+    end
     if payload_result.ok == false then
       puts("[slack] invalid json payload")
       HttpResponse.json({ ok: false, error: "Slack request body must be valid JSON" }, 400)
@@ -172,7 +174,9 @@ def verify_request(req)
     if timestamp == false || signature == false then
       { ok: false, status: 401, error: "Invalid Slack signature" }
     else
-      let timestamp_seconds = Kernel.try(->() { timestamp.to_i() })
+      let timestamp_seconds = Kernel.try do
+        timestamp.to_i()
+      end
       if timestamp_seconds.ok == false then
         { ok: false, status: 401, error: "Invalid Slack signature" }
       else
@@ -188,9 +192,13 @@ def verify_request(req)
 end
 
 def url_verification(payload)
-  let type_value = Kernel.try(->() { payload.type })
+  let type_value = Kernel.try do
+    payload.type
+  end
   if type_value.ok && type_value.value == "url_verification" then
-    let challenge = Kernel.try(->() { payload.challenge })
+    let challenge = Kernel.try do
+      payload.challenge
+    end
     challenge.ok ? challenge.value : false
   else
     false
@@ -198,23 +206,43 @@ def url_verification(payload)
 end
 
 def extract_inbound(payload)
-  let payload_type = Kernel.try(->() { payload.type })
+  let payload_type = Kernel.try do
+    payload.type
+  end
   if payload_type.ok == false || payload_type.value != "event_callback" then
     false
   else
-    let event_result = Kernel.try(->() { payload.event })
+    let event_result = Kernel.try do
+      payload.event
+    end
     if event_result.ok == false then
       false
     else
       let event = event_result.value
-      let type_value = Kernel.try(->() { event.type })
-      let channel_type = Kernel.try(->() { event.channel_type })
-      let channel = Kernel.try(->() { event.channel })
-      let user = Kernel.try(->() { event.user })
-      let text = Kernel.try(->() { event.text })
-      let ts = Kernel.try(->() { event.ts })
-      let bot_id = Kernel.try(->() { event.bot_id })
-      let subtype = Kernel.try(->() { event.subtype })
+      let type_value = Kernel.try do
+        event.type
+      end
+      let channel_type = Kernel.try do
+        event.channel_type
+      end
+      let channel = Kernel.try do
+        event.channel
+      end
+      let user = Kernel.try do
+        event.user
+      end
+      let text = Kernel.try do
+        event.text
+      end
+      let ts = Kernel.try do
+        event.ts
+      end
+      let bot_id = Kernel.try do
+        event.bot_id
+      end
+      let subtype = Kernel.try do
+        event.subtype
+      end
       if type_value.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
         false
       else
@@ -226,7 +254,9 @@ def extract_inbound(payload)
           if kind == false then
             false
           else
-            let thread_value = Kernel.try(->() { event.thread_ts })
+            let thread_value = Kernel.try do
+              event.thread_ts
+            end
             let thread = thread_value.ok ? thread_value.value : ts.value
             if allowed_inbound(kind, channel.value, thread) == false then
               false
@@ -267,7 +297,9 @@ def inbound_kind(event_type, channel_kind)
 end
 
 def allowed_channel(channel_id)
-  Agent::Config.slack_allowed_channels().find(->(entry) { entry == channel_id }) != false
+  Agent::Config.slack_allowed_channels().find do |entry|
+    entry == channel_id
+  end != false
 end
 
 def activated_thread(channel_id, thread)
@@ -296,7 +328,9 @@ def sanitized_text(kind, text)
 end
 
 def event_key(payload, inbound)
-  let top_level = Kernel.try(->() { payload.event_id })
+  let top_level = Kernel.try do
+    payload.event_id
+  end
   top_level.ok ? top_level.value : inbound.channel + ":" + inbound.thread + ":" + inbound.user + ":" + inbound.ts
 end
 

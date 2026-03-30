@@ -1,12 +1,12 @@
 require "cosm/spec.cosm"
 
-suite("HTTP runtime", ->() {
-  it("response constructors stay reflective", ->() {
+suite("HTTP runtime") do
+  it("response constructors stay reflective") do
     assert(HttpResponse.ok("ok").status == 200)
     assert(HttpResponse.text("made", 201).status == 201)
     assert(HttpResponse.json({ answer: 42 }, 202).headers.get("content-type") == "application/json")
-  })
-  it("router draw stays object-first", ->() {
+  end
+  it("router draw stays object-first") do
     router = HttpRouter.new()
     router.draw do
       get "/" do |req|
@@ -14,7 +14,7 @@ suite("HTTP runtime", ->() {
       end
     end
     assert(router.length == 1)
-  })
-})
+  end
+end
 
 "http spec complete"

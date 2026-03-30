@@ -1,15 +1,15 @@
 require "cosm/spec.cosm"
 
-suite("Random", ->() {
-  it("numeric helpers stay in expected bounds", ->() {
+suite("Random") do
+  it("numeric helpers stay in expected bounds") do
     assert(Random.float() >= 0)
     assert(Random.float() < 1)
     assert(Random.int(5) >= 0)
     assert(Random.int(5) < 5)
-  })
-  it("choice can select from arrays", ->() {
+  end
+  it("choice can select from arrays") do
     assert(Random.choice(["a", "b", "c"]).class.name == "String")
-  })
-})
+  end
+end
 
 "random spec complete"

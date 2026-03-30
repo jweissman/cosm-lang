@@ -242,7 +242,7 @@ test("cli supports bare puts with single-quoted strings", () => {
 test("cli can sketch a tiny Cosm-native test harness", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-"));
   const sourcePath = join(tempDir, "kernel-test.cosm");
-  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; suite("smoke", ->() { it("passes", ->() { assert(true) }) })\n');
+  writeFileSync(sourcePath, 'require "cosm/spec.cosm"; suite("smoke") do it("passes") do assert(true) end end\n');
 
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(0);
@@ -300,7 +300,7 @@ test("requiring cosm/dotenv loads .env files explicitly while preserving shell e
 test("cli test mode injects implicit spec helpers", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-test-mode-"));
   const sourcePath = join(tempDir, "implicit_spec.cosm");
-  writeFileSync(sourcePath, 'suite("smoke", ->() { it("passes", ->() { assert_equal(2 + 2, 4) }) })\n');
+  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do assert_equal(2 + 2, 4) end end\n');
 
   const result = runCli(["test", sourcePath]);
   expect(result.exitCode).toBe(0);
@@ -313,7 +313,7 @@ test("cli test mode injects implicit spec helpers", () => {
 test("ordinary runs do not inject implicit spec helpers", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-no-spec-globals-"));
   const sourcePath = join(tempDir, "ordinary.cosm");
-  writeFileSync(sourcePath, 'suite("smoke", ->() { true })\n');
+  writeFileSync(sourcePath, 'suite("smoke") do true end\n');
 
   const result = runCli([sourcePath]);
   expect(result.exitCode).toBe(1);
@@ -336,7 +336,7 @@ test("cli can run the dedicated Cosm test file", () => {
 test("cli test mode reports failures and exits nonzero", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-failing-test-"));
   const sourcePath = join(tempDir, "failing_spec.cosm");
-  writeFileSync(sourcePath, 'suite("smoke", ->() { it("passes", ->() { assert(true) }); it("fails", ->() { assert(false, "boom") }) })\n');
+  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do assert(true) end; it("fails") do assert(false, "boom") end end\n');
 
   const result = runCli(["--test", sourcePath]);
   expect(result.exitCode).toBe(1);
@@ -454,7 +454,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.30");
+  expect(result.stdout.trim()).toBe("0.3.13.31");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 

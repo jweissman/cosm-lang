@@ -1,15 +1,15 @@
 require "cosm/spec.cosm"
 
-suite("Process", ->() {
-  it("host process helpers stay available", ->() {
+suite("Process") do
+  it("host process helpers stay available") do
     assert(Process.cwd().length > 0)
     assert(Process.argv().length >= 1)
     assert(Process.pid() > 0)
-  })
-  it("platform helpers stay available", ->() {
+  end
+  it("platform helpers stay available") do
     assert(Process.platform().length > 0)
     assert(Process.arch().length > 0)
-  })
-})
+  end
+end
 
 "process spec complete"

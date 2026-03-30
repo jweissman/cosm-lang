@@ -2,5 +2,5 @@ require "cosm/dotenv"
 require "lib/agent/chat"
 
 let argv = Process.argv()
-let name = argv.length > 3 ? argv.reduce(false, ->(_acc, value) { value }) : "iapetus"
+let name = argv.length > 3 ? argv.reduce(false) do |_acc, value| value end : "iapetus"
 Agent::Chat.run(name)

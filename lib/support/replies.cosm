@@ -1,7 +1,9 @@
 require "lib/support/models"
 
 def maybe_field(value, field)
-  let result = Kernel.try(->() { value.send(field) })
+  let result = Kernel.try do
+    value.send(field)
+  end
   result.ok ? result.value : false
 end
 

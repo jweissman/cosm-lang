@@ -32,11 +32,11 @@ pair.sum()
 ```
 
 ```cosm
-suite("math", ->() {
-  it("adds", ->() {
+suite("math") do
+  it("adds") do
     assert_equal(2 + 2, 4)
-  })
-})
+  end
+end
 ```
 
 ```cosm

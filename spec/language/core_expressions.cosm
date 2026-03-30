@@ -1,7 +1,7 @@
 require "cosm/spec.cosm"
 
-suite("Core language expressions", ->() {
-  it("covers scalar and operator basics", ->() {
+suite("Core language expressions") do
+  it("covers scalar and operator basics") do
     assert(1 + 1 == 2, "math still works")
     assert("co" + "sm" == "cosm", "string concatenation works")
     assert("co".plus("sm") == "cosm", "string instances can send plus directly")
@@ -15,9 +15,9 @@ suite("Core language expressions", ->() {
     assert(true.and(false) == false, "boolean instances can send and directly")
     assert(false.or(true) == true, "boolean instances can send or directly")
     assert(true.not() == false, "boolean instances can send not directly")
-  })
+  end
 
-  it("covers property reads and interpolation", ->() {
+  it("covers property reads and interpolation") do
     assert("cosm".length == 4, "strings expose length as a property")
     assert("items: " + [1, 2, 3].length == "items: 3", "arrays expose length as a property")
     assert({ left: 1, right: 2 }.length == 2, "hashes expose length as a property")
@@ -26,9 +26,9 @@ suite("Core language expressions", ->() {
     assert([1, 2].send(:eq, [1, 2]) == true, "structural equality can be driven through explicit eq send")
     assert("symbol=#{:ok}" == "symbol=:ok", "symbols format cleanly in interpolation")
     assert('#{1 + 1}' == '#{1 + 1}', "single-quoted strings do not interpolate")
-  })
+  end
 
-  it("lets locals feed later expressions", ->() {
+  it("lets locals feed later expressions") do
     heading = "Cosm"
     assert("""<h1>#{heading}</h1>""" == "<h1>Cosm</h1>", "triple-quoted strings can interpolate across multiple lines")
 
@@ -37,5 +37,5 @@ suite("Core language expressions", ->() {
     assert(pair.left == "hello", "locals can feed hashes")
     assert(pair.right == "hello cosm", "locals can be reused later")
     assert("#{greeting} cosm" == "hello cosm", "interpolation can see locals")
-  })
-})
+  end
+end

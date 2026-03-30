@@ -5,16 +5,28 @@ require "cosm/spec.cosm"
 assert_equal(Kernel.inspect(Kernel), "#<Kernel>")
 
 def kernel_examples()
-  it("math smoke", ->() { assert(1 + 1 == 2) })
-  it("expectEqual smoke", ->() { assert_equal([1, 2], [1, 2]) })
-  it("inspect smoke", ->() { assert(Kernel.inspect(Kernel) == "#<Kernel>") })
-  it("explicit send smoke", ->() { assert(Kernel.dispatch(1, :plus, 2) == 3) })
+  it("math smoke") do
+    assert(1 + 1 == 2)
+  end
+  it("expectEqual smoke") do
+    assert_equal([1, 2], [1, 2])
+  end
+  it("inspect smoke") do
+    assert(Kernel.inspect(Kernel) == "#<Kernel>")
+  end
+  it("explicit send smoke") do
+    assert(Kernel.dispatch(1, :plus, 2) == 3)
+  end
 end
 
 def callable_examples()
-  id = ->(x) { x }
-  it("function call smoke", ->() { assert(id.call(4) == 4) })
-  it("method call smoke", ->() { assert(Kernel.method(:assert).call(true, "ok") == true) })
+  let id = ->(x) { x }
+  it("function call smoke") do
+    assert(id.call(4) == 4)
+  end
+  it("method call smoke") do
+    assert(Kernel.method(:assert).call(true, "ok") == true)
+  end
 end
 
 class HarnessThing
@@ -25,11 +37,13 @@ class HarnessThing
 end
 
 def object_examples()
-  it("class smoke", ->() { assert(HarnessThing.new(3).value == 3) })
-  it("sad path", ->() {
+  it("class smoke") do
+    assert(HarnessThing.new(3).value == 3)
+  end
+  it("sad path") do
     error = expect_raises(->() { assert(false, "boom") }, "Assertion failed: boom")
     assert_equal(error.message, "Assertion failed: boom")
-  })
+  end
 end
 
 suite("kernel basics", kernel_examples)

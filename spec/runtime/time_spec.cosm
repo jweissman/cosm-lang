@@ -1,11 +1,11 @@
 require "cosm/spec.cosm"
 
-suite("Time", ->() {
-  it("iso helpers stay available", ->() {
+suite("Time") do
+  it("iso helpers stay available") do
     assert(Time.iso(0) == "1970-01-01T00:00:00.000Z")
     assert(Time.isoNow().length >= 20)
     assert(Time.fromIso("1970-01-01T00:00:00.000Z") == 0)
-  })
-})
+  end
+end
 
 "time spec complete"

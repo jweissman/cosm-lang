@@ -523,7 +523,11 @@ Kernel.warn("careful now")
 puts 'hello from cosm'
 test("smoke", ->() { assert true })
 require "cosm/spec.cosm"
-suite("smoke section", ->() { it("smoke", ->() { assert(true) }) })
+suite("smoke section") do
+  it("smoke") do
+    assert(true)
+  end
+end
 assert_equal([1, 2], [1, 2])
 require "lib/app/app"
 App::App.build().class.name

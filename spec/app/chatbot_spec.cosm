@@ -2,18 +2,18 @@ require "cosm/spec.cosm"
 require "lib/support/chat"
 require "lib/support/models"
 
-suite("Support chatbot helpers", ->() {
-  it("transcript appends stay stable", ->() {
+suite("Support chatbot helpers") do
+  it("transcript appends stay stable") do
     assert_equal(Support::Chat.append_transcript("", "user", "hello"), "user: hello")
     assert_equal(Support::Chat.append_transcript("user: hello", "assistant", "hi"), "user: hello\nassistant: hi")
-  })
-  it("step returns the structured chat-step model shape", ->() {
+  end
+  it("step returns the structured chat-step model shape") do
     let step = { transcript: "user: hello\nassistant: hi", reply: { should_reply: true, text: "hi", rationale: "mocked", tool_calls: false, tool_results: false } }
     assert(Support::Models.chat_step.validate(step) == true)
-  })
-  it("banner stays descriptive", ->() {
+  end
+  it("banner stays descriptive") do
     assert(Support::Chat.banner().length > 20)
-  })
-})
+  end
+end
 
 "chatbot spec complete"

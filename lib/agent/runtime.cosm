@@ -10,11 +10,11 @@ def identity = {
   control: "cosm",
   session_prefix: "agent:",
   persistence: "file-backed-thread"
-};
+}
 
-def conversation_key(channel, thread, transport = false) = transport == false || transport == "slack" ? channel + ":" + thread : transport + ":" + channel + ":" + thread;
+def conversation_key(channel, thread, transport = false) = transport == false || transport == "slack" ? channel + ":" + thread : transport + ":" + channel + ":" + thread
 
-def session_name(key) = identity().session_prefix + key;
+def session_name(key) = identity().session_prefix + key
 
 def target(channel, thread, transport = "slack", user = "visitor")
   {
@@ -74,9 +74,9 @@ end
 
 def save_conversation(conversation) = Agent::Store.save_conversation(conversation).conversation;
 
-def processed(inbound, event_key, transport = "slack") = Agent::Store.processed(conversation_key(inbound.channel, inbound.thread, transport), event_key);
+def processed(inbound, event_key, transport = "slack") = Agent::Store.processed(conversation_key(inbound.channel, inbound.thread, transport), event_key)
 
-def mark_processed(conversation, event_key) = Agent::Store.mark_processed(conversation, event_key);
+def mark_processed(conversation, event_key) = Agent::Store.mark_processed(conversation, event_key)
 
 def reset_target(target, transcript = false, context = false)
   let fresh = conversation_for_target(target, transcript, context)
@@ -102,7 +102,7 @@ def from_command(conversation, inbound, command)
   end
 end
 
-def fallback_reply(conversation, inbound, error_message) = Support::Controller.fallback(conversation, inbound, error_message);
+def fallback_reply(conversation, inbound, error_message) = Support::Controller.fallback(conversation, inbound, error_message)
 
 def activity_summary(turn)
   let base = turn.command == false ? turn.outcome : "command:" + turn.command
@@ -112,7 +112,9 @@ def activity_summary(turn)
 end
 
 def from_controller_turn(conversation, inbound)
-  let outcome = Kernel.try(->() { Support::Controller.turn(conversation, inbound) })
+  let outcome = Kernel.try do
+    Support::Controller.turn(conversation, inbound)
+  end
   let turn = outcome.ok ? outcome.value : Support::Models.agent_turn_result.build({
     conversation: Support::Controller.next_conversation(conversation, inbound, fallback_reply(conversation, inbound, outcome.error.message)),
     inbound: inbound,
