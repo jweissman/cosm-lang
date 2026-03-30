@@ -20,6 +20,7 @@ export class CosmMethodValue extends CosmValueBase {
     properties: {
       name: (self) => new CosmStringValue(self.name),
       receiver: (self) => self.receiver,
+      origin: (self) => new CosmStringValue(self.target.body ? "authored-cosm" : "native-ts"),
     },
     methods: {
       call: () => new CosmFunctionValue('call', (args, selfValue) => {

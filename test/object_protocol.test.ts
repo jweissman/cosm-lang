@@ -34,13 +34,15 @@ test("receiver-side methods() exposes visible reflective methods consistently", 
   expect(() => cosmEval("BasicObject.new().method(:basic_object_root)")).toThrow("object of class BasicObject has no property 'method'");
   expect(() => cosmEval("BasicObject.new().inspect()")).toThrow("object of class BasicObject has no property 'inspect'");
   expect(() => cosmEval("BasicObject.new().to_s()")).toThrow("object of class BasicObject has no property 'to_s'");
+  expect(cosmEval("Object.new().methods")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval("Object.new().methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval("Object.new().method(:send).name")).toBe("send");
+  expect(cosmEval("Object.methods")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }, { kind: "symbol", name: "new" }]));
   expect(cosmEval("Object.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }, { kind: "symbol", name: "new" }]));
   expect(cosmEval("1.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "plus" }]));
   expect(cosmEval("Kernel.methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "assert" }, { kind: "symbol", name: "dispatch" }]));
   expect(cosmEval("HttpRouter.new().method(:draw).name")).toBe("draw");
-  expect(cosmEval("classes.Object.methods.get(:send).name")).toBe("send");
+  expect(cosmEval("classes.Object.method(:send).name")).toBe("send");
 });
 
 test("receiver-side methods() includes inherited methods and agrees with method(:name)", () => {
@@ -281,10 +283,10 @@ test("real authored modules and Hologram wrappers expose the object model more h
   `)).toBe("GreetingTools");
   expect(cosmEval(`
     require "cosm/hologram"
-    holo = Cosm::Hologram.wrap({ answer: 41 })
+    holo = Cosm::Hologram.project_json({ answer: 41, nested: { ok: true }, missing: nihil })
     holo.set(:answer, 42)
-    holo.get(:answer)
-  `)).toBe(42);
+    [holo.get(:answer), holo.get(:missing).nihil?(), holo.targetClass.name]
+  `)).toEqual([42, true, "HostObject"]);
   expect(cosmEval(`
     require "cosm/hologram"
     Cosm::Hologram.wrap(Kernel).has(:assert)
@@ -314,7 +316,7 @@ test("real authored modules and Hologram wrappers expose the object model more h
   expect(cosmEval(`
     require "cosm/hologram"
     Cosm::Hologram.status().host_wrapper_kinds
-  `)).toEqual(["bun.headers"]);
+  `)).toEqual(["bun.headers", "json.object"]);
   expect(cosmEval(`
     require "cosm/hologram"
     Cosm::Hologram.status().rejects

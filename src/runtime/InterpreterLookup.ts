@@ -44,6 +44,18 @@ export class InterpreterLookup {
   static evalAccess(ast: CoreNode, env: CosmEnv, hooks: LookupHooks): CosmValue {
     return hooks.withFrame(`access ${this.describeAccessTarget(ast)}`, () => {
       const receiver = hooks.evalNode(hooks.expectChild(ast, "access"), env);
+      if (ast.value === "methods") {
+        try {
+          const sendTarget = RuntimeDispatch.resolveSendTarget(receiver, "methods", hooks.repository);
+          if (this.isZeroArityCallable(sendTarget)) {
+            return hooks.invokeFunction(sendTarget, [], { receiver, env });
+          }
+        } catch (error) {
+          if (!(error instanceof Error) || !error.message.includes("'methods'")) {
+            throw error;
+          }
+        }
+      }
       const value = hooks.lookupProperty(receiver, ast.value);
       if (this.shouldInvokeNullaryAccess(receiver, ast.value, value)) {
         return hooks.invokeFunction(value, [], { receiver, env });
@@ -132,9 +144,6 @@ export class InterpreterLookup {
   }
 
   private static shouldInvokeNullaryAccess(receiver: CosmValue, property: string, value: CosmValue): boolean {
-    if (property === "methods" || property === "classMethods") {
-      return false;
-    }
     if (receiver.type === "namespace") {
       return false;
     }

@@ -32,7 +32,7 @@ suite("Classes and reflection") do
     assert(Pair.name == "Pair", "class definitions bind a class value")
     assert(classes.Pair.name == "Pair", "class definitions appear in the reflective classes view")
     assert(Pair.slots.length == 2, "class definitions collect slots reflectively")
-    assert(Pair.methods.get(:label).name == "label", "class defs collect methods reflectively")
+    assert(Pair.instance_method(:label).name == "label", "class defs collect methods reflectively")
     assert(tuple.left == 1, "constructors assign slot values in order")
     assert(tuple.right == 2, "constructors assign later slot values in order")
     assert(tuple.label() == "1:2", "methods can use ivar shorthand for field provenance")
@@ -57,7 +57,7 @@ suite("Classes and reflection") do
     MixinGreeter.include(Support::LabelMixin)
     assert(MixinGreeter.new().label() == "label-from-mixin", "classes can include module-backed instance behavior")
     assert(MixinGreeter.new().method(:label).name == "label", "receiver reflection includes mixed-in methods")
-    assert(MixinGreeter.methods.get(:label).name == "label", "class-table reflection includes mixed-in methods")
+    assert(MixinGreeter.instance_method(:label).name == "label", "class-side reflection can still name instance methods explicitly")
 
     class BaseMixer do
       def label()

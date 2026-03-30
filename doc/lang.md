@@ -52,7 +52,7 @@ In `0.3.12.x`, stabby lambdas remain the only standalone parameterized lambda fo
 - `class Name < Superclass do ... end`
 - `class Name ... end` is also accepted without the extra `do`
 
-Class bodies currently support instance methods via `def name(...)` and explicit class methods via `def self.name(...)`. A method named `init` defines constructor arity and field names; its parameter list becomes the class's declared fields. Class definitions bind a class value, appear in `classes`, and expose collected slots and methods through `.slots`, `.methods`, and `.classMethods`.
+Class bodies currently support instance methods via `def name(...)` and explicit class methods via `def self.name(...)`. A method named `init` defines constructor arity and field names; its parameter list becomes the class's declared fields. Class definitions bind a class value, appear in `classes`, and expose collected slots plus explicit callable lookup through `.slots`, `method(:name)`, and `classMethod(:name)`.
 Instances can be created with `ClassName.new(...)`, and constructor arguments are still assigned positionally to the fields implied by `init`. Maintained authored code should now prefer explicit ivar setup inside `init`, for example `def init(value) @value = value end`, rather than treating slot assignment as hidden magic.
 Inside instance methods, `@name` is shorthand for reading the instance field named `name`. This makes object-state provenance explicit without replacing `self.name`.
 Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
@@ -432,7 +432,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.37`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.38`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -573,7 +573,7 @@ rescue err
 end
 require "cosm/hologram"
 Cosm::Hologram.status().mode
-Cosm::Hologram.wrap({ answer: 41 }).set(:answer, 42)
+Cosm::Hologram.project_json({ answer: 41, missing: nihil }).set(:answer, 42)
 let headers = http.headers({ accept: "application/json" })
 Mirror.reflect(headers).inspect()
 Cosm::Hologram.wrap(headers).get(:accept)
@@ -603,14 +603,14 @@ Cosm.values().length
 :status.name
 Symbol.intern("status").name
 1.send(:plus, 2)
-classes.Kernel.methods.get(:assert).name
-classes.Http.methods.get(:serve).name
-classes.HttpServer.methods.get(:stop).name
-classes.Object.methods.get(:send).name
+classes.Kernel.method(:assert).name
+classes.Http.method(:serve).name
+classes.HttpServer.method(:stop).name
+classes.Object.method(:send).name
 classes.Class.method(:new).name
-classes.Function.methods.get(:call).name
+classes.Function.method(:call).name
 classes.Symbol.classMethod(:intern).name
-classes.Kernel.methods.get(:assert).name
+classes.Kernel.method(:assert).name
 classes.Namespace.method(:keys).name
 1.send(Symbol.intern("plus"), 2)
 [1, 2].class.name
@@ -637,8 +637,8 @@ do let x = 1; x + 2 end
 - Interpolation currently accepts values that can already be string-concatenated: strings, numbers, and booleans.
 - Triple-quoted strings remain the small inline multiline template form in `0.3.12.x`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
 - `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.12.x` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
-- `methods()` on live receivers is now the intended everyday reflection path; `Mirror` stays the readonly wrapper path, and `.methods` / `.classMethods` on class objects remain the explicit class-table views.
-- ordinary access now invokes zero-arity callables by default, except that `.methods` and `.classMethods` remain explicit reflective-table exceptions
+- `methods` / `methods()` on live receivers is now the intended everyday reflection path, including class objects.
+- ordinary access now invokes zero-arity callables by default; `method(:name)` and `classMethod(:name)` are the callable-as-data escape hatches.
 - `BasicObject` is now the minimal root. Everyday reflection and text protocol begin on `Object`, not on every possible receiver.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `module Name ... end` is now the narrow authored-module form for mixins and grouped helper surfaces.
@@ -666,11 +666,11 @@ do let x = 1; x + 2 end
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape. `Mirror.status()` now makes that contract explicit.
-- `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the current proof path now includes a Bun-backed headers object while the native `HttpRequest` / `HttpResponse` layer remains transitional. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
+- `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the current proof path now includes a Bun-backed HTTP headers object for readonly observation plus a JSON-shaped writable projection for Cosm-authored objects while the native `HttpRequest` / `HttpResponse` layer remains transitional. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
 - `~=` is the explicit semantic comparison seam in `0.3.13.x`. `Cosm::AI.cast(...)` is the explicit semantic-to-structured cast surface. `~` is intentionally deferred until a later boundary/interop line.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
-- Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects and intentionally do not auto-invoke away; when you want a callable as data rather than an invoked nullary send, use explicit lookup like `classes.Kernel.methods.get(:assert)` or `Greeter.classMethod(:label)`.
-- Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
+- Receiver-side `methods` / `methods()` is the visible symbol-list surface. When you want a callable as data rather than an invoked nullary send, use explicit lookup like `classes.Kernel.method(:assert)` or `Greeter.classMethod(:label)`.
+- Lower-level reflective method tables still exist where the runtime needs them, but they are no longer the taught everyday surface.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.
 - Some primitive behavior now lives directly on the TS runtime value classes, and the interpreter consults those native properties/methods before falling back to repository/class lookup.

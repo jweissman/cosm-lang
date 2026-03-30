@@ -25,6 +25,16 @@ test("receiver-side methods() reflects inherited visible methods consistently", 
     end
     Child.new().method(:greet).name
   `)).toBe("greet");
+  expect(cosmEval(`
+    class Base
+      def greet()
+        "hi"
+      end
+    end
+    class Child < Base
+    end
+    Child.new().methods
+  `)).toEqual(expect.arrayContaining([{ kind: "symbol", name: "greet" }]));
 });
 
 test("Process.exit can be hooked and validates codes", () => {
@@ -56,6 +66,7 @@ test("Kernel.eval and Kernel.tryEval delegate to the default explicit session", 
   expect(cosmEval('Kernel.tryEval("let repeated = 1\\nlet repeated = 2\\nrepeated").inspect')).toBe("2");
   expect(cosmEval("Session.default().name")).toBe("default");
   expect(cosmEval("Session.default().history().length >= 4")).toBe(true);
+  expect(cosmEval('Kernel.eval("")')).toBeNull();
   expect(cosmEval('Kernel.tryEval("let = 1").ok')).toBe(false);
   expect(cosmEval('Kernel.tryEval("let = 1").error.message.length > 0')).toBe(true);
   expect(cosmEval("Kernel.resetSession()")).toBe(true);

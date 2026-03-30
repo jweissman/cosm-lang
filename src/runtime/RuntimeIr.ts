@@ -164,13 +164,13 @@ export class RuntimeIr {
           popValue();
           break;
         case "return":
-          return stack.pop() ?? Construct.bool(true);
+          return stack.pop() ?? Construct.nihil();
         default:
           return this.never(instruction);
       }
     }
 
-    return stack.pop() ?? Construct.bool(true);
+    return stack.pop() ?? Construct.nihil();
   }
 
   private static compileNode(ast: CoreNode, instructions: IrInstruction[]): void {

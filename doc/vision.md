@@ -91,9 +91,9 @@ The exact semantics are still being clarified, but the direction matters:
 
 The current proof direction should be:
 
-- use `Mirror` and `Hologram` to wrap real host-provided objects
-- start with Bun/HTTP-adjacent objects before broader external-library work
-- use that path to eventually shrink bespoke TS-native boundary wrappers rather than adding more of them
+- use `Mirror` to observe a real host-backed HTTP object through a readonly reflective surface
+- use `Hologram` to project a Cosm object into a JSON-shaped writable host boundary
+- use those two proof cases to eventually shrink bespoke TS-native boundary wrappers rather than adding more of them
 - keep transport primitives host-owned where possible, while leaving routing/policy surfaces Cosm-facing longer when that improves legibility
 
 That same model could later serve:
@@ -115,12 +115,12 @@ The runtime should keep moving toward these principles:
 
 ## What Comes Next
 
-The highest-value next work is not “more syntax.”
+The highest-value next work after the `0.3.13.x` closeout is not “more syntax.”
 
 It is:
 
-- finishing object-protocol cleanup
-- clarifying boundary semantics
+- finishing the object/reflection cleanup
+- settling one concrete boundary proof
 - introducing a real persistence boundary
 - only then adding richer tool/runtime and concurrency ideas
 

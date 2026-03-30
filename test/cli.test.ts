@@ -480,7 +480,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.37");
+  expect(result.stdout.trim()).toBe("0.3.13.38");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 

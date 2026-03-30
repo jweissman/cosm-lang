@@ -130,8 +130,8 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("1.plus(2)")).toBe(3);
   expect(cosmEval("class Pair do def init(left, right) do @left = left; @right = right end end; Pair.slots.length")).toBe(2);
   expect(cosmEval("class Pair do def init(left, right) do @left = left; @right = right end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
-  expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
-  expect(cosmEval('class Greeter def greet(name) "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
+  expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.method(:greet).name')).toBe("greet");
+  expect(cosmEval('class Greeter def greet(name) "hello " + name end end; Greeter.method(:greet).name')).toBe("greet");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).name')).toBe("label");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label)()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).call()')).toBe("Greeter!");

@@ -119,11 +119,7 @@ export class RuntimeDispatch {
   static reflectMethod(receiver: CosmValue, messageValue: CosmValue, repository: RuntimeRepository): CosmValue {
     const message = this.messageName(messageValue);
     if (receiver.type === "class") {
-      const nativeMethod = receiver.nativeMethod(message);
-      if (nativeMethod) {
-        return this.bindMethod(receiver, nativeMethod);
-      }
-      const candidate = this.lookupProperty(receiver, message, repository);
+      const candidate = this.resolveSendTarget(receiver, message, repository);
       if (!this.isCallable(candidate)) {
         throw new Error(`Type error: property '${message}' is not a method`);
       }
@@ -215,6 +211,12 @@ export class RuntimeDispatch {
     message: string,
     repository: RuntimeRepository,
   ): CosmValue {
+    if (receiver.type === "class" && message === "methods") {
+      const instanceEntry = receiver.lookupInstanceMethodEntry(message);
+      if (instanceEntry) {
+        return this.bindMethod(receiver, instanceEntry.method, instanceEntry.token);
+      }
+    }
     try {
       return this.lookupProperty(receiver, message, repository);
     } catch (error) {

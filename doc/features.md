@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.37
+## Current Release Target: 0.3.13.38
 
-`0.3.13.24`-`0.3.13.37` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, tooling-consolidation, core-programmability, intrinsic-ownership, and VM-legibility line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.38` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, tooling-consolidation, core-programmability, intrinsic-ownership, reflection-cleanup, and VM-legibility line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`

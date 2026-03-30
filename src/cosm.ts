@@ -175,7 +175,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.37");
+        cosmRoot.fields.version = Construct.string("0.3.13.38");
       }
       return repository;
     }
@@ -204,7 +204,7 @@ namespace Cosm {
     }
 
     private static evalStatements(statements: CoreNode[], env: Env): CosmValue {
-      let result: CosmValue = Construct.bool(true);
+      let result: CosmValue = Construct.nihil();
       for (const statement of statements) {
         result = this.evalNode(statement, env);
       }
@@ -272,6 +272,11 @@ namespace Cosm {
         for (const moduleValue of authoredClass.includedModules) {
           targetClass.includeModule(moduleValue);
         }
+
+        // Facade merges remain intentionally simple in 0.3.13.x. The owner token
+        // keeps authored Cosm methods distinguishable from native substrate
+        // methods for debugging/reflection without introducing a reversible
+        // facade registry yet.
       };
 
       for (const [className, fileName] of [
@@ -558,6 +563,9 @@ namespace Cosm {
     }
 
     static evalInEnv(input: string, env: Env): CosmValue {
+      if (input.trim().length === 0) {
+        return Construct.nihil();
+      }
       return this.withFrame('eval <input>', () => this.evalNode(this.coreAst(input), env));
     }
 
@@ -566,6 +574,9 @@ namespace Cosm {
     }
 
     static evalVmInEnv(input: string, env: Env): CosmValue {
+      if (input.trim().length === 0) {
+        return Construct.nihil();
+      }
       return this.withFrame('vm <input>', () =>
         RuntimeIr.execute(this.ir(input), env, {
           lookupName: (name, scope) => this.lookupName(name, scope),
@@ -588,6 +599,9 @@ namespace Cosm {
     }
 
     static coreAst(input: string): CoreNode {
+      if (input.trim().length === 0) {
+        return { kind: "program", value: "", children: [] };
+      }
       return Parser.parse(input);
     }
 
@@ -670,6 +684,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.37";
+    export const version = "0.3.13.38";
 }
 export default Cosm;

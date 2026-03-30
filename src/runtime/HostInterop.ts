@@ -1,3 +1,4 @@
+import { ValueAdapter } from "../ValueAdapter";
 import { CosmValue } from "../types";
 import { CosmStringValue } from "../values/CosmStringValue";
 
@@ -27,6 +28,30 @@ export function createHeadersAdapter(): HostCapabilityAdapter<Headers> {
       const rendered = value instanceof CosmStringValue ? value.value : value.toCosmString("interpolate");
       target.set(key, rendered);
       return new CosmStringValue(rendered);
+    },
+  };
+}
+
+type JsonObjectTarget = Record<string, unknown>;
+
+export function createJsonObjectAdapter(): HostCapabilityAdapter<JsonObjectTarget> {
+  return {
+    kind: "json.object",
+    inspect: (target) => {
+      const entries = Object.entries(target).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(", ");
+      return entries.length > 0 ? `#<HostObject json.object ${entries}>` : "#<HostObject json.object>";
+    },
+    keys: (target) => Object.keys(target),
+    has: (target, key) => Object.hasOwn(target, key),
+    get: (target, key) => {
+      if (!Object.hasOwn(target, key)) {
+        return undefined;
+      }
+      return ValueAdapter.jsToCosm(target[key] as Parameters<typeof ValueAdapter.jsToCosm>[0]);
+    },
+    set: (target, key, value) => {
+      target[key] = ValueAdapter.cosmToJS(value);
+      return ValueAdapter.jsToCosm(target[key] as Parameters<typeof ValueAdapter.jsToCosm>[0]);
     },
   };
 }

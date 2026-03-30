@@ -11,6 +11,7 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmSymbolValue } from "./CosmSymbolValue";
 import { ValueAdapter } from "../ValueAdapter";
+import { createJsonObjectAdapter } from "../runtime/HostInterop";
 
 type SupportedTarget = CosmHashValue | CosmObjectValue | CosmHostObjectValue;
 
@@ -89,6 +90,15 @@ export class CosmHologramHandleValue extends CosmObjectValue {
         }
         return CosmHologramHandleValue.wrap(args[0], selfValue);
       }),
+      projectJson: () => new CosmFunctionValue("projectJson", (args, selfValue) => {
+        if (!(selfValue instanceof CosmClassValue)) {
+          throw new Error("Type error: HologramHandle.projectJson expects a class receiver");
+        }
+        if (args.length !== 1) {
+          throw new Error(`Arity error: HologramHandle.projectJson expects 1 arguments, got ${args.length}`);
+        }
+        return CosmHologramHandleValue.projectJson(args[0], selfValue);
+      }),
       status: () => new CosmFunctionValue("status", (args) => {
         if (args.length !== 0) {
           throw new Error(`Arity error: HologramHandle.status expects 0 arguments, got ${args.length}`);
@@ -111,6 +121,7 @@ export class CosmHologramHandleValue extends CosmObjectValue {
           ]),
           host_wrapper_kinds: new CosmArrayValue([
             new CosmStringValue("bun.headers"),
+            new CosmStringValue("json.object"),
           ]),
           readable_surface: new CosmArrayValue([
             new CosmStringValue("targetClass"),
@@ -141,6 +152,17 @@ export class CosmHologramHandleValue extends CosmObjectValue {
       throw new Error(`Type error: Hologram.wrap currently supports Hash, object-like values, and supported host-backed values, got ${value.type}`);
     }
     return new CosmHologramHandleValue(value, classRef);
+  }
+
+  static projectJson(value: CosmValue, classRef?: CosmClassValue): CosmHologramHandleValue {
+    const projected = ValueAdapter.cosmToJS(value);
+    if (projected === null || Array.isArray(projected) || typeof projected !== "object") {
+      throw new Error("Type error: Hologram.project_json expects an object-like Cosm value");
+    }
+    return new CosmHologramHandleValue(
+      new CosmHostObjectValue(projected as Record<string, unknown>, createJsonObjectAdapter()),
+      classRef,
+    );
   }
 
   constructor(

@@ -3,6 +3,8 @@ module Hologram
 
   def wrap value = HologramHandle.wrap(value)
 
+  def project_json value = HologramHandle.projectJson(value)
+
   def readable_surface = status().readable_surface
 
   def intended_role = status().intended_role

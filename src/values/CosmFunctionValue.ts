@@ -20,6 +20,7 @@ export class CosmFunctionValue extends CosmValueBase {
   static readonly manifest: RuntimeValueManifest<CosmFunctionValue> = {
     properties: {
       name: (self) => new CosmStringValue(self.name),
+      origin: (self) => new CosmStringValue(self.body ? "authored-cosm" : "native-ts"),
     },
     methods: {
       call: () => new CosmFunctionValue('call', (args, selfValue, env) => {

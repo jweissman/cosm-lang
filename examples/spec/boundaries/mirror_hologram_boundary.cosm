@@ -3,6 +3,8 @@ require "cosm/hologram"
 let headers = http.headers({ accept: "notebook" })
 let reflected = Mirror.reflect(headers)
 let reflected_inspect = reflected.inspect()
-let holo = Cosm::Hologram.wrap(headers)
-holo.set("x-runtime", "cosm")
-[Mirror.status().mode, Cosm::Hologram.status().intended_role, reflected_inspect, holo.get(:accept), holo.get("x-runtime")]
+let host_holo = Cosm::Hologram.wrap(headers)
+host_holo.set("x-runtime", "cosm")
+let json_holo = Cosm::Hologram.project_json({ answer: 41, active: true, missing: nihil })
+json_holo.set(:answer, 42)
+[Mirror.status().mode, Cosm::Hologram.status().intended_role, reflected_inspect, host_holo.get(:accept), host_holo.get("x-runtime"), json_holo.get(:answer), json_holo.get(:missing).nihil?()]
