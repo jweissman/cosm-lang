@@ -3,6 +3,7 @@ import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
 
 type LookupHooks = {
   lookupProperty: (receiver: CosmValue, property: string) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: { receiver?: CosmValue; env?: CosmEnv }) => CosmValue;
   classesObject: (env: CosmEnv) => CosmValue;
   evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
   expectChild: (ast: CoreNode, op: string) => CoreNode;
@@ -43,7 +44,11 @@ export class InterpreterLookup {
   static evalAccess(ast: CoreNode, env: CosmEnv, hooks: LookupHooks): CosmValue {
     return hooks.withFrame(`access ${this.describeAccessTarget(ast)}`, () => {
       const receiver = hooks.evalNode(hooks.expectChild(ast, "access"), env);
-      return hooks.lookupProperty(receiver, ast.value);
+      const value = hooks.lookupProperty(receiver, ast.value);
+      if (this.shouldInvokeNullaryAccess(receiver, ast.value, value)) {
+        return hooks.invokeFunction(value, [], { receiver, env });
+      }
+      return value;
     });
   }
 
@@ -124,5 +129,26 @@ export class InterpreterLookup {
       }
       throw error;
     }
+  }
+
+  private static shouldInvokeNullaryAccess(receiver: CosmValue, property: string, value: CosmValue): boolean {
+    if (property === "methods" || property === "classMethods") {
+      return false;
+    }
+    if (receiver.type === "namespace") {
+      return false;
+    }
+    return this.isZeroArityCallable(value);
+  }
+
+  private static isZeroArityCallable(value: CosmValue): boolean {
+    if (value.type === "function") {
+      return (value.params?.length ?? 0) === 0 && !value.restParam;
+    }
+    if (value.type === "method") {
+      const target = value.target;
+      return (target.params?.length ?? 0) === 0 && !target.restParam;
+    }
+    return false;
   }
 }

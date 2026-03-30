@@ -1,18 +1,22 @@
 module Mapping
-  def first
+  def first()
     let pairs = self.take(1).map do |key, value| [key, value] end
     pairs.length == 1 ? pairs.first() : nihil
   end
 
-  def keys
+  def keys()
     self.map do |key, _value| key end
   end
 
-  def values
+  def values()
     self.map do |_key, value| value end
   end
 
-  def has_key?(target) = self.find do |key, _value| key == target end.nihil?() == false
+  def has_key?(target)
+    self.find do |key, _value|
+      key == target
+    end.nihil?() ? false : true
+  end
 
   def has_key(target) = self.has_key?(target)
 end

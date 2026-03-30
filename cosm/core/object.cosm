@@ -1,17 +1,35 @@
 class Object < BasicObject
-  def receiver_name = self.class.name
+  def receiver_name() = self.class.name
 
-  def nihil? = self.class.name == "Nihil"
+  def class_name() = self.class.name
 
-  def falsy? = self == false || self.nihil?()
+  def nihil?() = self.class.name == "Nihil"
 
-  def truthy? = self.falsy?() == false
+  def falsy?() = self == false || self.nihil?()
 
-  def present? = self.falsy?() == false
+  def truthy?()
+    self.falsy?() ? false : true
+  end
 
-  def blank? = self.present?() == false
+  def present?()
+    self.falsy?() ? false : true
+  end
 
-  def method_names
+  def blank?()
+    self.present?() ? false : true
+  end
+
+  def presence()
+    self.present?() ? self : nihil
+  end
+
+  def same?(other) = self == other
+
+  def inspect_text() = self.inspect()
+
+  def text() = self.to_s()
+
+  def method_names()
     self.methods().map do |name|
       name.name
     end

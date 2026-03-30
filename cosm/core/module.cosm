@@ -1,13 +1,21 @@
 class Module < Object
-  def entry_names
+  def entry_symbols() = self.keys()
+
+  def entry_names()
     self.keys().map do |name|
       name.name
     end
   end
 
-  def entry_count = self.keys().length
+  def entry_count() = self.keys().length
 
-  def has_entry?(name) = self.keys().include(name)
+  def has_entry?(name)
+    self.keys().find do |entry|
+      entry == name
+    end.nihil?() ? false : true
+  end
+
+  def includes_entry?(name) = self.has_entry?(name)
 
   def include_into(target) = target.include(self)
 end

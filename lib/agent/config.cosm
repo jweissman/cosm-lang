@@ -1,6 +1,15 @@
-def env(primary, legacy = false)
+def env(primary, legacy = nihil)
   let current = Process.env(primary)
-  current != false ? current : (legacy == false ? false : Process.env(legacy))
+  if current == false then
+    if legacy.nihil?() then
+      nihil
+    else
+      let fallback = Process.env(legacy)
+      fallback == false ? nihil : fallback
+    end
+  else
+    current
+  end
 end
 
 def slack_signing_secret = env("SLACK_SIGNING_SECRET", "COSM_SLACK_SIGNING_SECRET");
@@ -15,19 +24,19 @@ def slack_client_secret = env("SLACK_CLIENT_SECRET");
 
 def slack_api_url()
   let configured = env("SLACK_API_URL", "COSM_SLACK_API_URL")
-  configured == false ? "https://slack.com/api/chat.postMessage" : configured
+  configured.nihil?() ? "https://slack.com/api/chat.postMessage" : configured
 end
 
 def slack_storage_dir()
   let configured = env("SLACK_STORAGE_DIR", "COSM_SLACK_DIR")
-  configured == false ? "var/slack/threads" : configured
+  configured.nihil?() ? "var/slack/threads" : configured
 end
 
 def slack_allowed_channels_raw = env("SLACK_ALLOWED_CHANNELS");
 
 def slack_allowed_channels()
   let raw = slack_allowed_channels_raw()
-  if raw == false then
+  if raw.nihil?() then
     []
   else
     let trimmed = raw.split(",").map do |entry|
@@ -43,16 +52,16 @@ def slack_channel_ingress_enabled() = slack_allowed_channels().length > 0;
 
 def agent_port()
   let configured = env("AGENT_PORT", "COSM_AGENT_PORT")
-  configured == false ? 12456 : configured.to_i()
+  configured.nihil?() ? 12456 : configured.to_i()
 end
 
 def slack_config_status()
   {
-    signing_secret: slack_signing_secret() != false,
-    bot_token: slack_bot_token() != false,
-    app_id: slack_app_id() != false,
-    client_id: slack_client_id() != false,
-    client_secret: slack_client_secret() != false,
+    signing_secret: slack_signing_secret().present?(),
+    bot_token: slack_bot_token().present?(),
+    app_id: slack_app_id().present?(),
+    client_id: slack_client_id().present?(),
+    client_secret: slack_client_secret().present?(),
     api_url: slack_api_url(),
     storage_dir: slack_storage_dir(),
     allowed_channels: slack_allowed_channels(),

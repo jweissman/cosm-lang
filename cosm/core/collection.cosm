@@ -1,13 +1,17 @@
 module Collection
-  def count = self.length
+  def count() = self.length
 
-  def empty? = self.length == 0
+  def empty?() = self.length == 0
 
-  def empty = self.empty?()
+  def empty() = self.empty?()
 
-  def present? = self.empty?() == false
+  def present?()
+    self.empty?() ? false : true
+  end
 
-  def present = self.present?()
+  def present() = self.present?()
 
-  def presence = self.present?() ? self : nihil
+  def presence()
+    self.present?() ? self : nihil
+  end
 end

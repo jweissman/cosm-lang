@@ -1,19 +1,38 @@
 class Class < Module
-  def lineage = self.lineage_from(self, [])
+  def lineage() = self.lineage_from(self, [])
 
-  def lineage_from(current, labels) = current.nihil?() ? labels : self.lineage_from(current.superclass, labels.append(current.name))
+  def lineage_from(current, labels)
+    if current.nihil?() then
+      labels
+    else
+      let next_labels = labels.append(current.name)
+      current.name == "BasicObject" ? next_labels : self.lineage_from(current.superclass, next_labels)
+    end
+  end
 
-  def included_module_names
+  def ancestor_names() = self.lineage()
+
+  def included_module_names()
     self.includedModules.map do |mod|
       mod.name
     end
   end
 
-  def superclass_name = self.superclass.nihil?() ? nihil : self.superclass.name
+  def superclass_name() = self.name == "BasicObject" ? nihil : (self.superclass.nihil?() ? nihil : self.superclass.name)
 
-  def root? = self.superclass.nihil?()
+  def root?() = self.name == "BasicObject" ? true : self.superclass.nihil?()
+
+  def includes_module?(target)
+    let target_name = target.class_name() == "Module" ? target.name : target
+    self.included_module_names().find do |name|
+      name == target_name
+    end.nihil?() ? false : true
+  end
 
   def inherits_from?(target)
-    self.lineage().include(target.name)
+    let target_name = target.class_name() == "Class" ? target.name : target
+    self.lineage().find do |name|
+      name == target_name
+    end.nihil?() ? false : true
   end
 end

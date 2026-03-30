@@ -1,5 +1,5 @@
 module Enumerable
-  def any(callback = nihil) = callback.nihil?() ? self.present?() : self.find(callback).nihil?() == false
+  def any(callback = nihil) = callback.nihil?() ? self.present?() : (self.find(callback).nihil?() ? false : true)
 
   def all(callback)
     self.reduce(true) do |acc, value|
@@ -7,13 +7,13 @@ module Enumerable
     end
   end
 
-  def none? = self.empty?()
+  def none?() = self.empty?()
 
-  def none = self.none?()
+  def none() = self.none?()
 
-  def one? = self.length == 1
+  def one?() = self.length == 1
 
-  def one = self.one?()
+  def one() = self.one?()
 
   def filter(callback) = self.select(callback)
 
@@ -40,7 +40,7 @@ module Enumerable
 
   def flat_map(callback)
     self.map(callback).reduce([]) do |acc, value|
-      if value.class.name == "Array" then
+      if value.class_name() == "Array" then
         value.reduce(acc) do |next, item|
           next.append(item)
         end
@@ -50,7 +50,7 @@ module Enumerable
     end
   end
 
-  def sum = self.reduce(0) do |acc, value| acc + value end
+  def sum() = self.reduce(0) do |acc, value| acc + value end
 
   def sum_by(callback)
     let missing = :__cosm_sum_by_missing__

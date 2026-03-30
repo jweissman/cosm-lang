@@ -1,5 +1,5 @@
 class Array < Object
-  def second() = self.length > 1 ? self.take(2).last() : false;
+  def second() = self.length > 1 ? self.take(2).last() : nihil
 end
 
 Array.include(Cosm::Core::Collection)

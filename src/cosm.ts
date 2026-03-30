@@ -175,7 +175,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.34");
+        cosmRoot.fields.version = Construct.string("0.3.13.35");
       }
       return repository;
     }
@@ -449,6 +449,7 @@ namespace Cosm {
     private static lookupName(name: string, env: Env): CosmValue {
       return InterpreterLookup.lookupName(name, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
         classesObject: (scope) => this.classesObject(scope),
         evalNode: (ast, scope) => this.evalNode(ast, scope),
         expectChild: (ast, op) => this.expectChild(ast, op),
@@ -460,6 +461,7 @@ namespace Cosm {
     private static lookupClass(name: string, env: Env): CosmClass {
       return InterpreterLookup.lookupClass(name, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
         classesObject: (scope) => this.classesObject(scope),
         evalNode: (ast, scope) => this.evalNode(ast, scope),
         expectChild: (ast, op) => this.expectChild(ast, op),
@@ -475,6 +477,7 @@ namespace Cosm {
     private static evalAccess(ast: CoreNode, env: Env): CosmValue {
       return InterpreterLookup.evalAccess(ast, env, {
         lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
+        invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
         classesObject: (scope) => this.classesObject(scope),
         evalNode: (node, scope) => this.evalNode(node, scope),
         expectChild: (node, op) => this.expectChild(node, op),
@@ -667,6 +670,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.34";
+    export const version = "0.3.13.35";
 }
 export default Cosm;

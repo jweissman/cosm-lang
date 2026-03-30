@@ -1,7 +1,7 @@
 require "cosm/test"
 
 def with_block_or(callable = nihil)
-  if callable.nihil?() == false then
+  if callable.present?() then
     callable
   else
     if Kernel.blockGiven() then
@@ -54,7 +54,7 @@ class Expectation
     end
 
     error = result.error
-    if message.nihil?() == false then
+    if message.present?() then
       assert_equal(error.message, message)
     else
       nihil
@@ -97,7 +97,7 @@ def expect_raises(body, message = nihil)
     nihil
   end
   error = result.error
-  if message.nihil?() == false then
+  if message.present?() then
     assert_equal(error.message, message)
   else
     nihil

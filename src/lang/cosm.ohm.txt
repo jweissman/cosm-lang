@@ -18,6 +18,15 @@ Cosm {
     | BareCallStmt
     | Exp
 
+  QualifiedNullaryCallStmt
+    = QualifiedNullaryCallee
+
+  QualifiedNullaryCallee
+    = ConstPath QualifiedNullaryCalleeTail+
+
+  QualifiedNullaryCalleeTail
+    = "." name
+
   BareCallStmt
     = BareCallee BareCallArgs TrailingBlock?  -- args
     | BareCallee TrailingBlock                -- block

@@ -137,6 +137,13 @@ Current priority:
 - deepen the authored `Object` / `Module` / `Class` facades so everyday behavior is less TS-owned
 - remove the weak `Cosm::AI.boundary()` doc-hash helper and keep the authored AI facade focused on operational surfaces
 
+### `0.3.13.35`: Core Programmability Lift and Conservative Nullary Call Elision
+
+- add a conservative nullary-call ergonomic path for low-ambiguity qualified authored call sites without broadening into full Ruby-style call elision
+- deepen `cosm/core/*` so `Object`, `Module`, and `Class` carry more ordinary reflection, ancestry, text, and predicate behavior
+- keep replacing false-ish missing-value checks in maintained authored code with `nihil`, `present?`, `truthy?`, and `falsy?`
+- keep the example corpus and VM corridor honest by pressuring these authored-core changes through real examples rather than synthetic runtime-only fixtures
+
 ### `0.3.14.x`: Persistence, Tools, and Concurrency
 
 - introduce a real store boundary

@@ -55,7 +55,7 @@ Latest user message:
 #{latest_text}
 """);
 
-def system_message() = { role: "system", content: Support::PromptData.iapetus_system() };
+def system_message() = { role: "system", content: Support::PromptData.iapetus_system };
 
 def context_message(context) = { role: "system", content: "Attached page context:\n" + context };
 

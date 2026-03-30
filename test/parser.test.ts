@@ -11,6 +11,8 @@ test("parser accepts narrow bare-call sugar", () => {
   expect(() => Parser.parse("assert true")).not.toThrow();
   expect(() => Parser.parse("Kernel.puts 'hello'")).not.toThrow();
   expect(() => Parser.parse("puts :ok")).not.toThrow();
+  expect(() => Parser.parse('Cosm::AI.status')).not.toThrow();
+  expect(() => Parser.parse('Support::PromptData.iapetus_system')).not.toThrow();
 });
 
 test("parser accepts require and optional do elision", () => {
@@ -109,6 +111,8 @@ test("parser lowers trailing do-end blocks on calls", () => {
 test("parser keeps bare-call sugar statement-oriented", () => {
   expect(() => Parser.parse("assert(assert true == true)")).toThrow("Parse error:");
   expect(() => Parser.parse("->() { assert true }")).not.toThrow();
+  expect(() => Parser.parse("let status = 1\nstatus")).not.toThrow();
+  expect(() => Parser.parse('let value = Cosm::AI.status')).not.toThrow();
 });
 
 test("parser accepts the canonical app/server.cosm shape", () => {

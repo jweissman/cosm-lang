@@ -97,6 +97,21 @@ export class Parser {
           value: '',
           left: statement.ast(),
         }),
+        QualifiedNullaryCallStmt: (callee) => ({
+          kind: 'call',
+          value: '',
+          left: callee.ast(),
+          children: [],
+        }),
+        QualifiedNullaryCallee: (head, tails) => tails.children.reduce((receiver, tail) => ({
+          kind: 'access',
+          value: tail.ast().value,
+          left: receiver,
+        }), head.ast()),
+        QualifiedNullaryCalleeTail: (_dot, name) => ({
+          kind: 'access',
+          value: name.sourceString,
+        }),
         AssignStmt_local: (name, _eq, expr) => ({
           kind: 'assign_stmt',
           value: name.sourceString,

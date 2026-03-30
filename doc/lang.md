@@ -277,7 +277,7 @@ class Greeter do
   end
 end;
 
-Greeter.classMethods.label.name
+Greeter.classMethod(:label).name
 ```
 
 ```cosm
@@ -432,7 +432,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.34`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.35`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -603,14 +603,15 @@ Cosm.values().length
 :status.name
 Symbol.intern("status").name
 1.send(:plus, 2)
-classes.Kernel.methods.assert.name
-classes.Http.methods.serve.name
-classes.HttpServer.methods.stop.name
-classes.Object.methods.send.name
-classes.Class.methods.new.name
-classes.Function.methods.call.name
-classes.Symbol.classMethods.intern.name
-classes.Kernel.methods.assert.name
+classes.Kernel.methods.get(:assert).name
+classes.Http.methods.get(:serve).name
+classes.HttpServer.methods.get(:stop).name
+classes.Object.methods.get(:send).name
+classes.Class.method(:new).name
+classes.Function.methods.get(:call).name
+classes.Symbol.classMethod(:intern).name
+classes.Kernel.methods.get(:assert).name
+classes.Namespace.method(:keys).name
 1.send(Symbol.intern("plus"), 2)
 [1, 2].class.name
 "cosm".length
@@ -667,7 +668,7 @@ do let x = 1; x + 2 end
 - `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the current proof path now includes a Bun-backed headers object while the native `HttpRequest` / `HttpResponse` layer remains transitional. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
 - `~=` is the explicit semantic comparison seam in `0.3.13.x`. `Cosm::AI.cast(...)` is the explicit semantic-to-structured cast surface. `~` is intentionally deferred until a later boundary/interop line.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
-- Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
+- Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects and intentionally do not auto-invoke away; when you want a callable as data rather than an invoked nullary send, use explicit lookup like `classes.Kernel.methods.get(:assert)` or `Greeter.classMethod(:label)`.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
 - `method(:name)` and `classMethod(:name)` now return first-class `Method` objects, which can be invoked either directly like functions or via `.call(...)`.
 - Built-in numeric and string addition now also routes through `plus` message sends, so `1.plus(2)` and `"co".plus("sm")` match `+`.

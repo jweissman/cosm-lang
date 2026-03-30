@@ -16,12 +16,12 @@ end
 
 def render_stream_event(event)
   if event.kind == "waiting" then
-    Kernel.print(Kernel.cr() + (event.text == false ? "iapetus> [thinking]" : event.text))
+    Kernel.print(Kernel.cr() + (event.text.nihil?() ? "iapetus> [thinking]" : event.text))
   else
     if event.kind == "chunk" then
       Kernel.print(event.first ? Kernel.clearLine() + "iapetus> " + event.text : event.text)
     else
-      false
+      nihil
     end
   end
 end

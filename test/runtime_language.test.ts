@@ -57,6 +57,7 @@ test("user-defined functions work", () => {
   expect(cosmEval('let fortyTwo = ->() { 42 }; fortyTwo()')).toBe(42);
   expect(cosmEval('def named(name) do "hi " + name end; named("cosm")')).toBe("hi cosm");
   expect(cosmEval('let prefix = "co"; def joinDef(rest) do prefix + rest end; joinDef("sm")')).toBe("cosm");
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.status.class_name()')).toBe("Namespace");
 });
 
 test("explicit ivar assignment and symbol-derived callables work in ordinary authored code", () => {
@@ -69,9 +70,16 @@ test("explicit ivar assignment and symbol-derived callables work in ordinary aut
       def current = @value
     end
 
-    Box.new(4).current()
+    Box.new(4).current
   `)).toBe(4);
   expect(cosmEval('[1, 2, 3].map(:to_s.to_fn())')).toEqual(["1", "2", "3"]);
+  expect(cosmEval('[1].presence().class_name()')).toBe("Array");
+  expect(cosmEval('[].presence().nihil?()')).toBe(true);
+  expect(cosmEval('Array.includes_module?("Enumerable")')).toBe(true);
+  expect(cosmEval('Array.ancestor_names()')).toEqual(["Array", "Object", "BasicObject"]);
+  expect(cosmEval('[1, 2, 3].second()')).toBe(2);
+  expect(cosmEval('[1].second().nihil?()')).toBe(true);
+  expect(cosmEval('Session.default.history.length')).toBeGreaterThanOrEqual(0);
 });
 
 test("yield invokes the current implicit trailing block", () => {
@@ -117,7 +125,6 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("class Pair do def init(left, right) do @left = left; @right = right end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
   expect(cosmEval('class Greeter def greet(name) "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
-  expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethods.label.name')).toBe("label");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).name')).toBe("label");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label)()')).toBe("Greeter!");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethod(:label).call()')).toBe("Greeter!");
