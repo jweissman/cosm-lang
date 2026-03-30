@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { Construct } from "../Construct";
+import { createHeadersAdapter } from "../runtime/HostInterop";
 import { RuntimeValueManifest, manifestMethod } from "../runtime/RuntimeManifest";
 import { InvocationContext, normalizeInvocationContext } from "../runtime/InvocationContext";
 import { CosmEnv, CosmValue } from "../types";
@@ -7,6 +8,7 @@ import { ValueAdapter } from "../ValueAdapter";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmHashValue } from "./CosmHashValue";
+import { CosmHostObjectValue } from "./CosmHostObjectValue";
 import { CosmHttpRequestValue } from "./CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "./CosmHttpResponseValue";
 import { CosmHttpServerValue } from "./CosmHttpServerValue";
@@ -15,6 +17,9 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmErrorValue } from "./CosmErrorValue";
 
+// Http stays TS-backed for transport/bootstrap concerns in 0.3.13.33.
+// The longer-term boundary direction is to keep host transport primitives
+// host-owned where Mirror/Hologram can adapt them cleanly.
 export class CosmHttpValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;
@@ -95,6 +100,16 @@ export class CosmHttpValue extends CosmObjectValue {
           body: Construct.string(response.body),
         }, selfValue.namespaceClassRef);
       }),
+      headers: () => new CosmFunctionValue('headers', (args, selfValue) => {
+        if (!(selfValue instanceof CosmHttpValue)) {
+          throw new Error('Type error: headers expects an Http receiver');
+        }
+        if (args.length > 1) {
+          throw new Error(`Arity error: headers expects 0 or 1 arguments, got ${args.length}`);
+        }
+        const entries = args.length === 0 ? {} : selfValue.parseHeaderEntries(args[0]);
+        return new CosmHostObjectValue(new Headers(entries), createHeadersAdapter(), selfValue.hostObjectClassRef);
+      }),
     },
   };
 
@@ -103,6 +118,7 @@ export class CosmHttpValue extends CosmObjectValue {
     classRef?: CosmClassValue,
     public readonly serverClassRef?: CosmClassValue,
     public readonly namespaceClassRef?: CosmClassValue,
+    public readonly hostObjectClassRef?: CosmClassValue,
     public readonly requestClassRef?: CosmClassValue,
     public readonly responseClassRef?: CosmClassValue,
   ) {
@@ -162,6 +178,21 @@ export class CosmHttpValue extends CosmObjectValue {
       headers: headers ? Object.fromEntries(Object.entries(headers)) : {},
       body,
     };
+  }
+
+  private parseHeaderEntries(value: CosmValue): Record<string, string> {
+    if (value.type === "bool") {
+      return {};
+    }
+    if (!(value instanceof CosmNamespaceValue) && !(value instanceof CosmHashValue)) {
+      throw new Error("Type error: headers expects a Namespace, Hash, or false");
+    }
+    const fields = value instanceof CosmNamespaceValue ? value.fields : value.entries;
+    if (fields.headers !== undefined || fields.body !== undefined) {
+      return this.parseRequestOptions(value).headers;
+    }
+    const headers = this.renderHeaders(value);
+    return headers ? Object.fromEntries(Object.entries(headers)) : {};
   }
 
   private performRequest(method: string, url: string, options: { headers: Record<string, string>; body?: string }): {

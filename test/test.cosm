@@ -6,10 +6,10 @@ assert_equal(Kernel.inspect(Kernel), "#<Kernel>")
 
 def kernel_examples()
   it("math smoke") do
-    assert(1 + 1 == 2)
+    expect(1 + 1).to_eql(2)
   end
   it("expectEqual smoke") do
-    assert_equal([1, 2], [1, 2])
+    expect([1, 2]).to_eql([1, 2])
   end
   it("inspect smoke") do
     assert(Kernel.inspect(Kernel) == "#<Kernel>")
@@ -41,7 +41,7 @@ def object_examples()
     assert(HarnessThing.new(3).value == 3)
   end
   it("sad path") do
-    error = expect_raises(->() { assert(false, "boom") }, "Assertion failed: boom")
+    error = expect(->() { assert(false, "boom") }).to_raise("Assertion failed: boom")
     assert_equal(error.message, "Assertion failed: boom")
   end
 end

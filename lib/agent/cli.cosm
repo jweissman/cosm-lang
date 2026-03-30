@@ -1,0 +1,100 @@
+require "cosm/dotenv"
+require "lib/agent/slack_diag"
+
+def usage()
+  """Usage: agent <command>
+
+Commands:
+  agent slack:status
+  agent slack:channels
+  agent slack:history <channel_id>
+  agent slack:thread <channel_id> <thread_ts>
+"""
+end
+
+def cli_args(argv)
+  let index = 0
+  let values = []
+
+  argv.each do |value|
+    if index > 2 then
+      values = values.append(value)
+    else
+      true
+    end
+    index = index + 1
+  end
+
+  values
+end
+
+def print_json(value)
+  puts(Kernel.json(value))
+end
+
+def arg_at(args, target_index)
+  let index = 0
+  let found = false
+
+  args.each do |value|
+    if index == target_index then
+      found = value
+    else
+      true
+    end
+    index = index + 1
+  end
+
+  found
+end
+
+def run(argv = false)
+  let args = false
+  if argv == false then
+    args = cli_args(Process.argv())
+  else
+    args = cli_args(argv)
+  end
+  let command = false
+  if args.length > 0 then
+    command = arg_at(args, 0)
+  else
+    false
+  end
+
+  if command == false || command == "help" || command == "--help" then
+    puts(usage())
+    true
+  else
+    if command == "slack:status" then
+      print_json(Agent::SlackDiag.status())
+    else
+      if command == "slack:channels" then
+        print_json(Agent::SlackDiag.visible_conversations())
+      else
+        if command == "slack:history" then
+          let channel_id = args.length > 1 ? arg_at(args, 1) : false
+          if channel_id == false then
+            Kernel.raise("agent slack:history expects a channel_id")
+          else
+            print_json(Agent::SlackDiag.history(channel_id))
+          end
+        else
+          if command == "slack:thread" then
+            let channel_id = args.length > 1 ? arg_at(args, 1) : false
+            let thread_ts = args.length > 2 ? arg_at(args, 2) : false
+            if channel_id == false || thread_ts == false then
+              Kernel.raise("agent slack:thread expects a channel_id and thread_ts")
+            else
+              print_json(Agent::SlackDiag.thread(channel_id, thread_ts))
+            end
+          else
+            Kernel.raise("unknown agent subcommand '" + command + "'")
+          end
+        end
+      end
+    end
+  end
+end
+
+run()

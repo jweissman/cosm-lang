@@ -5,8 +5,21 @@ require "lib/agent/store"
 require "lib/agent/slack_client"
 require "lib/agent/slack_diag"
 require "cosm/ai"
+require "cosm/hologram"
 
 def slack_config = Agent::Config.slack_config_status()
+
+def parse_payload(req)
+  Kernel.try do
+    Kernel.parseJson(req.bodyText())
+  end
+end
+
+def payload_field(value, name)
+  Kernel.try do
+    Cosm::Hologram.wrap(value).get(name)
+  end
+end
 
 def health_payload(path)
   {
@@ -97,9 +110,7 @@ def events(req)
     puts("[slack] verification failed: " + verification.error)
     HttpResponse.json({ ok: false, error: verification.error }, verification.status)
   else
-    let payload_result = Kernel.try do
-      Kernel.parseJson(req.bodyText())
-    end
+    let payload_result = parse_payload(req)
     if payload_result.ok == false then
       puts("[slack] invalid json payload")
       HttpResponse.json({ ok: false, error: "Slack request body must be valid JSON" }, 400)
@@ -192,13 +203,9 @@ def verify_request(req)
 end
 
 def url_verification(payload)
-  let type_value = Kernel.try do
-    payload.type
-  end
+  let type_value = payload_field(payload, :type)
   if type_value.ok && type_value.value == "url_verification" then
-    let challenge = Kernel.try do
-      payload.challenge
-    end
+    let challenge = payload_field(payload, :challenge)
     challenge.ok ? challenge.value : false
   else
     false
@@ -206,43 +213,23 @@ def url_verification(payload)
 end
 
 def extract_inbound(payload)
-  let payload_type = Kernel.try do
-    payload.type
-  end
+  let payload_type = payload_field(payload, :type)
   if payload_type.ok == false || payload_type.value != "event_callback" then
     false
   else
-    let event_result = Kernel.try do
-      payload.event
-    end
+    let event_result = payload_field(payload, :event)
     if event_result.ok == false then
       false
     else
       let event = event_result.value
-      let type_value = Kernel.try do
-        event.type
-      end
-      let channel_type = Kernel.try do
-        event.channel_type
-      end
-      let channel = Kernel.try do
-        event.channel
-      end
-      let user = Kernel.try do
-        event.user
-      end
-      let text = Kernel.try do
-        event.text
-      end
-      let ts = Kernel.try do
-        event.ts
-      end
-      let bot_id = Kernel.try do
-        event.bot_id
-      end
-      let subtype = Kernel.try do
-        event.subtype
-      end
+      let type_value = payload_field(event, :type)
+      let channel_type = payload_field(event, :channel_type)
+      let channel = payload_field(event, :channel)
+      let user = payload_field(event, :user)
+      let text = payload_field(event, :text)
+      let ts = payload_field(event, :ts)
+      let bot_id = payload_field(event, :bot_id)
+      let subtype = payload_field(event, :subtype)
       if type_value.ok == false || channel.ok == false || user.ok == false || text.ok == false || ts.ok == false then
         false
       else
@@ -254,9 +241,7 @@ def extract_inbound(payload)
           if kind == false then
             false
           else
-            let thread_value = Kernel.try do
-              event.thread_ts
-            end
+            let thread_value = payload_field(event, :thread_ts)
             let thread = thread_value.ok ? thread_value.value : ts.value
             if allowed_inbound(kind, channel.value, thread) == false then
               false
@@ -328,9 +313,7 @@ def sanitized_text(kind, text)
 end
 
 def event_key(payload, inbound)
-  let top_level = Kernel.try do
-    payload.event_id
-  end
+  let top_level = payload_field(payload, :event_id)
   top_level.ok ? top_level.value : inbound.channel + ":" + inbound.thread + ":" + inbound.user + ":" + inbound.ts
 end
 

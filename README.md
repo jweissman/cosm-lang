@@ -34,7 +34,7 @@ pair.sum()
 ```cosm
 suite("math") do
   it("adds") do
-    assert_equal(2 + 2, 4)
+    expect(2 + 2).to_eql(4)
   end
 end
 ```
@@ -97,9 +97,9 @@ Common commands:
 - `./script/bunx bin/cosm test spec/`
 - `./script/bunx bin/cosm test spec/examples/`
 - `./script/bunx bin/cosm test test/`
-- `./script/bunx bin/cosm agent slack:status`
-- `./script/bunx bin/cosm agent slack:channels`
-- `./script/bunx bin/cosm agent slack:thread <channel_id> <thread_ts>`
+- `./script/bunx bin/agent slack:status`
+- `./script/bunx bin/agent slack:channels`
+- `./script/bunx bin/agent slack:thread <channel_id> <thread_ts>`
 - `./script/bunx bin/cosm test spec/runtime/baseline.cosm`
 - `./script/bunx bin/cosm --version`
 - `./script/bunx bin/cosm -e '1 + 2'`
@@ -131,7 +131,7 @@ Iapetus workflow:
 - `agent-server` is webhook-driven, not channel-polling: it does not take a channel id, and Slack delivers accepted DM and mention-driven channel events to `POST /slack/events`
 - inside local chat, `prompt`, `preview`, and `runtime` expose the current system prompt, the real message list that will be sent to the model, and local runtime/session status
 - `/ready`, `/status`, and `/agent/status` make the runtime/storage/AI state inspectable before you DM or mention it, including recent activity summaries
-- `cosm agent slack:status`, `slack:channels`, `slack:history <channel_id>`, and `slack:thread <channel_id> <thread_ts>` provide narrow read-only Slack diagnostics
+- `agent slack:status`, `slack:channels`, `slack:history <channel_id>`, and `slack:thread <channel_id> <thread_ts>` provide narrow read-only Slack diagnostics
 
 Slack smoke testing:
 
@@ -147,6 +147,7 @@ Slack smoke testing:
 
 - [Language reference](./doc/lang.md)
 - [Feature snapshot](./doc/features.md)
+- [HTTP boundary notes](./doc/http_boundaries.md)
 - [Roadmap](./doc/roadmap.md)
 - [Runtime call flow](./doc/runtime_call_flow.md)
 - [Slack agent notes](./doc/slack.md)
@@ -161,7 +162,7 @@ Cosm is intentionally still narrow in a few places:
 - no browser-side runtime
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
-- `Mirror` is the readonly reflective/view boundary, and `Cosm::Hologram` is the intended read/write capability-wrapping interop seam; the current supported writable subset is still deliberately narrow
+- `Mirror` is the readonly reflective/view boundary, and `Cosm::Hologram` is the intended read/write capability-wrapping interop seam; the current proof path now includes a Bun-backed HTTP object while the current `HttpRequest` / `HttpResponse` layer remains transitional
 - no fully general VM execution yet; `--vm` is still experimental and currently targets a documented supported corridor plus a small parity corpus under `examples/spec/` and `test/fixtures/vm/`
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

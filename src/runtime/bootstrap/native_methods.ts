@@ -5,6 +5,7 @@ import { CosmClassValue } from "../../values/CosmClassValue";
 import { CosmDataModelValue } from "../../values/CosmDataModelValue";
 import { CosmErrorValue } from "../../values/CosmErrorValue";
 import { CosmFunctionValue } from "../../values/CosmFunctionValue";
+import { CosmHostObjectValue } from "../../values/CosmHostObjectValue";
 import { CosmHologramHandleValue } from "../../values/CosmHologramHandleValue";
 import { CosmHttpRequestValue } from "../../values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "../../values/CosmHttpResponseValue";
@@ -44,6 +45,16 @@ export function installBootNativeMethods(classes: BootClasses): void {
   Object.assign(classes.Method.methods, manifestMethods(
     Construct.method("noop", Construct.bool(true), new CosmFunctionValue("noop", () => Construct.bool(true))),
     CosmMethodValue.manifest,
+  ));
+  Object.assign(classes.HostObject.methods, manifestMethods(
+    new CosmHostObjectValue({}, {
+      kind: "example.host",
+      inspect: () => "#<HostObject example.host>",
+      keys: () => [],
+      has: () => false,
+      get: () => undefined,
+    }, classes.HostObject),
+    CosmHostObjectValue.manifest,
   ));
   Object.assign(classes.Symbol.methods, manifestMethods(
     Construct.symbol("example"),
@@ -106,7 +117,7 @@ export function installBootNativeMethods(classes: BootClasses): void {
     CosmDataModelValue.manifest,
   ));
   Object.assign(classes.Http.methods, manifestMethods(
-    new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HttpRequest, classes.HttpResponse),
+    new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HostObject, classes.HttpRequest, classes.HttpResponse),
     CosmHttpValue.manifest,
   ));
   Object.assign(classes.HttpRequest.methods, manifestMethods(

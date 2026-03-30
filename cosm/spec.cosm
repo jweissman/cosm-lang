@@ -16,6 +16,55 @@ def suite(name, body = false) = Cosm::Test.describe(name, with_block_or(body));
 
 def it(name, body = false) = Cosm::Test.test(name, with_block_or(body));
 
+class Expectation
+  def init(actual) @actual = actual end
+
+  def to_eql(expected, message = false)
+    if message == false then
+      Cosm::Test.expectEqual(@actual, expected)
+    else
+      Cosm::Test.expectEqual(@actual, expected, message)
+    end
+  end
+
+  def to_be_truthy(message = false)
+    if @actual != false then
+      true
+    else
+      if message == false then
+        Kernel.raise("Expectation failed: expected truthy value, got " + Kernel.inspect(@actual))
+      else
+        Kernel.raise("Expectation failed: " + message)
+      end
+    end
+  end
+
+  def to_raise(message = false)
+    if Mirror.reflect(@actual).has(:call) == false then
+      Kernel.raise("Type error: expect(...).to_raise expects a callable value")
+    else
+      false
+    end
+
+    result = Kernel.try(@actual)
+    if result.ok then
+      Kernel.raise("Expectation failed: expected a raised error")
+    else
+      false
+    end
+
+    error = result.error
+    if message != false then
+      assert_equal(error.message, message)
+    else
+      false
+    end
+    error
+  end
+end
+
+def expect(actual) = Expectation.new(actual)
+
 def assert(value, message = false)
   if message == false then
     Kernel.assert(value)

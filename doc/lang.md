@@ -149,7 +149,7 @@ The canonical style is to require a module for its exported constant path:
 
 ```cosm
 require "cosm/spec.cosm"
-assert_equal(2 + 2, 4)
+expect(2 + 2).to_eql(4)
 ```
 
 Maintained code should use module constants such as `Cosm::Spec`, `Cosm::AI`, `Support::Chat`, and `App::App` rather than older ambient lowercase wrappers.
@@ -417,12 +417,13 @@ Class.class.name
   Convenience global alias for `Kernel.warn(value)`.
 - `Cosm::Spec.suite(name, fn)`
 - `Cosm::Spec.it(name, fn)`
+- `Cosm::Spec.expect(value)`
 - `Cosm::Spec.assert(value, message?)`
 - `Cosm::Spec.refute(value, message?)`
 - `Cosm::Spec.assert_equal(actual, expected, message?)`
 - `Cosm::Spec.expect_raises(fn, message?)`
 - `Cosm::Spec.finish()`
-  Explicit module API for Cosm-native tests outside `cosm test`. Inside `cosm test`, maintained specs should normally use implicit `suite`, `it`, `assert`, `refute`, `assert_equal`, and `expect_raises`, and do not need `finish()`.
+  Explicit module API for Cosm-native tests outside `cosm test`. Inside `cosm test`, maintained specs should normally use implicit `suite`, `it`, `assert`, `refute`, `assert_equal`, `expect`, and `expect_raises`, and do not need `finish()`.
 - `resetTests()`
   Convenience global alias for `Kernel.resetTests()`.
 - `testSummary()`
@@ -430,7 +431,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.33`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -458,6 +459,8 @@ Class.class.name
 - `HttpResponse.headers`
 - `HttpServer.stop()`
   Stops a server started through `http.serve(...)`.
+- `http.headers(values = false)`
+  Returns a host-backed Bun `Headers` object wrapped through Cosm's boundary layer so it can be inspected with `Mirror` and adapted read/write through `Cosm::Hologram`.
 - `Kernel.dispatch(receiver, message, ...args)`
   Performs an explicit helper-form message send where `message` is a string or symbol.
 - `Mirror.reflect(value)`
@@ -465,7 +468,7 @@ Class.class.name
 - `Mirror.status()`
   Returns a small reflective summary of the readonly mirror boundary.
 - `require "cosm/hologram"` then `Cosm::Hologram.status()` / `Cosm::Hologram.wrap(value)`
-  Small module facade over the first narrow writable boundary wedge. It is still intentionally not a JS bridge.
+  Small module facade over the first narrow host-interop adaptation seam. It remains intentionally smaller than a general JS bridge.
 - `mirror.targetClass`
 - `mirror.inspect()`
 - `mirror.methods()`
@@ -500,6 +503,8 @@ Class.class.name
   Reflective class for readonly mirror wrappers created through `Mirror.reflect(...)`.
 - `HologramHandle`
   Reflective class for the current narrow read/write capability wrappers returned from `Cosm::Hologram.wrap(...)`.
+- `HostObject`
+  Internal reflective class used for wrapped host-backed capability objects such as the Bun-backed headers proof object.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `HttpRouter`
@@ -510,7 +515,7 @@ Class.class.name
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `BasicObject`, `Class`, `Module`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
+  `BasicObject`, `Class`, `Module`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `HostObject`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
 
 Examples:
 
@@ -528,7 +533,7 @@ suite("smoke section") do
     assert(true)
   end
 end
-assert_equal([1, 2], [1, 2])
+expect([1, 2]).to_eql([1, 2])
 require "lib/app/app"
 App::App.build().class.name
 Kernel.class.name
@@ -565,6 +570,10 @@ end
 require "cosm/hologram"
 Cosm::Hologram.status().mode
 Cosm::Hologram.wrap({ answer: 41 }).set(:answer, 42)
+let headers = http.headers({ accept: "application/json" })
+Mirror.reflect(headers).inspect()
+Cosm::Hologram.wrap(headers).get(:accept)
+expect(headers).to_be_truthy()
 require "cosm/ai"
 Cosm::AI.boundary().mode
 Kernel.expectEqual([1, 2], [1, 2])
@@ -639,7 +648,7 @@ do let x = 1; x + 2 end
 - `cosm test` now discovers `spec/**/*_spec.cosm` by default, and explicit file/directory targets still work. `--test` remains a compatibility alias for now.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
-- `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
+- `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result. Failed examples now print the suite path plus an indented failure detail line.
 - `Kernel.describe(...)` is the current lightweight grouping primitive for Cosm-native tests; it prints a section header and then invokes a callable.
 - `def` and `class` currently allow a small parser convenience where `do` may be omitted before `end`.
 - Statement separators are still semicolon-oriented at the grammar level, but the parser now performs a conservative newline-to-semicolon normalization pass for common one-statement-per-line code.
@@ -651,7 +660,7 @@ do let x = 1; x + 2 end
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape. `Mirror.status()` now makes that contract explicit.
-- `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the currently supported writable subset is still intentionally narrow. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
+- `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the current proof path now includes a Bun-backed headers object while the native `HttpRequest` / `HttpResponse` layer remains transitional. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
 - `~=` is the explicit semantic comparison seam in `0.3.13.x`. `Cosm::AI.cast(...)` is the explicit semantic-to-structured cast surface. `~` is intentionally deferred until a later boundary/interop line.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
@@ -673,5 +682,5 @@ do let x = 1; x + 2 end
 - HTML tag-builder DSLs
 - browser-side Cosm runtime
 - richer notebook/session management
-- JS interop mirrors/holograms
+- broad JS interop beyond the current Bun-host boundary proof
 - full VM execution

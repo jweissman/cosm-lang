@@ -1,10 +1,17 @@
 require "lib/agent/config"
+require "cosm/hologram"
 
 def api_method_url(method_name)
   let configured = Agent::Config.slack_api_url()
   let parts = configured.split("/")
   let prefix = parts.take(parts.length - 1).join("/")
   prefix + "/" + method_name
+end
+
+def body_field(body, name)
+  Kernel.try do
+    Cosm::Hologram.wrap(body).get(name)
+  end
 end
 
 def slack_request(method_name, payload = false)
@@ -30,9 +37,7 @@ def slack_request(method_name, payload = false)
         if parsed.value.ok == true then
           { ok: true, status: request.value.status, body: parsed.value }
         else
-          let api_error = Kernel.try do
-            parsed.value.error
-          end
+          let api_error = body_field(parsed.value, :error)
           { ok: false, error: api_error.ok ? api_error.value : "unknown_error" }
         end
       end
@@ -46,12 +51,8 @@ def post_message(channel_id, text, thread_ts = false)
   if request.ok == false then
     request
   else
-    let returned_channel = Kernel.try do
-      request.body.channel
-    end
-    let returned_ts = Kernel.try do
-      request.body.ts
-    end
+    let returned_channel = body_field(request.body, :channel)
+    let returned_ts = body_field(request.body, :ts)
     {
       ok: true,
       status: request.status,
@@ -73,9 +74,7 @@ def list_conversations()
   if response.ok == false then
     response
   else
-    let channels = Kernel.try do
-      response.body.channels
-    end
+    let channels = body_field(response.body, :channels)
     channels.ok ? { ok: true, conversations: channels.value, body: response.body } : { ok: false, error: "Slack API returned no channels list" }
   end
 end
@@ -88,9 +87,7 @@ def conversation_history(channel_id)
   if response.ok == false then
     response
   else
-    let messages = Kernel.try do
-      response.body.messages
-    end
+    let messages = body_field(response.body, :messages)
     messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no message history" }
   end
 end
@@ -104,9 +101,7 @@ def conversation_thread(channel_id, thread_ts)
   if response.ok == false then
     response
   else
-    let messages = Kernel.try do
-      response.body.messages
-    end
+    let messages = body_field(response.body, :messages)
     messages.ok ? { ok: true, messages: messages.value, body: response.body } : { ok: false, error: "Slack API returned no thread replies" }
   end
 end

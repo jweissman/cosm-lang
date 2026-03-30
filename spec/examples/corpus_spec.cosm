@@ -6,7 +6,7 @@ suite("Example corpus") do
     it(example.title) do
       let session = Session.new()
       let result = session.eval(Kernel.readText(example.path))
-      assert_equal(result, example.expected)
+      expect(result).to_eql(example.expected)
     end
   end
 end

@@ -178,7 +178,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
     CosmRandomValue.manifest,
   );
   const httpMethods = manifestMethods(
-    new CosmHttpValue({}, new CosmClassValue("Http"), new CosmClassValue("HttpServer"), namespaceClass, httpRequestClass, httpResponseClass),
+    new CosmHttpValue({}, new CosmClassValue("Http"), new CosmClassValue("HttpServer"), namespaceClass, new CosmClassValue("HostObject"), httpRequestClass, httpResponseClass),
     CosmHttpValue.manifest,
   );
   const httpRequestMethods = manifestMethods(
@@ -298,7 +298,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(processMethods).sort()).toEqual(["arch", "argv", "cwd", "env", "exit", "load_env_file", "pid", "platform"]);
   expect(Object.keys(timeMethods).sort()).toEqual(["fromIso", "iso", "isoNow", "now"]);
   expect(Object.keys(randomMethods).sort()).toEqual(["choice", "float", "int"]);
-  expect(Object.keys(httpMethods).sort()).toEqual(["request", "serve"]);
+  expect(Object.keys(httpMethods).sort()).toEqual(["headers", "request", "serve"]);
   expect(Object.keys(httpRequestMethods).sort()).toEqual(["bodyText", "form"]);
   expect(Object.keys(httpResponseMethods)).toEqual([]);
   expect(Object.keys(httpResponseClassMethods).sort()).toEqual(["html", "json", "ok", "text"]);

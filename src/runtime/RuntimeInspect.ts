@@ -39,6 +39,9 @@ export class RuntimeInspect {
           const length = value.nativeProperty("length");
           return `#<HttpRouter routes: ${length ? this.format(length) : "0"}>`;
         }
+        if (value.className === "HostObject" && "inspectHost" in value) {
+          return value.inspectHost();
+        }
         if (value.className === "HttpRequest" && "method" in value && "path" in value) {
           return `#<HttpRequest ${String(value.method)} ${String(value.path)}>`;
         }

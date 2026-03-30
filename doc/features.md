@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.31
+## Current Release Target: 0.3.13.33
 
-`0.3.13.24`-`0.3.13.31` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, and ergonomics line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.33` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, and tooling-consolidation line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -21,6 +21,8 @@
 - make explicit `@ivar = value` constructor assignment the preferred authored class style
 - add a small symbol-derived callable path through `:name.to_fn()` for ordinary collection/transformation code
 - keep the Slack agent runtime available, but secondary
+- split Slack operational diagnostics out of `bin/cosm` and into a dedicated `agent` CLI
+- add a tiny `expect(...)` testing surface on top of the existing Cosm-native spec harness
 - keep `--vm` honest through a documented supported corridor plus narrow parity fixtures rather than treating it like a broad second runtime
 
 For `0.3.13.x`, the callable boundary still stays intentionally narrow:

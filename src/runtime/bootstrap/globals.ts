@@ -127,7 +127,7 @@ export function installKernelGlobals(
   const timeObject = new CosmTimeValue({}, classes.Time);
   const randomObject = new CosmRandomValue({}, classes.Random);
   const aiObject = new CosmAiValue({}, classes.Ai, classes.Error);
-  const httpObject = new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HttpRequest, classes.HttpResponse);
+  const httpObject = new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HostObject, classes.HttpRequest, classes.HttpResponse);
 
   globals.Kernel = kernelObject;
   globals.Process = processObject;
@@ -187,6 +187,7 @@ function createRequireFunction(
       if (moduleName === "cosm/spec" || moduleName === "cosm/spec.cosm") {
         env.bindings.suite = loadedModule.fields.suite;
         env.bindings.it = loadedModule.fields.it;
+        env.bindings.expect = loadedModule.fields.expect;
         env.bindings.assert = loadedModule.fields.assert;
         env.bindings.refute = loadedModule.fields.refute;
         env.bindings.assert_equal = loadedModule.fields.assert_equal;

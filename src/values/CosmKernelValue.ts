@@ -31,6 +31,7 @@ export class CosmKernelValue extends CosmObjectValue {
   private static wrapErrorHandler?: (error: unknown) => CosmErrorValue;
   private static testPassed = 0;
   private static testFailed = 0;
+  private static testSuiteStack: string[] = [];
 
   static installRuntimeHooks(hooks: {
     send: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
@@ -462,7 +463,14 @@ export class CosmKernelValue extends CosmObjectValue {
         } catch (error) {
           CosmKernelValue.testFailed += 1;
           const message = error instanceof Error ? error.message : String(error);
-          process.stdout.write(`not ok - ${nameValue.value}: ${message}\n`);
+          const suitePrefix = CosmKernelValue.testSuiteStack.length > 0
+            ? `${CosmKernelValue.testSuiteStack.join(" > ")} > `
+            : "";
+          const detail = message
+            .split("\n")
+            .map((line) => `  ${line}`)
+            .join("\n");
+          process.stdout.write(`not ok - ${suitePrefix}${nameValue.value}\n${detail}\n`);
           return new CosmBoolValue(false);
         }
       }),
@@ -477,8 +485,14 @@ export class CosmKernelValue extends CosmObjectValue {
         if (!(nameValue instanceof CosmStringValue)) {
           throw new Error('Type error: describe expects a string name');
         }
-        process.stdout.write(`# ${nameValue.value}\n`);
-        return CosmKernelValue.invokeHandler(callable, [], { env });
+        const prefix = CosmKernelValue.testSuiteStack.length > 0 ? "  ".repeat(CosmKernelValue.testSuiteStack.length) : "";
+        process.stdout.write(`# ${prefix}${nameValue.value}\n`);
+        CosmKernelValue.testSuiteStack.push(nameValue.value);
+        try {
+          return CosmKernelValue.invokeHandler(callable, [], { env });
+        } finally {
+          CosmKernelValue.testSuiteStack.pop();
+        }
       }),
       resetTests: () => new CosmFunctionValue('resetTests', (args) => {
         if (args.length !== 0) {
@@ -486,6 +500,7 @@ export class CosmKernelValue extends CosmObjectValue {
         }
         CosmKernelValue.testPassed = 0;
         CosmKernelValue.testFailed = 0;
+        CosmKernelValue.testSuiteStack = [];
         return new CosmBoolValue(true);
       }),
       testSummary: () => new CosmFunctionValue('testSummary', (args) => {

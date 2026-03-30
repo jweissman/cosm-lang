@@ -11,6 +11,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmSymbolValue } from "./CosmSymbolValue";
 import { CosmStringValue } from "./CosmStringValue";
 
+// HttpRouter is intentionally still a Cosm-facing policy surface even while
+// lower transport primitives are candidates for host-backed wrapping later on.
 class CosmHttpRouterDslValue extends CosmObjectValue {
   static readonly runtimeClass = new CosmClassValue("HttpRouterDsl", "Object");
 

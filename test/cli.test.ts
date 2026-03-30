@@ -28,6 +28,25 @@ function runCli(args: string[], envOverrides: Record<string, string | undefined>
   };
 }
 
+function runAgentCli(args: string[], envOverrides: Record<string, string | undefined> = {}, cwd = process.cwd()) {
+  const proc = Bun.spawnSync(["bun", join(process.cwd(), "bin/agent"), ...args], {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: {
+      ...process.env,
+      COSM_AI_AUTO_DISCOVER_MODEL: process.env.COSM_AI_AUTO_DISCOVER_MODEL ?? "0",
+      ...envOverrides,
+    },
+  });
+
+  return {
+    exitCode: proc.exitCode,
+    stdout: decode(proc.stdout),
+    stderr: decode(proc.stderr),
+  };
+}
+
 async function collectStream(stream: ReadableStream<Uint8Array> | null, sink: { value: string }) {
   if (!stream) {
     return;
@@ -251,8 +270,8 @@ test("cli can sketch a tiny Cosm-native test harness", () => {
   expect(result.stdout).toContain("ok - passes");
 });
 
-test("cli exposes slack diagnostics through agent subcommands", () => {
-  const status = runCli(["agent", "slack:status"], {
+test("dedicated agent cli exposes slack diagnostics", () => {
+  const status = runAgentCli(["slack:status"], {
     SLACK_ALLOWED_CHANNELS: "C123,G123",
   });
   expect(status.exitCode).toBe(0);
@@ -265,13 +284,19 @@ test("cli exposes slack diagnostics through agent subcommands", () => {
     },
   });
 
-  const historyMissingArg = runCli(["agent", "slack:history"]);
+  const historyMissingArg = runAgentCli(["slack:history"]);
   expect(historyMissingArg.exitCode).toBe(1);
   expect(historyMissingArg.stderr).toContain("agent slack:history expects a channel_id");
 
-  const threadMissingArg = runCli(["agent", "slack:thread"]);
+  const threadMissingArg = runAgentCli(["slack:thread"]);
   expect(threadMissingArg.exitCode).toBe(1);
   expect(threadMissingArg.stderr).toContain("agent slack:thread expects a channel_id and thread_ts");
+});
+
+test("cosm redirects agent utility users to the dedicated agent cli", () => {
+  const result = runCli(["agent", "slack:status"]);
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("agent utilities moved to the dedicated `agent` CLI");
 });
 
 test("requiring cosm/dotenv loads .env files explicitly while preserving shell env precedence", () => {
@@ -300,7 +325,7 @@ test("requiring cosm/dotenv loads .env files explicitly while preserving shell e
 test("cli test mode injects implicit spec helpers", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-test-mode-"));
   const sourcePath = join(tempDir, "implicit_spec.cosm");
-  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do assert_equal(2 + 2, 4) end end\n');
+  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do expect(2 + 2).to_eql(4) end end\n');
 
   const result = runCli(["test", sourcePath]);
   expect(result.exitCode).toBe(0);
@@ -336,14 +361,15 @@ test("cli can run the dedicated Cosm test file", () => {
 test("cli test mode reports failures and exits nonzero", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-failing-test-"));
   const sourcePath = join(tempDir, "failing_spec.cosm");
-  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do assert(true) end; it("fails") do assert(false, "boom") end end\n');
+  writeFileSync(sourcePath, 'suite("smoke") do it("passes") do assert(true) end; it("fails") do expect(false).to_be_truthy() end end\n');
 
   const result = runCli(["--test", sourcePath]);
   expect(result.exitCode).toBe(1);
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# smoke");
   expect(result.stdout).toContain("ok - passes");
-  expect(result.stdout).toContain("not ok - fails: Assertion failed: boom");
+  expect(result.stdout).toContain("not ok - smoke > fails");
+  expect(result.stdout).toContain("Expectation failed: expected truthy value, got false");
   expect(result.stdout).toContain("1 passed, 1 failed, 2 total");
 });
 
@@ -454,7 +480,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.31");
+  expect(result.stdout.trim()).toBe("0.3.13.33");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 

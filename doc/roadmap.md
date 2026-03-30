@@ -122,14 +122,12 @@ Current priority:
 
 ## Near-Term Milestones
 
-### `0.3.13.31`: Block-First DSL Cleanup and Syntax-Normalized Authored Code
+### `0.3.13.33`: Architectural Boundary Pass and Tooling Consolidation
 
-- add a canonical executable example corpus under `examples/spec/`
-- use the corpus as a notebook/spec source of truth instead of ad hoc example strings
-- make a selected `vm_supported` subset of that corpus pass under both interpreter and VM
-- make `cosm test` default to deterministic `_spec.cosm` discovery
-- make maintained specs block-first through `suite(...) do` and `it(...) do`
-- keep maintained authored code moving toward conservative omitted-paren defs, explicit ivar assignment, and fewer everyday stabby lambdas
+- keep the Bun/HTTP host-object proof in place while explicitly classifying current HTTP wrappers as substrate, transitional wrappers, or longer-lived Cosm policy surfaces
+- split Slack diagnostics and operational commands out of `bin/cosm` so the main CLI stays language/runtime-first
+- add a tiny `expect(...)` surface and better Cosm-native failure output without replacing `assert` / `assert_equal`
+- keep docs/notebook/examples consistent about `Mirror`/`Hologram` as the path for shrinking bespoke TS-native boundary types over time
 
 ### `0.3.14.x`: Persistence, Tools, and Concurrency
 

@@ -8,6 +8,7 @@ import { CosmHashValue } from "./values/CosmHashValue";
 import { CosmFunctionValue } from "./values/CosmFunctionValue";
 import { CosmClassValue } from "./values/CosmClassValue";
 import { CosmObjectValue } from "./values/CosmObjectValue";
+import { CosmHostObjectValue } from "./values/CosmHostObjectValue";
 import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
 import { CosmHologramHandleValue } from "./values/CosmHologramHandleValue";
@@ -133,6 +134,7 @@ export type CosmValue =
   | CosmArrayValue
   | CosmHashValue
   | CosmObjectValue
+  | CosmHostObjectValue
   | CosmClassValue
   | CosmFunctionValue
   | CosmMethodValue

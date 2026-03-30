@@ -3,16 +3,16 @@ require "cosm/spec.cosm"
 suite("Kernel") do
   it("ambient assertions and dispatch stay available") do
     assert(Kernel.assert(true) == true)
-    assert_equal(Kernel.dispatch(1, :plus, 2), 3)
+    expect(Kernel.dispatch(1, :plus, 2)).to_eql(3)
   end
   it("explicit scalar helpers stay available") do
-    assert_equal("42".to_i(), 42)
-    assert_equal("3.5".to_f(), 3.5)
-    assert_equal(:status.to_s(), "status")
+    expect("42".to_i()).to_eql(42)
+    expect("3.5".to_f()).to_eql(3.5)
+    expect(:status.to_s()).to_eql("status")
   end
   it("trace and validation helpers stay available") do
-    assert_equal(Kernel.trace("kernel spec", 41), 41)
-    assert(Kernel.tryValidate(42, Schema.number()).ok == true)
+    expect(Kernel.trace("kernel spec", 41)).to_eql(41)
+    expect(Kernel.tryValidate(42, Schema.number()).ok).to_be_truthy()
   end
 end
 

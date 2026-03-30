@@ -1,0 +1,16 @@
+#!/usr/bin/env bun
+
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const cosmPath = join(scriptDir, "cosm");
+const proc = Bun.spawnSync(["bun", cosmPath, "lib/agent/cli.cosm", ...process.argv.slice(2)], {
+  cwd: process.cwd(),
+  stdin: "inherit",
+  stdout: "inherit",
+  stderr: "inherit",
+  env: process.env,
+});
+
+process.exit(proc.exitCode);

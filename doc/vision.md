@@ -89,6 +89,13 @@ The exact semantics are still being clarified, but the direction matters:
 - not ad hoc conversion everywhere
 - a small number of named boundary concepts that explain how runtime values cross into host-backed representations
 
+The current proof direction should be:
+
+- use `Mirror` and `Hologram` to wrap real host-provided objects
+- start with Bun/HTTP-adjacent objects before broader external-library work
+- use that path to eventually shrink bespoke TS-native boundary wrappers rather than adding more of them
+- keep transport primitives host-owned where possible, while leaving routing/policy surfaces Cosm-facing longer when that improves legibility
+
 That same model could later serve:
 
 - browser-safe runtime projection

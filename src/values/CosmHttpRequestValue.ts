@@ -6,6 +6,7 @@ import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 
+// HttpRequest remains a transitional wrapper while the host-object boundary settles.
 export class CosmHttpRequestValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmHttpRequestValue> = {
     properties: {

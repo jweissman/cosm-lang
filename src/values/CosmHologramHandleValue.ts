@@ -5,13 +5,14 @@ import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmHashValue } from "./CosmHashValue";
+import { CosmHostObjectValue } from "./CosmHostObjectValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmSymbolValue } from "./CosmSymbolValue";
 import { ValueAdapter } from "../ValueAdapter";
 
-type SupportedTarget = CosmHashValue | CosmObjectValue;
+type SupportedTarget = CosmHashValue | CosmObjectValue | CosmHostObjectValue;
 
 export class CosmHologramHandleValue extends CosmObjectValue {
   private static classOfHandler?: (value: CosmValue) => CosmClass;
@@ -106,6 +107,10 @@ export class CosmHologramHandleValue extends CosmObjectValue {
             new CosmStringValue("Namespace"),
             new CosmStringValue("Module"),
             new CosmStringValue("Process"),
+            new CosmStringValue("HostObject"),
+          ]),
+          host_wrapper_kinds: new CosmArrayValue([
+            new CosmStringValue("bun.headers"),
           ]),
           readable_surface: new CosmArrayValue([
             new CosmStringValue("targetClass"),
@@ -132,8 +137,8 @@ export class CosmHologramHandleValue extends CosmObjectValue {
   }
 
   static wrap(value: CosmValue, classRef?: CosmClassValue): CosmHologramHandleValue {
-    if (!(value instanceof CosmHashValue) && !(value instanceof CosmObjectValue)) {
-      throw new Error(`Type error: Hologram.wrap currently supports Hash and object-like values, got ${value.type}`);
+    if (!(value instanceof CosmHashValue) && !(value instanceof CosmObjectValue) && !(value instanceof CosmHostObjectValue)) {
+      throw new Error(`Type error: Hologram.wrap currently supports Hash, object-like values, and supported host-backed values, got ${value.type}`);
     }
     return new CosmHologramHandleValue(value, classRef);
   }
@@ -181,6 +186,8 @@ export class CosmHologramHandleValue extends CosmObjectValue {
   private entryKeys(): string[] {
     return this.target instanceof CosmHashValue
       ? Object.keys(this.target.entries)
+      : this.target instanceof CosmHostObjectValue
+        ? this.target.hostKeys()
       : Object.keys(this.target.fields);
   }
 
@@ -188,12 +195,17 @@ export class CosmHologramHandleValue extends CosmObjectValue {
     if (this.target instanceof CosmHashValue) {
       return Object.hasOwn(this.target.entries, key);
     }
+    if (this.target instanceof CosmHostObjectValue) {
+      return this.target.hostHas(key);
+    }
     return this.readObjectEntry(key) !== undefined;
   }
 
   private readEntry(key: string): CosmValue {
     const value = this.target instanceof CosmHashValue
       ? this.target.entries[key]
+      : this.target instanceof CosmHostObjectValue
+        ? this.target.hostGet(key)
       : this.readObjectEntry(key);
     if (value === undefined) {
       throw new Error(`Property error: hologram target has no entry '${key}'`);
@@ -204,6 +216,10 @@ export class CosmHologramHandleValue extends CosmObjectValue {
   private writeEntry(key: string, value: CosmValue): void {
     if (this.target instanceof CosmHashValue) {
       this.target.entries[key] = value;
+      return;
+    }
+    if (this.target instanceof CosmHostObjectValue) {
+      this.target.hostSet(key, value);
       return;
     }
     this.target.fields[key] = value;

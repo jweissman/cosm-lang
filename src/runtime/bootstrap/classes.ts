@@ -42,6 +42,7 @@ export function createCoreClasses(): Record<string, CosmClass> {
     "Hash",
     "Function",
     "Method",
+    "HostObject",
     "Namespace",
     "Kernel",
     "Process",

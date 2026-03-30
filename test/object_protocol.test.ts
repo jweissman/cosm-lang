@@ -162,6 +162,7 @@ test("receiver-side methods() includes inherited methods and agrees with method(
 test("Mirror inspect remains wrapper-visible", () => {
   expect(cosmEval("Kernel.inspect(Mirror.reflect([1, 2]))")).toBe("#<Mirror [1, 2]>");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
+  expect(cosmEval('Mirror.reflect(http.headers({ accept: "application/json" })).inspect()')).toBe('#<Mirror #<HostObject bun.headers accept: "application/json">>');
   expect(cosmEval("Mirror.reflect(Object.new()).methods()")).toEqual(expect.arrayContaining([{ kind: "symbol", name: "send" }]));
   expect(cosmEval(`
     class Base
@@ -287,6 +288,13 @@ test("real authored modules and Hologram wrappers expose the object model more h
     require "cosm/hologram"
     Cosm::Hologram.wrap(Kernel).has(:assert)
   `)).toBe(true);
+  expect(cosmEval(`
+    require "cosm/hologram"
+    headers = http.headers({ accept: "application/json" })
+    holo = Cosm::Hologram.wrap(headers)
+    holo.set("x-runtime", "cosm")
+    [holo.get(:accept), holo.get("x-runtime")]
+  `)).toEqual(["application/json", "cosm"]);
   expect(cosmEval("Mirror.status().mode")).toBe("readonly-observer");
   expect(cosmEval("Mirror.status().writable")).toBe(false);
   expect(cosmEval("Mirror.status().rejects")).toEqual(["mutation", "raw_host_shape"]);
@@ -304,10 +312,14 @@ test("real authored modules and Hologram wrappers expose the object model more h
   `)).toBe(true);
   expect(cosmEval(`
     require "cosm/hologram"
+    Cosm::Hologram.status().host_wrapper_kinds
+  `)).toEqual(["bun.headers"]);
+  expect(cosmEval(`
+    require "cosm/hologram"
     Cosm::Hologram.status().rejects
   `)).toEqual(["Number", "Boolean", "String", "Array", "general-js-bridge"]);
   expect(cosmEval(`
     require "cosm/hologram"
     Kernel.try(->() { Cosm::Hologram.wrap(42) }).error.message
-  `)).toContain("Hologram.wrap currently supports Hash and object-like values");
+  `)).toContain("Hologram.wrap currently supports Hash, object-like values, and supported host-backed values");
 });

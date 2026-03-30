@@ -1,5 +1,8 @@
 require "cosm/hologram"
 
-let proc = Cosm::Hologram.wrap(Process)
-proc.set(:label, "runtime")
-[Mirror.status().mode, Cosm::Hologram.status().intended_role, proc.get(:platform).call(), proc.get(:label)]
+let headers = http.headers({ accept: "notebook" })
+let reflected = Mirror.reflect(headers)
+let reflected_inspect = reflected.inspect()
+let holo = Cosm::Hologram.wrap(headers)
+holo.set("x-runtime", "cosm")
+[Mirror.status().mode, Cosm::Hologram.status().intended_role, reflected_inspect, holo.get(:accept), holo.get("x-runtime")]

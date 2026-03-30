@@ -3,6 +3,7 @@ import { CosmHttpRequestValue } from "./values/CosmHttpRequestValue";
 import { CosmHttpResponseValue } from "./values/CosmHttpResponseValue";
 import { CosmHttpServerValue } from "./values/CosmHttpServerValue";
 import { CosmHttpRouterValue } from "./values/CosmHttpRouterValue";
+import { CosmHostObjectValue } from "./values/CosmHostObjectValue";
 import { CosmMirrorValue } from "./values/CosmMirrorValue";
 import { CosmHologramHandleValue } from "./values/CosmHologramHandleValue";
 import { CosmModuleValue } from "./values/CosmModuleValue";
@@ -101,6 +102,14 @@ export class ValueAdapter {
           return {
             kind: "http_router",
             length: value.nativeProperty("length") && this.cosmToJS(value.nativeProperty("length")!),
+          };
+        }
+        if (value instanceof CosmHostObjectValue) {
+          return {
+            kind: "host_object",
+            hostKind: value.hostKind(),
+            inspect: value.inspectHost(),
+            keys: value.hostKeys(),
           };
         }
         if (value instanceof CosmHttpRequestValue) {

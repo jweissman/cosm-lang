@@ -8,6 +8,7 @@ import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 
+// HttpResponse remains a small TS-owned response wrapper for now.
 export class CosmHttpResponseValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmHttpResponseValue> = {
     properties: {

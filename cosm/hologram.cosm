@@ -8,4 +8,6 @@ module Hologram
   def intended_role = status().intended_role
 
   def writable_targets = status().writable_targets
+
+  def host_wrapper_kinds = status().host_wrapper_kinds
 end

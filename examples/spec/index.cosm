@@ -56,7 +56,7 @@ def data_model_build_validate()
 end
 
 def mirror_hologram_boundary()
-  entry("mirror_hologram_boundary", "Boundaries", "Mirror and Hologram", "Mirror stays readonly while Hologram is the read/write capability-wrapping interop seam.", "examples/spec/boundaries/mirror_hologram_boundary.cosm", ["readonly-observer", "js-interop-capability-wrapper", Process.platform(), "runtime"])
+  entry("mirror_hologram_boundary", "Boundaries", "Mirror and Hologram", "Mirror stays readonly while Hologram adapts a Bun-backed headers object through explicit read/write value translation.", "examples/spec/boundaries/mirror_hologram_boundary.cosm", ["readonly-observer", "js-interop-capability-wrapper", "#<Mirror #<HostObject bun.headers accept: \"notebook\">>", "notebook", "cosm"])
 end
 
 def session_notebook()

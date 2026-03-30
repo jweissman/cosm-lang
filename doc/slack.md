@@ -83,8 +83,8 @@ For DMs, this is usually a `D...` id.
 4. Check `GET /health` for process liveness.
 5. Check `GET /ready` and confirm Slack env, ingress mode, storage, AI config, and AI health all report ready.
 6. Check `GET /status` and confirm recent runtime activity is visible.
-7. Run `./script/bunx bin/cosm agent slack:status` and `./script/bunx bin/cosm agent slack:channels` so you can see what the bot token can currently access.
-   `./script/bunx bin/cosm agent slack:history <channel_id>` and `./script/bunx bin/cosm agent slack:thread <channel_id> <thread_ts>` are the narrow read-only message/thread inspection surfaces when debugging.
+7. Run `./script/bunx bin/agent slack:status` and `./script/bunx bin/agent slack:channels` so you can see what the bot token can currently access.
+   `./script/bunx bin/agent slack:history <channel_id>` and `./script/bunx bin/agent slack:thread <channel_id> <thread_ts>` are the narrow read-only message/thread inspection surfaces when debugging.
 8. Optionally run `just chat` to verify the same runtime/store loop locally before touching Slack. Inside local chat, `prompt`, `preview`, and `runtime` are local-only inspection helpers for prompt iteration. `preview` now shows the real message list sent to the model rather than a stitched transcript prompt.
 9. Run `./script/bunx bin/cosm lib/agent/send_dm.cosm <channel_id> "<text>"` to verify outbound auth and posting before testing inbound events.
 10. Complete Slack URL verification against `POST /slack/events`.
