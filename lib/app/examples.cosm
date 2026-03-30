@@ -1,35 +1,35 @@
 require "examples/spec/index.cosm"
 
-def object_surface_split() = Examples::Spec.object_surface_split();
+def object_surface_split = Examples::Spec.object_surface_split()
 
-def receiver_reflection() = Examples::Spec.receiver_reflection();
+def receiver_reflection = Examples::Spec.receiver_reflection()
 
-def method_lookup() = Examples::Spec.method_lookup();
+def method_lookup = Examples::Spec.method_lookup()
 
-def recursive_fib() = Examples::Spec.recursive_fib();
+def recursive_fib = Examples::Spec.recursive_fib()
 
-def iterative_fib() = Examples::Spec.iterative_fib();
+def iterative_fib = Examples::Spec.iterative_fib()
 
-def counter_object() = Examples::Spec.counter_object();
+def counter_object = Examples::Spec.counter_object()
 
-def point_object() = Examples::Spec.point_object();
+def point_object = Examples::Spec.point_object()
 
-def pair_object() = Examples::Spec.pair_object();
+def pair_object = Examples::Spec.pair_object()
 
-def mixin_include() = Examples::Spec.mixin_include();
+def mixin_include = Examples::Spec.mixin_include()
 
-def collections_array_hash() = Examples::Spec.collections_array_hash();
+def collections_array_hash = Examples::Spec.collections_array_hash()
 
-def data_model_build_validate() = Examples::Spec.data_model_build_validate();
+def data_model_build_validate = Examples::Spec.data_model_build_validate()
 
-def mirror_hologram_boundary() = Examples::Spec.mirror_hologram_boundary();
+def mirror_hologram_boundary = Examples::Spec.mirror_hologram_boundary()
 
-def session_notebook() = Examples::Spec.session_notebook();
+def session_notebook = Examples::Spec.session_notebook()
 
-def dispatch_helper() = Examples::Spec.dispatch_helper();
+def dispatch_helper = Examples::Spec.dispatch_helper()
 
-def router_sketch() = Examples::Spec.router_sketch();
+def router_sketch = Examples::Spec.router_sketch()
 
-def catalog() = Examples::Spec.catalog();
+def catalog = Examples::Spec.catalog()
 
-def vm_supported() = Examples::Spec.vm_supported();
+def vm_supported = Examples::Spec.vm_supported()

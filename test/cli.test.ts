@@ -454,7 +454,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.29");
+  expect(result.stdout.trim()).toBe("0.3.13.30");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 
@@ -493,8 +493,8 @@ test("cli test with no target runs the maintained Cosm spec bundles", () => {
   const result = runCli(["test"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("==> spec/core.cosm");
-  expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
+  expect(result.stdout).toContain("==> spec/examples/corpus_spec.cosm");
+  expect(result.stdout).toContain("==> spec/language/scalars_spec.cosm");
   expect(result.stdout).toContain("test bundles passed");
 }, 10000);
 
@@ -502,8 +502,8 @@ test("cli test accepts the narrow spec/ directory shorthand", () => {
   const result = runCli(["test", "spec/"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout).toContain("==> spec/core.cosm");
-  expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
+  expect(result.stdout).toContain("==> spec/examples/corpus_spec.cosm");
+  expect(result.stdout).toContain("==> spec/runtime/kernel_spec.cosm");
 }, 10000);
 
 test("cli test accepts the narrow test/ directory shorthand", () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync, watch, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import Cosm from '../src/cosm';
 import { Parser } from "../src/ast/parser";
@@ -434,16 +434,44 @@ function createTestEnv(): ReturnType<typeof Cosm.Interpreter.createEnv> {
   return env;
 }
 
+function discoverSpecTargets(rootPath: string): string[] {
+  if (!existsSync(rootPath)) {
+    return [];
+  }
+
+  const visit = (currentPath: string): string[] => {
+    const stats = statSync(currentPath);
+    if (stats.isFile()) {
+      return currentPath.endsWith("_spec.cosm") ? [currentPath] : [];
+    }
+    if (!stats.isDirectory()) {
+      return [];
+    }
+    return readdirSync(currentPath)
+      .sort((left, right) => left.localeCompare(right))
+      .flatMap((entry) => visit(join(currentPath, entry)));
+  };
+
+  return visit(rootPath);
+}
+
 function resolveTestTargets(filePath?: string): string[] {
   if (!filePath) {
-    return ["spec/core.cosm", "spec/runtime/baseline.cosm"];
+    return discoverSpecTargets("spec");
   }
   const normalized = filePath.replace(/\\/g, "/");
   if (normalized === "spec" || normalized === "spec/") {
-    return ["spec/core.cosm", "spec/runtime/baseline.cosm"];
+    return discoverSpecTargets("spec");
   }
   if (normalized === "test" || normalized === "test/") {
     return ["test/test.cosm"];
+  }
+  if (existsSync(filePath) && statSync(filePath).isDirectory()) {
+    const discovered = discoverSpecTargets(filePath);
+    if (discovered.length > 0) {
+      return discovered;
+    }
+    throw new Error(`no *_spec.cosm files found under '${filePath}'`);
   }
   return [filePath];
 }
@@ -467,6 +495,9 @@ function runSingleTestTarget(source: string, filePath: string, scriptArgs: strin
 
 function runTestMode(filePath: string | undefined, scriptArgs: string[], mode: { vm: boolean; traceSurface: boolean; traceCore: boolean; traceIr: boolean }): never {
   const targets = resolveTestTargets(filePath);
+  if (targets.length === 0) {
+    throw new Error(filePath ? `no test targets found under '${filePath}'` : "no *_spec.cosm files found under 'spec'");
+  }
   let failedTargets = 0;
 
   for (const [index, targetPath] of targets.entries()) {

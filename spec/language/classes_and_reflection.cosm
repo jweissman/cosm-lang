@@ -15,7 +15,8 @@ suite("Classes and reflection", ->() {
   it("reflects instance classes and inherited methods", ->() {
     class Pair do
       def init(left, right) do
-        true
+        @left = left
+        @right = right
       end
       def label() do
         "#{@left}:#{@right}"
@@ -85,7 +86,8 @@ suite("Classes and reflection", ->() {
 
     class Checked do
       def init(value) do
-        assert(@value == value, "init bodies can observe assigned fields")
+        @value = value
+        assert(@value == value, "init bodies can observe explicitly assigned fields")
       end
     end
 
@@ -113,7 +115,7 @@ suite("Classes and reflection", ->() {
     end
 
     class ChildLabel < BaseLabel do end
-    assert(Checked.new(4).value == 4, "init signatures drive constructor arity and fields")
+    assert(Checked.new(4).value == 4, "init signatures still drive constructor arity while authored code can assign ivars explicitly")
     assert(Greeter.classMethods.label.name == "label", "class methods reflect separately from instance methods")
     assert(MetaGreeter.label() == "MetaGreeter!", "class << self can define class-side methods explicitly")
     assert(Greeter.classMethod(:label).name == "label", "class objects can introspect bound class methods directly")

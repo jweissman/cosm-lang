@@ -111,13 +111,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.29");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.30");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.29");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.30");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -224,9 +224,11 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('require "cosm/test"; Mirror.reflect(Cosm::Test).targetClass.name')).toBe("Module");
   expect(cosmEval('Mirror.reflect(HttpRouter.new()).inspect()')).toBe('#<Mirror #<HttpRouter routes: 0>>');
   expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().mode')).toBe("narrow-writable-boundary");
+  expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.status().intended_role')).toBe("js-interop-capability-wrapper");
   expect(cosmEval('require "cosm/hologram"; Cosm::Hologram.wrap(Kernel).target_class.name')).toBe("Kernel");
   expect(cosmEval('require "cosm/hologram"; holo = Cosm::Hologram.wrap({ answer: 1 }); holo.set(:answer, 2); holo.get(:answer)')).toBe(2);
   expect(cosmEval('Mirror.status().mode')).toBe("readonly-observer");
+  expect(cosmEval('Mirror.status().intended_role')).toBe("readonly-view-and-delegation-surface");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().mode')).toBe("explicit-semantic-boundary");
   expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
 });

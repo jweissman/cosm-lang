@@ -3,5 +3,9 @@ router.draw do
   get "/hello" do |req|
     HttpResponse.text("hello " + req.path, 200)
   end
+
+  get "/status" do |req|
+    HttpResponse.json({ ok: true, path: req.path }, 200)
+  end
 end
 Kernel.inspect(router)

@@ -28,7 +28,7 @@ lint-fix:
   {{dev-bun}} run lint:fix
 
 self-test:
-  {{dev-bun}} bin/cosm spec/core.cosm
+  {{dev-bun}} bin/cosm test spec/
 
 repl:
   {{dev-bun}} bin/cosm

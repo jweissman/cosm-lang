@@ -38,6 +38,8 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 
 - Lambdas: `->(arg1, arg2) { expr }`
 - Named defs: `def name(arg1, arg2) do ... end`
+- Conservative inline defs: `def label = "hi"` and `def greet name = "hi " + name`
+- Symbol-derived callables: `:to_s.to_fn()`
 - Named defs may also omit `do` when the body is already delimited by `end`: `def name(arg1) expr end`
 - Calls may also take a trailing `do ... end` block, which still lowers to a final lambda argument under the hood.
 
@@ -50,7 +52,7 @@ In `0.3.12.x`, stabby lambdas remain the only standalone parameterized lambda fo
 - `class Name ... end` is also accepted without the extra `do`
 
 Class bodies currently support instance methods via `def name(...)` and explicit class methods via `def self.name(...)`. A method named `init` defines constructor arity and field names; its parameter list becomes the class's declared fields. Class definitions bind a class value, appear in `classes`, and expose collected slots and methods through `.slots`, `.methods`, and `.classMethods`.
-Instances can be created with `ClassName.new(...)`, and constructor arguments are assigned positionally to the fields implied by `init`. Instance methods can refer to `self`, and `init` bodies run after those fields are assigned.
+Instances can be created with `ClassName.new(...)`, and constructor arguments are still assigned positionally to the fields implied by `init`. Maintained authored code should now prefer explicit ivar setup inside `init`, for example `def init(value) @value = value end`, rather than treating slot assignment as hidden magic.
 Inside instance methods, `@name` is shorthand for reading the instance field named `name`. This makes object-state provenance explicit without replacing `self.name`.
 Class objects can receive methods too, but only when those methods are declared explicitly with `def self.name(...)`.
 Ordinary classes now reflect through minimal per-class metaclasses, while `Class` remains the bootstrap anchor. That means `Point.class.name` and `Point.metaclass.name` are both `Point class`, `Point.metaclass.class.name` is `Class`, and `Class.class.name` stays `Class`.
@@ -403,7 +405,7 @@ Class.class.name
   Clears the current test counters.
 - `Kernel.testSummary()`
   Returns a hash with `passed`, `failed`, and `total`.
-- `cosm test [file.cosm|spec/|test/]`
+- `cosm test [file.cosm|dir/]`
   Canonical CLI test mode. It preloads implicit spec helpers, runs the file or narrow built-in bundle target, prints a summary, and exits nonzero on failure.
 - `Kernel.raise(messageOrError, details?)`
   Raises an `Error`. Supported forms are `Kernel.raise("message")`, `Kernel.raise("message", details)`, and `Kernel.raise(error_object)`.
@@ -497,7 +499,7 @@ Class.class.name
 - `Mirror`
   Reflective class for readonly mirror wrappers created through `Mirror.reflect(...)`.
 - `HologramHandle`
-  Reflective class for the tiny writable wrappers returned from `Cosm::Hologram.wrap(...)`.
+  Reflective class for the current narrow read/write capability wrappers returned from `Cosm::Hologram.wrap(...)`.
 - `http`
   First Bun-native host-service object. `http.class.name` is `Http`, and servers returned from `http.serve(...)` are `HttpServer` instances.
 - `HttpRouter`
@@ -630,7 +632,7 @@ do let x = 1; x + 2 end
 - `print`, `warn`, and `test` now also exist as convenience global aliases for `Kernel.print(...)`, `Kernel.warn(...)`, and `Kernel.test(...)`.
 - `resetTests` and `testSummary` still exist as convenience globals, but `Cosm::Spec` is the maintained testing path.
 - `require "path"` is the maintained module-loading form. Prefer module constants like `Cosm::Spec` and `App::App` over older ambient bindings.
-- `cosm test` may also run the maintained Cosm bundles directly with no argument, and `cosm test spec/` / `cosm test test/` are narrow built-in shorthands. `--test` remains a compatibility alias for now.
+- `cosm test` now discovers `spec/**/*_spec.cosm` by default, and explicit file/directory targets still work. `--test` remains a compatibility alias for now.
 - `Kernel.puts(...)` is the first real stdio-oriented primitive on `Kernel`; at the moment it writes directly to stdout and returns the printed value.
 - `Kernel.warn(...)` currently writes directly to stderr and returns the printed value.
 - `Kernel.test(...)` is intentionally small and bootstrap-oriented: it runs a callable, prints a TAP-like `ok`/`not ok` line, and returns a boolean result.
@@ -645,7 +647,7 @@ do let x = 1; x + 2 end
 - `http` is the first intentionally small host-service object; it currently focuses on server startup and a tiny request/response boundary, not a full framework.
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape. `Mirror.status()` now makes that contract explicit.
-- `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge. `Cosm::Hologram.status()` is the supported way to inspect that narrow writable subset.
+- `Mirror` remains the readonly reflective/view wrapper. `Cosm::Hologram` is the intended read/write capability-wrapping interop seam, with value translation into Cosm-shaped values at the boundary; the currently supported writable subset is still intentionally narrow. `Cosm::Hologram.status()` is the supported way to inspect that current subset.
 - `~=` is the explicit semantic comparison seam in `0.3.13.x`. `Cosm::AI.cast(...)` is the explicit semantic-to-structured cast surface. `~` is intentionally deferred until a later boundary/interop line.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.

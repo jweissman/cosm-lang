@@ -44,23 +44,23 @@ def pair_object()
 end
 
 def mixin_include()
-  entry("mixin_include", "Objects", "Mixin include", "Modules stay explicit and included behavior remains part of the ordinary object story.", "examples/spec/objects/mixin_include.cosm", "label:Mixed")
+  entry("mixin_include", "Objects", "Mixin include", "Modules should compose visible behavior, not just decorate a placeholder method table.", "examples/spec/objects/mixin_include.cosm", "[label:Mixed]!")
 end
 
 def collections_array_hash()
-  entry("collections_array_hash", "Collections", "Array and Hash basics", "Exercise the small collection surface with stable array/hash reads and sends.", "examples/spec/collections/array_hash.cosm", [3, 1, 42], true)
+  entry("collections_array_hash", "Collections", "Array and Hash basics", "Exercise the small collection surface with symbol-derived callables and stable hash reads.", "examples/spec/collections/array_hash.cosm", ["1", "3", 42], true)
 end
 
 def data_model_build_validate()
-  entry("data_model_build_validate", "Data", "Data.model build/validate", "Keep the structured record layer explicit through build and validate.", "examples/spec/data/data_model_build_validate.cosm", ["Demo", "low", true], true)
+  entry("data_model_build_validate", "Data", "Data.model build/validate", "Keep the structured record layer explicit through build, defaults, and failed validation.", "examples/spec/data/data_model_build_validate.cosm", ["Demo", "low", false], true)
 end
 
 def mirror_hologram_boundary()
-  entry("mirror_hologram_boundary", "Boundaries", "Mirror and Hologram", "Mirror stays readonly while Hologram stays a tiny writable translation seam.", "examples/spec/boundaries/mirror_hologram_boundary.cosm", ["readonly-observer", "narrow-writable-boundary", 2])
+  entry("mirror_hologram_boundary", "Boundaries", "Mirror and Hologram", "Mirror stays readonly while Hologram is the read/write capability-wrapping interop seam.", "examples/spec/boundaries/mirror_hologram_boundary.cosm", ["readonly-observer", "js-interop-capability-wrapper", Process.platform(), "runtime"])
 end
 
 def session_notebook()
-  entry("session_notebook", "Notebook", "Named session", "Notebook-style execution stays explicit through Session.named and isolated eval.", "examples/spec/notebook/session_notebook.cosm", 42, true)
+  entry("session_notebook", "Notebook", "Named session", "Notebook-style execution stays explicit through named sessions and multiple eval steps.", "examples/spec/notebook/session_notebook.cosm", [41, 42], true)
 end
 
 def dispatch_helper()
@@ -68,7 +68,7 @@ def dispatch_helper()
 end
 
 def router_sketch()
-  entry("router_sketch", "Services", "Router sketch", "Object-first routing stays explicit and inspectable.", "examples/spec/services/router_sketch.cosm", "#<HttpRouter routes: 1>")
+  entry("router_sketch", "Services", "Router sketch", "Object-first routing stays explicit and inspectable through a tiny multi-route service object.", "examples/spec/services/router_sketch.cosm", "#<HttpRouter routes: 2>")
 end
 
 def catalog()

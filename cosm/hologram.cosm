@@ -1,9 +1,11 @@
 module Hologram
-  def status() = HologramHandle.status();
+  def status = HologramHandle.status()
 
-  def wrap(value) = HologramHandle.wrap(value);
+  def wrap value = HologramHandle.wrap(value)
 
-  def readable_surface() = status().readable_surface;
+  def readable_surface = status().readable_surface
 
-  def writable_targets() = status().writable_targets;
+  def intended_role = status().intended_role
+
+  def writable_targets = status().writable_targets
 end

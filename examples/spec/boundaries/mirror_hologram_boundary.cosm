@@ -1,5 +1,5 @@
 require "cosm/hologram"
 
-let holo = Cosm::Hologram.wrap({ answer: 1 })
-holo.set(:answer, 2)
-[Mirror.status().mode, Cosm::Hologram.status().mode, holo.get(:answer)]
+let proc = Cosm::Hologram.wrap(Process)
+proc.set(:label, "runtime")
+[Mirror.status().mode, Cosm::Hologram.status().intended_role, proc.get(:platform).call(), proc.get(:label)]

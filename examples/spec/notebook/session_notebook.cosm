@@ -1,4 +1,5 @@
 let page = Session.named("examples:session")
 page.reset()
 page.eval("let answer = 41")
-page.eval("answer + 1")
+page.eval("let note = answer + 1")
+[page.eval("answer"), page.eval("note")]

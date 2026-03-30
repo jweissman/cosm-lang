@@ -1,4 +1,12 @@
 export class InputNormalizer {
+  private static isInlineDefLine(trimmed: string): boolean {
+    return (
+      /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed)
+      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\s+[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed)
+      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\([^)]*\)\s*=/.test(trimmed)
+    );
+  }
+
   static normalize(input: string): string {
     let output = "";
     let lineBuffer = "";
@@ -108,7 +116,7 @@ export class InputNormalizer {
     if (/^module\b/.test(trimmed) && !/\bend\s*$/.test(trimmed)) {
       return false;
     }
-    if (/^def\b/.test(trimmed) && !/\bend\s*$/.test(trimmed)) {
+    if (/^def\b/.test(trimmed) && !this.isInlineDefLine(trimmed) && !/\bend\s*$/.test(trimmed)) {
       return false;
     }
     if (

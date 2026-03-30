@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.29
+## Current Release Target: 0.3.13.30
 
-`0.3.13.24`-`0.3.13.29` are best read as the hardening, canonicalization, boundary-formalization, and first example-corpus/VM-corridor line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.30` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, and ergonomics line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -16,6 +16,10 @@
 - make `Mirror`, `Hologram`, and explicit AI operations easier to explain as named runtime boundaries
 - formalize `~=` as the explicit semantic comparison seam while explicitly deferring `~`
 - add a spec-first executable example corpus and use it to pressure notebook teaching and the VM corridor
+- make `cosm test` default to deterministic `_spec.cosm` discovery instead of relying on one bundle file
+- allow conservative omitted-paren `def` forms for zero/one-arg inline authored methods, while keeping multi-arg defs parenthesized
+- make explicit `@ivar = value` constructor assignment the preferred authored class style
+- add a small symbol-derived callable path through `:name.to_fn()` for ordinary collection/transformation code
 - keep the Slack agent runtime available, but secondary
 - keep `--vm` honest through a documented supported corridor plus narrow parity fixtures rather than treating it like a broad second runtime
 
@@ -81,7 +85,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - A minimal `does_not_understand(message, args)` fallback protocol for missing instance sends, with `message` passed as a `Symbol` and `args` passed as an `Array`. The first concrete use is a tiny router builder layer, where `router.draw(...)` can interpret bare `get(...)` / `post(...)` calls without new route syntax.
 - Primitive ownership beginning to move into TS runtime classes via native properties/methods such as numeric/string `plus` and string/array/hash `length`.
 - Scalar equality and numeric ordering are now beginning to route through runtime message methods as well, instead of only evaluator branches.
-- Bun tests, direct runtime tests, a CLI runner, and `spec/core.cosm` as the main language-level smoke test, with `test/core.cosm` kept as a compatibility shim.
+- Bun tests, direct runtime tests, the discovered `spec/**/*_spec.cosm` Cosm-native suite, and `test/test.cosm` as the narrow compatibility harness.
 
 ## In Progress
 
@@ -113,7 +117,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - The notebook supports persistent pages, whole-page execution, one named session per page, and examples that teach the core tower and collection lattice.
 - A dedicated live LM Studio integration target exists for release readiness: `COSM_AI_LIVE=1 bun test test/ai.integration.test.ts`. `COSM_AI_MODEL=<model>` remains available when you want to force a specific model.
 - `HttpRequest`, `HttpResponse`, `HttpServer`, and `HttpRouter` are real runtime objects rather than loose bootstrap shims.
-- REPL, CLI, `spec/core.cosm`, `test/test.cosm`, and the default Bun suite stay stable and green.
+- REPL, CLI, discovered `_spec.cosm` bundles, `test/test.cosm`, and the default Bun suite stay stable and green.
 - The separate Slack service entrypoint (`agent/service.cosm` plus `agent/server.cosm`) stays narrow, durable, and explicitly secondary before reaching for tools or staged agent behavior.
 - A tiny one-shot DM smoke command exists so install testing is faster than replaying whole Slack deliveries by hand.
 
@@ -128,7 +132,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - `data Foo ... end` syntax or model-declaration syntax
 - Slack/MCP tool ecosystems or generalized persistent agent-runtime surfaces
 - HTML tag-builder DSLs
-- JS interop mirrors/holograms
+- broad JS interop beyond the current `Mirror` / `Hologram` boundary proof direction
 - full VM execution
 
 ## Next Likely Steps

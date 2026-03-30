@@ -95,6 +95,7 @@ export class CosmHologramHandleValue extends CosmObjectValue {
         return new CosmNamespaceValue({
           ready: new CosmBoolValue(true),
           mode: new CosmStringValue("narrow-writable-boundary"),
+          intended_role: new CosmStringValue("js-interop-capability-wrapper"),
           translation: new CosmBoolValue(true),
           observes_runtime_values: new CosmBoolValue(true),
           observes_host_backed_values: new CosmBoolValue(true),
@@ -104,6 +105,7 @@ export class CosmHologramHandleValue extends CosmObjectValue {
             new CosmStringValue("Object"),
             new CosmStringValue("Namespace"),
             new CosmStringValue("Module"),
+            new CosmStringValue("Process"),
           ]),
           readable_surface: new CosmArrayValue([
             new CosmStringValue("targetClass"),

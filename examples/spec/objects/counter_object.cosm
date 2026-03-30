@@ -1,15 +1,9 @@
 class Counter
-  def init(value)
-    true
-  end
+  def init(value) @value = value end
 
-  def current()
-    @value
-  end
+  def current = @value
 
-  def increment()
-    Counter.new(@value + 1)
-  end
+  def increment = Counter.new(@value + 1)
 end
 
 let counter = Counter.new(2)

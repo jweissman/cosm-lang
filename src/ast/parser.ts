@@ -97,9 +97,15 @@ export class Parser {
           value: '',
           left: statement.ast(),
         }),
-        AssignStmt: (name, _eq, expr) => ({
+        AssignStmt_local: (name, _eq, expr) => ({
           kind: 'assign_stmt',
           value: name.sourceString,
+          left: expr.ast(),
+        }),
+        AssignStmt_ivar: (name, _eq, expr) => ({
+          kind: 'assign_stmt',
+          value: name.ast().value,
+          target: 'ivar',
           left: expr.ast(),
         }),
         BareCallStmt_args: (callee, args, trailingBlock) => {
@@ -230,6 +236,14 @@ export class Parser {
             };
           })(),
         }),
+        ClassMetaDefStmt_inline_arg: (_def, name, param, _eq, body) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: [param.sourceString],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
         ClassMetaDefStmt_inline: (_def, name, _eq, body) => ({
           kind: 'class_def_stmt',
           value: name.sourceString,
@@ -237,6 +251,14 @@ export class Parser {
           params: [],
           defaults: {},
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
+        ClassMetaDefStmt_block_no_parens: (_def, name, _do, body, _end) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: [],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         ClassMetaDefStmt_block: (_def, name, _open, params, _close, _do, body, _end) => ({
           ...(() => {
@@ -266,6 +288,14 @@ export class Parser {
             };
           })(),
         }),
+        ClassDefStmt_class_inline_arg: (_def, _self, _dot, name, param, _eq, body) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: [param.sourceString],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
         ClassDefStmt_class_inline: (_def, _self, _dot, name, _eq, body) => ({
           kind: 'class_def_stmt',
           value: name.sourceString,
@@ -273,6 +303,14 @@ export class Parser {
           params: [],
           defaults: {},
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
+        ClassDefStmt_class_no_parens: (_def, _self, _dot, name, _do, body, _end) => ({
+          kind: 'class_def_stmt',
+          value: name.sourceString,
+          target: 'class',
+          params: [],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         ClassDefStmt_class: (_def, _self, _dot, name, _open, params, _close, _do, body, _end) => ({
           ...(() => {
@@ -302,6 +340,14 @@ export class Parser {
             };
           })(),
         }),
+        ClassDefStmt_instance_inline_arg: (_def, name, param, _eq, body) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          target: 'instance',
+          params: [param.sourceString],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
         ClassDefStmt_instance_inline: (_def, name, _eq, body) => ({
           kind: 'def_stmt',
           value: name.sourceString,
@@ -309,6 +355,14 @@ export class Parser {
           params: [],
           defaults: {},
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
+        ClassDefStmt_instance_no_parens: (_def, name, _do, body, _end) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          target: 'instance',
+          params: [],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         ClassDefStmt_instance: (_def, name, _open, params, _close, _do, body, _end) => ({
           ...(() => {
@@ -337,12 +391,26 @@ export class Parser {
             };
           })(),
         }),
+        DefStmt_inline_arg: (_def, name, param, _eq, body) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          params: [param.sourceString],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
         DefStmt_inline: (_def, name, _eq, body) => ({
           kind: 'def_stmt',
           value: name.sourceString,
           params: [],
           defaults: {},
           children: [{ kind: 'block_expr', value: '', children: [body.ast()] }],
+        }),
+        DefStmt_block_no_parens: (_def, name, _do, body, _end) => ({
+          kind: 'def_stmt',
+          value: name.sourceString,
+          params: [],
+          defaults: {},
+          children: [{ kind: 'block_expr', value: '', children: Parser.listChildren(body.ast()) }],
         }),
         DefStmt_block: (_def, name, _open, params, _close, _do, body, _end) => ({
           ...(() => {

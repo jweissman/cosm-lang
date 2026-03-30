@@ -32,6 +32,7 @@ test("if expressions choose a branch and scope it", () => {
 test("user-defined functions work", () => {
   expect(cosmEval("let id = ->(x) { x }; id(42)")).toBe(42);
   expect(cosmEval("let id = ->(x) { x }; id.call(42)")).toBe(42);
+  expect(cosmEval('def greet name = "hi " + name; greet("cosm")')).toBe("hi cosm");
   expect(cosmEval('def greet(name) "hi " + name end; greet("cosm")')).toBe("hi cosm");
   expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet()')).toBe("hi cosm");
   expect(cosmEval('def greet(name = "cosm") "hi " + name end; greet("runtime")')).toBe("hi runtime");
@@ -44,6 +45,21 @@ test("user-defined functions work", () => {
   expect(cosmEval('let fortyTwo = ->() { 42 }; fortyTwo()')).toBe(42);
   expect(cosmEval('def named(name) do "hi " + name end; named("cosm")')).toBe("hi cosm");
   expect(cosmEval('let prefix = "co"; def joinDef(rest) do prefix + rest end; joinDef("sm")')).toBe("cosm");
+});
+
+test("explicit ivar assignment and symbol-derived callables work in ordinary authored code", () => {
+  expect(cosmEval(`
+    class Box
+      def init(value)
+        @value = value
+      end
+
+      def current = @value
+    end
+
+    Box.new(4).current()
+  `)).toBe(4);
+  expect(cosmEval('[1, 2, 3].map(:to_s.to_fn())')).toEqual(["1", "2", "3"]);
 });
 
 test("yield invokes the current implicit trailing block", () => {
@@ -70,7 +86,7 @@ test("yield invokes the current implicit trailing block", () => {
 test("implicit self dispatch works for unresolved bare calls", () => {
   expect(cosmEval('class Greeter do def hello(name) do "hi " + name end; def callHello(name) do hello(name) end end; Greeter.new().callHello("cosm")')).toBe("hi cosm");
   expect(cosmEval('class Greeter do def self.label() do "Greeter!" end; def self.callLabel() do label() end end; Greeter.callLabel()')).toBe("Greeter!");
-  expect(cosmEval('class Counter do def init(value) do true end; def current() do value end end; Counter.new(4).current()')).toBe(4);
+  expect(cosmEval('class Counter do def init(value) do @value = value end; def current() do value end end; Counter.new(4).current()')).toBe(4);
   expect(cosmEval('class Base do def greet(name) do "hi " + name end end; class Child < Base do def greet(name) do super(name) + "!" end end; Child.new().greet("cosm")')).toBe("hi cosm!");
 });
 
@@ -85,8 +101,8 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval("Class.class.name")).toBe("Class");
   expect(cosmEval("class Point < Number do end; Point.superclass.name")).toBe("Number");
   expect(cosmEval("1.plus(2)")).toBe(3);
-  expect(cosmEval("class Pair do def init(left, right) do true end end; Pair.slots.length")).toBe(2);
-  expect(cosmEval("class Pair do def init(left, right) do true end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
+  expect(cosmEval("class Pair do def init(left, right) do @left = left; @right = right end end; Pair.slots.length")).toBe(2);
+  expect(cosmEval("class Pair do def init(left, right) do @left = left; @right = right end; def sum() do @left + @right end end; let pair = Pair.new(1, 2); pair.sum()")).toBe(3);
   expect(cosmEval('class Greeter do def greet(name) do "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
   expect(cosmEval('class Greeter def greet(name) "hello " + name end end; Greeter.methods.greet.name')).toBe("greet");
   expect(cosmEval('class Greeter do def self.label() do self.name + "!" end end; Greeter.classMethods.label.name')).toBe("label");
@@ -100,9 +116,9 @@ test("classes can be defined and reflected on", () => {
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.label()')).toBe("base");
   expect(cosmEval('class Base do def self.label() do "base" end end; class Child < Base do end; Child.metaclass.superclass.name')).toBe("Base class");
   expect(cosmEval('class Base do def self.label(name) do "base " + name end end; class Child < Base do def self.label(name) do super(name) + "!" end end; Child.label("cosm")')).toBe("base cosm!");
-  expect(cosmEval('class Base do def init(left) do true end; def kind() do "base #{@left}" end end; class Child < Base do def init(right) do assert(@left == 1) end end; let child = Child.new(1, 2); child.kind()')).toBe("base 1");
-  expect(cosmEval('class Checked do def init(value) do assert(@value == value) end end; Checked.new(4).value')).toBe(4);
-  expect(cosmEval('class Pair do def init(left, right) do true end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");
+  expect(cosmEval('class Base do def init(left) do @left = left end; def kind() do "base #{@left}" end end; class Child < Base do def init(right) do @right = right; assert(@left == 1) end end; let child = Child.new(1, 2); child.kind()')).toBe("base 1");
+  expect(cosmEval('class Checked do def init(value) do @value = value; assert(@value == value) end end; Checked.new(4).value')).toBe(4);
+  expect(cosmEval('class Pair do def init(left, right) do @left = left; @right = right end; def label() do "#{@left}:#{@right}" end end; Pair.new(1, 2).label()')).toBe("1:2");
   expect(cosmEval('class Point do end; Point.new().class.name')).toBe("Point");
 });
 
@@ -142,6 +158,7 @@ test("lookup and property errors stay explicit", () => {
   expect(() => cosmEval("class Thing do def init(value) do true end; def missing() do @other end end; Thing.new(1).missing()")).toThrow("Property error: object of class Thing has no ivar '@other'");
   expect(() => cosmEval("let class = 1")).toThrow("Parse error:");
   expect(() => cosmEval("let self = 1")).toThrow("Parse error:");
+  expect(() => cosmEval("[1, 2].map(:to_s.to_fn())")).not.toThrow();
 });
 
 test("Kernel.raise keeps message, details, and error-object forms explicit", () => {

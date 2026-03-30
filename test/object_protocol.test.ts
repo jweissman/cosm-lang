@@ -255,6 +255,7 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('[1, 2, 3].take(2)')).toEqual([1, 2]);
   expect(cosmEval('[1, 2, 3].reduce(0, ->(acc, value) { acc + value })')).toBe(6);
   expect(cosmEval('[1, 2, 3].map do |value| value + 1 end')).toEqual([2, 3, 4]);
+  expect(cosmEval('[1, 2, 3].map(:to_s.to_fn())')).toEqual(["1", "2", "3"]);
   expect(cosmEval('{ a: 1, b: 2 }.map do |key, value| [key, value] end')).toEqual([["a", 1], ["b", 2]]);
   expect(cosmEval('["co", "sm"].join("-")')).toBe("co-sm");
   expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
@@ -293,6 +294,10 @@ test("real authored modules and Hologram wrappers expose the object model more h
     require "cosm/hologram"
     Cosm::Hologram.status().mode
   `)).toBe("narrow-writable-boundary");
+  expect(cosmEval(`
+    require "cosm/hologram"
+    Cosm::Hologram.status().intended_role
+  `)).toBe("js-interop-capability-wrapper");
   expect(cosmEval(`
     require "cosm/hologram"
     Cosm::Hologram.status().translation

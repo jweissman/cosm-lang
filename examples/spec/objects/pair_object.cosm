@@ -1,15 +1,12 @@
 class Pair
   def init(left, right)
-    true
+    @left = left
+    @right = right
   end
 
-  def sum()
-    @left + @right
-  end
+  def sum = @left + @right
 
-  def inspect()
-    "<Pair " + @left.to_s() + ", " + @right.to_s() + ">"
-  end
+  def inspect = "<Pair " + @left.to_s() + ", " + @right.to_s() + ">"
 end
 
 let pair = Pair.new(1, 2)

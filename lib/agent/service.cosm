@@ -2,9 +2,7 @@ require "lib/agent/slack"
 require "lib/agent/runtime"
 
 class AgentService
-  def init(router)
-    true
-  end
+  def init(router) @router = router end
 
   def handle(req)
     @router.handle(req)

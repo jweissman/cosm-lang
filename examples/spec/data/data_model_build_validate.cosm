@@ -6,4 +6,5 @@ let Ticket = Data.model("Ticket", {
 })
 
 let built = Ticket.build({ title: "Demo" })
-[built.at("title"), built.at("priority"), Ticket.validate(built)]
+let invalid = Kernel.tryValidate({ title: "Demo", priority: "urgent" }, Ticket)
+[built.at("title"), built.at("priority"), invalid.ok]

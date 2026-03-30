@@ -255,7 +255,7 @@ test("core runtime manifests expose a consistent boot surface", () => {
   expect(Object.keys(classMethods).sort()).toEqual(["classMethod", "include", "new"]);
   expect(Object.keys(functionMethods)).toEqual(["call"]);
   expect(Object.keys(methodMethods)).toEqual(["call"]);
-  expect(Object.keys(symbolMethods).sort()).toEqual(["eq", "to_s"]);
+  expect(Object.keys(symbolMethods).sort()).toEqual(["eq", "to_fn", "to_s"]);
   expect(Object.keys(symbolClassMethods)).toEqual(["intern"]);
   expect(Object.keys(namespaceMethods).sort()).toEqual(["get", "has", "keys", "values"]);
   expect(Object.keys(moduleMethods).sort()).toEqual(["get", "has", "keys", "values"]);

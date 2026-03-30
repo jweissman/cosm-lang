@@ -19,11 +19,15 @@ It is designed to stay legible about classes, message send, modules, validation,
 
 ```cosm
 class Pair
-  def init(left, right) true end
-  def sum() @left + @right end
+  def init(left, right)
+    @left = left
+    @right = right
+  end
+
+  def sum = @left + @right
 end
 
-pair = Pair.new(1, 2)
+let pair = Pair.new(1, 2)
 pair.sum()
 ```
 
@@ -90,13 +94,12 @@ Common commands:
 - `./script/bunx run test:live-ai`
 - `./script/bunx run lint`
 - `./script/bunx bin/cosm test`
-- `./script/bunx bin/cosm test spec/core.cosm`
 - `./script/bunx bin/cosm test spec/`
+- `./script/bunx bin/cosm test spec/examples/`
 - `./script/bunx bin/cosm test test/`
 - `./script/bunx bin/cosm agent slack:status`
 - `./script/bunx bin/cosm agent slack:channels`
 - `./script/bunx bin/cosm agent slack:thread <channel_id> <thread_ts>`
-- `./script/bunx bin/cosm spec/core.cosm`
 - `./script/bunx bin/cosm test spec/runtime/baseline.cosm`
 - `./script/bunx bin/cosm --version`
 - `./script/bunx bin/cosm -e '1 + 2'`
@@ -158,7 +161,7 @@ Cosm is intentionally still narrow in a few places:
 - no browser-side runtime
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
-- `Mirror` is still readonly reflection only, and `Cosm::Hologram` is now only a tiny writable boundary wedge, not a full JS bridge
+- `Mirror` is the readonly reflective/view boundary, and `Cosm::Hologram` is the intended read/write capability-wrapping interop seam; the current supported writable subset is still deliberately narrow
 - no fully general VM execution yet; `--vm` is still experimental and currently targets a documented supported corridor plus a small parity corpus under `examples/spec/` and `test/fixtures/vm/`
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

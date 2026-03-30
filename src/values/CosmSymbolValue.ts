@@ -8,11 +8,14 @@ import { CosmValueBase } from "./CosmValueBase";
 
 export class CosmSymbolValue extends CosmValueBase {
   private static internHandler?: (name: string) => CosmValue;
+  private static sendHandler?: (receiver: CosmValue, message: string, args: CosmValue[], env?: import("../types").CosmEnv) => CosmValue;
 
   static installRuntimeHooks(hooks: {
     intern: (name: string) => CosmValue;
+    send: (receiver: CosmValue, message: string, args: CosmValue[], env?: import("../types").CosmEnv) => CosmValue;
   }): void {
     this.internHandler = hooks.intern;
+    this.sendHandler = hooks.send;
   }
 
   static readonly manifest: RuntimeValueManifest<CosmSymbolValue> = {
@@ -37,6 +40,24 @@ export class CosmSymbolValue extends CosmValueBase {
           throw new Error(`Arity error: method to_s expects 0 arguments, got ${args.length}`);
         }
         return new CosmStringValue(selfValue.name);
+      }),
+      to_fn: () => new CosmFunctionValue('to_fn', (args, selfValue) => {
+        if (!(selfValue instanceof CosmSymbolValue)) {
+          throw new Error('Type error: to_fn expects a symbol receiver');
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: method to_fn expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmFunctionValue(`<symbol:${selfValue.name}>`, (callArgs, _receiver, env) => {
+          if (callArgs.length < 1) {
+            throw new Error(`Arity error: ${selfValue.toCosmString()}.to_fn().call expects at least 1 arguments, got 0`);
+          }
+          if (!CosmSymbolValue.sendHandler) {
+            throw new Error('Symbol runtime error: send handler is not installed');
+          }
+          const [receiver, ...rest] = callArgs;
+          return CosmSymbolValue.sendHandler(receiver, selfValue.name, rest, env);
+        });
       }),
     },
     classMethods: {

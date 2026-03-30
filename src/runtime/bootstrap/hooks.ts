@@ -66,6 +66,7 @@ export function installRuntimeHooks(runtime: BootstrapRuntime, getCurrentReposit
   });
   CosmSymbolValue.installRuntimeHooks({
     intern: (name) => runtime.internSymbol(name),
+    send: (receiver, message, args, env) => runtime.invokeSend(receiver, runtime.internSymbol(message), args, env),
   });
   CosmValueBase.installRuntimeHooks({
     send: (receiver, messageValue, args, env) => runtime.invokeSend(receiver, messageValue, args, env),

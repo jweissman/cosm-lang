@@ -66,11 +66,18 @@ test("parser accepts ternary expressions", () => {
 
 test("parser accepts one-line defs", () => {
   expect(() => Parser.parse('def status = ai.status(); status()')).not.toThrow();
+  expect(() => Parser.parse('def greet name = "hi " + name; greet("cosm")')).not.toThrow();
   expect(() => Parser.parse('def add(x, y) = x + y; add(1, 2)')).not.toThrow();
   expect(() => Parser.parse('def join(head, *tail) = tail.length; join("a", "b", "c")')).not.toThrow();
   expect(() => Parser.parse('class Greeter do def label = "hi" end; Greeter.new().label()')).not.toThrow();
   expect(() => Parser.parse('module Enumerable\n  def count() = self.length\nend\nEnumerable.name')).not.toThrow();
   expect(() => Parser.parse('begin\n  Kernel.raise("boom")\nrescue err\n  err.message\nend')).not.toThrow();
+});
+
+test("parser accepts explicit ivar assignment and conservative no-paren defs", () => {
+  expect(() => Parser.parse('class Box\n  def init(value)\n    @value = value\n  end\n  def value = @value\nend\nBox.new(1).value()')).not.toThrow();
+  expect(() => Parser.parse('class Greeter\n  def label\n    "hi"\n  end\nend\nGreeter.new().label()')).not.toThrow();
+  expect(() => Parser.parse('def add left, right = left + right')).toThrow("Parse error:");
 });
 
 test("parser accepts multi-statement lambdas with bare calls", () => {

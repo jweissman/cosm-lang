@@ -9,9 +9,7 @@ let notebook_runtime = App::NotebookRuntime
 let controller = Support::Controller
 
 class App
-  def init(router)
-    true
-  end
+  def init(router) @router = router end
 
   def handle(req)
     @router.handle(req)

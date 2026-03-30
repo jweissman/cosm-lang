@@ -99,6 +99,7 @@ export class CosmMirrorValue extends CosmObjectValue {
         return new CosmNamespaceValue({
           ready: new CosmBoolValue(true),
           mode: new CosmStringValue("readonly-observer"),
+          intended_role: new CosmStringValue("readonly-view-and-delegation-surface"),
           observes_runtime_values: new CosmBoolValue(true),
           observes_host_backed_values: new CosmBoolValue(true),
           writable: new CosmBoolValue(false),

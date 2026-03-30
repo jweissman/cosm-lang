@@ -173,7 +173,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.29");
+        cosmRoot.fields.version = Construct.string("0.3.13.30");
       }
       return repository;
     }
@@ -318,6 +318,12 @@ namespace Cosm {
     private static evalAssign(ast: CoreNode, env: Env): CosmValue {
       if (!ast.left) {
         throw new Error("Invalid AST: assign node must have a value expression");
+      }
+      if (ast.target === "ivar") {
+        const value = this.evalNode(ast.left, env);
+        const selfValue = InterpreterLookup.lookupSelf(env, ast.value);
+        selfValue.fields[ast.value] = value;
+        return value;
       }
       if (this.isReservedBindingName(ast.value)) {
         throw new Error(`Name error: cannot assign reserved name '${ast.value}'`);
@@ -655,6 +661,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.29";
+    export const version = "0.3.13.30";
 }
 export default Cosm;
