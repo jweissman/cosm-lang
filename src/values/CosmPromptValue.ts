@@ -5,6 +5,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValue } from "../types";
 
+// Prompt stays TS-backed as a thin runtime primitive. Prompt-shaping and AI
+// policy belong in authored Cosm helpers above this layer.
 export class CosmPromptValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmPromptValue> = {
     properties: {

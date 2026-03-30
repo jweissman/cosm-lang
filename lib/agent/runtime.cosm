@@ -159,8 +159,8 @@ def status()
   let ai_health = Cosm::AI.health()
   let ai_status = { configured: ai_config.configured, health: ai_health.ok }
   let slack_status = {
-    signing_secret: Agent::Config.slack_signing_secret() != false,
-    bot_token: Agent::Config.slack_bot_token() != false,
+    signing_secret: Agent::Config.slack_signing_secret().present?(),
+    bot_token: Agent::Config.slack_bot_token().present?(),
     dm_enabled: true,
     mention_mode: true,
     channel_mentions_enabled: Agent::Config.slack_channel_ingress_enabled(),

@@ -3,6 +3,13 @@ class Object < BasicObject
 
   def class_name() = self.class.name
 
+  def is_a?(target)
+    let target_name = target.class_name() == "Class" ? target.name : target
+    self.class.name == target_name ? true : self.class.inherits_from?(target_name)
+  end
+
+  def kind_of?(target) = self.is_a?(target)
+
   def nihil?() = self.class.name == "Nihil"
 
   def falsy?() = self == false || self.nihil?()
@@ -12,7 +19,15 @@ class Object < BasicObject
   end
 
   def present?()
-    self.falsy?() ? false : true
+    if self.falsy?() then
+      false
+    else
+      if self.class_name() == "String" then
+        self.length == 0 ? false : true
+      else
+        true
+      end
+    end
   end
 
   def blank?()
@@ -24,6 +39,15 @@ class Object < BasicObject
   end
 
   def same?(other) = self == other
+
+  def responds_to?(name)
+    let result = Kernel.try do
+      self.method(name)
+    end
+    result.ok
+  end
+
+  def responds_to(name) = self.responds_to?(name)
 
   def inspect_text() = self.inspect()
 

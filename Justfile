@@ -51,6 +51,9 @@ send-dm channel_id text:
 bench-vm:
   {{dev-bun}} run script/bench_vm.ts
 
+vm-corpus-test:
+  {{dev-bun}} test test/vm.test.ts test/examples_corpus.test.ts
+
 chat:
   {{dev-bun}} bin/cosm lib/agent/chat_cli.cosm
 

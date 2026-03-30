@@ -5,6 +5,8 @@ import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 
+// Time remains TS-backed because wall-clock access is host substrate rather
+// than ordinary authored language policy.
 export class CosmTimeValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmTimeValue> = {
     methods: {

@@ -19,4 +19,9 @@ module Mapping
   end
 
   def has_key(target) = self.has_key?(target)
+
+  def fetch(target, fallback = nihil)
+    let value = self.at(target)
+    value.nihil?() ? fallback : value
+  end
 end

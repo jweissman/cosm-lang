@@ -88,9 +88,9 @@ class App
       let key_value = form.get("key")
       let transcript_value = form.get("transcript")
       let message_value = form.get("message")
-      let key = if key_value == false then Kernel.uuid() else key_value end
-      let transcript = if transcript_value == false then "" else transcript_value end
-      let message = if message_value == false then "" else message_value end
+      let key = key_value.nihil?() ? Kernel.uuid() : key_value
+      let transcript = transcript_value.nihil?() ? "" : transcript_value
+      let message = message_value.nihil?() ? "" : message_value
       let conversation = controller.page_conversation(key, transcript)
       let inbound = controller.page_inbound(key, message)
       let outcome = Kernel.try(->() { controller.turn(conversation, inbound) })
@@ -147,7 +147,7 @@ class App
 
     def notebook_id_from_form(form)
       let value = Kernel.try(->() { form.get("id") })
-      if value.ok then value.value else false end
+      if value.ok then value.value else nihil end
     end
 
     def notebook_title(form)
@@ -157,7 +157,7 @@ class App
 
     def notebook_blocks(form)
       let value = Kernel.try(->() { form.get("blocks") })
-      if value.ok then value.value else false end
+      if value.ok then value.value else nihil end
     end
   end
 end

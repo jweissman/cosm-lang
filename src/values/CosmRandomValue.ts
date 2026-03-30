@@ -5,6 +5,8 @@ import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmArrayValue } from "./CosmArrayValue";
 
+// Random remains TS-backed because entropy and random-number generation are
+// host/runtime primitives, not authored-language semantics.
 export class CosmRandomValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmRandomValue> = {
     methods: {

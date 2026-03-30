@@ -16,6 +16,8 @@ import { ValueAdapter } from "../ValueAdapter";
 
 type SchemaKind = "string" | "number" | "boolean" | "array" | "enum" | "object" | "optional";
 
+// Schema keeps its validation/runtime substrate in TS for now. The authored
+// `Data`/`Cosm::AI` layers should carry the teachable policy on top.
 export class CosmSchemaValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmSchemaValue> = {
     properties: {

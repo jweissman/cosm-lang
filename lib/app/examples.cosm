@@ -1,5 +1,8 @@
 require "examples/spec/index.cosm"
 
+# App-facing notebook/example presentation stays derived from the canonical
+# corpus so the VM corridor and the taught language surface share one source.
+
 def object_surface_split = Examples::Spec.object_surface_split()
 
 def receiver_reflection = Examples::Spec.receiver_reflection()

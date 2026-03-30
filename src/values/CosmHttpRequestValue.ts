@@ -7,6 +7,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 
 // HttpRequest remains a transitional wrapper while the host-object boundary settles.
+// HttpRequest is still a transitional TS wrapper over host transport shape.
+// Longer-term host-wrapped boundaries may shrink this surface.
 export class CosmHttpRequestValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmHttpRequestValue> = {
     properties: {

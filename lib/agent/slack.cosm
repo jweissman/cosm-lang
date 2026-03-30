@@ -33,8 +33,8 @@ end
 
 def ready_payload(path)
   let cfg = slack_config()
-  let signing_secret_ok = cfg.signing_secret != false
-  let bot_token_ok = cfg.bot_token != false
+  let signing_secret_ok = cfg.signing_secret.present?()
+  let bot_token_ok = cfg.bot_token.present?()
   let storage_ok = Agent::Store.writable()
   let ai_config = Cosm::AI.config()
   let ai_health = Cosm::AI.health()
@@ -147,7 +147,7 @@ def handle_inbound(inbound, event_key)
   let turn = Agent::Runtime.execute_stored_turn(inbound)
   puts("[slack] turn " + turn.outcome + " for " + turn.conversation.key)
   if turn.reply.degraded == true then
-    let reason = turn.reply.failure_reason == false ? "unknown" : turn.reply.failure_reason
+    let reason = turn.reply.failure_reason.nihil?() ? "unknown" : turn.reply.failure_reason
     puts("[slack] degraded reply for " + turn.conversation.key + ": " + reason)
   else
     true

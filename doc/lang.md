@@ -432,7 +432,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.35`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.37`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -638,6 +638,7 @@ do let x = 1; x + 2 end
 - Triple-quoted strings remain the small inline multiline template form in `0.3.12.x`; `.ecosm` is now the intended path for larger app-facing HTML templates, and prompt execution stays explicit through `Prompt.text(...)` or `cosm.ai`.
 - `.ecosm` templates may interpolate ordinary `#{...}` expressions, preferred `<%= ... %>` expressions, and in `0.3.12.x` may also consume `yield()` for single-slot layout composition without stealing ordinary context keys.
 - `methods()` on live receivers is now the intended everyday reflection path; `Mirror` stays the readonly wrapper path, and `.methods` / `.classMethods` on class objects remain the explicit class-table views.
+- ordinary access now invokes zero-arity callables by default, except that `.methods` and `.classMethods` remain explicit reflective-table exceptions
 - `BasicObject` is now the minimal root. Everyday reflection and text protocol begin on `Object`, not on every possible receiver.
 - `class` currently supports `init`-driven constructor fields, reflective class objects, `Class.new(...)`, instance method send via `obj.method(...)`, and explicit class methods via `def self.name(...)`.
 - `module Name ... end` is now the narrow authored-module form for mixins and grouped helper surfaces.

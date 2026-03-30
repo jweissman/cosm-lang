@@ -1,7 +1,8 @@
 class Hash < Object
   def at(key)
+    let target_key = key.class_name() == "Symbol" ? key.to_s() : key
     self.find_map do |current_key, value|
-      current_key == key ? value : nihil
+      current_key == target_key ? value : nihil
     end
   end
 end

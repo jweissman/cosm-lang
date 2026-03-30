@@ -14,4 +14,6 @@ module Collection
   def presence()
     self.present?() ? self : nihil
   end
+
+  def blank?() = self.empty?()
 end

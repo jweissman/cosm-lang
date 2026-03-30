@@ -21,7 +21,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, readSync, writeFileSy
 import { dirname, join, resolve } from "node:path";
 import { createHmac } from "node:crypto";
 
-
+// Kernel stays TS-backed for host IO, filesystem/process access, shelling,
+// and other runtime-substrate concerns. Ordinary semantic policy should
+// prefer authored Cosm layers where bootstrap permits.
 export class CosmKernelValue extends CosmObjectValue {
   private static sendHandler?: (receiver: CosmValue, message: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;

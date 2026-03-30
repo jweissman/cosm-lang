@@ -1,6 +1,12 @@
 module Sequence
   def compact() = self.select do |value| value.nihil?() ? false : true end
 
+  def compact_blank()
+    self.select do |value|
+      value.present?()
+    end
+  end
+
   def first() = self.length > 0 ? self.take(1).last() : nihil
 
   def last() = self.reduce(nihil) do |_acc, value| value end

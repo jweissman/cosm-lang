@@ -1,6 +1,8 @@
 class Module < Object
   def entry_symbols() = self.keys()
 
+  def entry(name) = self.get(name)
+
   def entry_names()
     self.keys().map do |name|
       name.name
@@ -16,6 +18,8 @@ class Module < Object
   end
 
   def includes_entry?(name) = self.has_entry?(name)
+
+  def entry?(name) = self.has_entry?(name)
 
   def include_into(target) = target.include(self)
 end

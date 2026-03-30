@@ -144,6 +144,18 @@ Current priority:
 - keep replacing false-ish missing-value checks in maintained authored code with `nihil`, `present?`, `truthy?`, and `falsy?`
 - keep the example corpus and VM corridor honest by pressuring these authored-core changes through real examples rather than synthetic runtime-only fixtures
 
+### `0.3.13.36`: Object Protocol and Intrinsic Ownership Pass
+
+- classify `Kernel`, `Process`, `Time`, `Random`, `Schema`, `Prompt`, `Session`, and the HTTP surfaces as substrate-native, transitional, or authored-policy candidates
+- deepen `cosm/core/*` with more ordinary reflection, ancestry, and callable-convenience behavior
+- keep shrinking visibly ordinary behavior into authored Cosm without pretending host/runtime substrate should move out of TS
+
+### `0.3.13.37`: VM Corridor Legitimization Through The Authored Core
+
+- make the VM-supported corridor explicit and corpus-backed instead of merely implied by smoke fixtures
+- use the example corpus as the named source of truth for VM-supported authored programs
+- expand VM only where maintained core/examples actually need it
+
 ### `0.3.14.x`: Persistence, Tools, and Concurrency
 
 - introduce a real store boundary

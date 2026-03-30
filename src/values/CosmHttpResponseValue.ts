@@ -9,6 +9,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
 
 // HttpResponse remains a small TS-owned response wrapper for now.
+// HttpResponse is still a transitional TS wrapper over host transport shape.
+// Longer-term response policy should keep lifting above this boundary.
 export class CosmHttpResponseValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmHttpResponseValue> = {
     properties: {

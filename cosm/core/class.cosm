@@ -12,11 +12,21 @@ class Class < Module
 
   def ancestor_names() = self.lineage()
 
+  def instance_method(name) = self.methods.get(name)
+
+  def instance_method_names()
+    self.methods.keys().map do |name|
+      name.name
+    end
+  end
+
   def included_module_names()
     self.includedModules.map do |mod|
       mod.name
     end
   end
+
+  def class_method(name) = self.classMethod(name)
 
   def superclass_name() = self.name == "BasicObject" ? nihil : (self.superclass.nihil?() ? nihil : self.superclass.name)
 

@@ -53,6 +53,8 @@ class CosmHttpRouterDslValue extends CosmObjectValue {
   }
 }
 
+// HttpRouter is the HTTP surface most likely to stay Cosm-facing longest:
+// routing intent is policy, even while transport/bootstrap stay host-backed.
 export class CosmHttpRouterValue extends CosmObjectValue {
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   private static methodLookupHandler?: (receiver: CosmValue, message: CosmValue) => CosmValue;

@@ -77,9 +77,16 @@ test("explicit ivar assignment and symbol-derived callables work in ordinary aut
   expect(cosmEval('[].presence().nihil?()')).toBe(true);
   expect(cosmEval('Array.includes_module?("Enumerable")')).toBe(true);
   expect(cosmEval('Array.ancestor_names()')).toEqual(["Array", "Object", "BasicObject"]);
+  expect(cosmEval('Array.instance_method_names().find(->(name) { name == "compact_blank" }).nihil?()')).toBe(false);
+  expect(cosmEval('HttpResponse.class_method(:json).name')).toBe("json");
   expect(cosmEval('[1, 2, 3].second()')).toBe(2);
   expect(cosmEval('[1].second().nihil?()')).toBe(true);
   expect(cosmEval('Session.default.history.length')).toBeGreaterThanOrEqual(0);
+  expect(cosmEval('"cosm".is_a?("String")')).toBe(true);
+  expect(cosmEval('"cosm".responds_to?(:to_s)')).toBe(true);
+  expect(cosmEval('[1, nihil, "", 2].compact_blank()')).toEqual([1, 2]);
+  expect(cosmEval('{ answer: 42 }.fetch(:answer)')).toBe(42);
+  expect(cosmEval('{ }.fetch(:answer, "fallback")')).toBe("fallback");
 });
 
 test("yield invokes the current implicit trailing block", () => {

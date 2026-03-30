@@ -10,6 +10,9 @@ import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { CosmHashValue } from "./CosmHashValue";
 
+// Process remains TS-backed because it is a direct host/process boundary.
+// Its reflective/object surface may be taught in Cosm, but the primitive
+// capability ownership stays with the host runtime.
 export class CosmProcessValue extends CosmObjectValue {
   private static exitHandler?: (code?: number) => never;
 

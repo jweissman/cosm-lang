@@ -20,6 +20,9 @@ type SessionHistoryEntry = {
   error?: CosmErrorValue;
 };
 
+// Session remains TS-backed because worker/runtime isolation and history
+// transport are substrate concerns, even while notebook/session policy can
+// keep lifting into authored Cosm code.
 export class CosmSessionValue extends CosmObjectValue {
   private static createHandleHandler?: (name: string, errorClassRef?: CosmClassValue) => SessionRuntimeHandle;
   private static defaultSessionHandler?: () => CosmSessionValue;

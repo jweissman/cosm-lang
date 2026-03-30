@@ -11,11 +11,11 @@ class AssistantView
 
     def page(conversation, reply)
       let transcript = Support::Controller.display_transcript(conversation)
-      let reply_text = if reply == false then false else reply.text end
+      let reply_text = reply.nihil?() ? nihil : reply.text
       App::Rendering::HtmlView.render_layout("Iapetus Assistant", page_template(), {
         key: App::Rendering::HtmlView.escape(conversation.key),
         transcript: App::Rendering::HtmlView.escape(transcript),
-        reply: if reply_text == false then false else App::Rendering::HtmlView.escape(reply_text) end,
+        reply: reply_text.nihil?() ? nihil : App::Rendering::HtmlView.escape(reply_text),
         transcript_size: transcript.length,
         ai_config: App::Rendering::HtmlView.escape(Kernel.inspect(Cosm::AI.config())),
         ai_health: App::Rendering::HtmlView.escape(Kernel.inspect(Cosm::AI.health()))
