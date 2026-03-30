@@ -4,9 +4,11 @@ import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 
 const cosmEvalVm = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.evalVm(input));
+const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
 
 test("Interpreter.ir emits a narrow executable IR for simple programs", () => {
-  expect(Cosm.Interpreter.ir("let base = 1; Kernel.dispatch(base, :plus, 2)")).toMatchObject({
+  const baseIr = Cosm.Interpreter.ir("let base = 1; Kernel.dispatch(base, :plus, 2)");
+  expect(baseIr).toMatchObject({
     kind: "ir_program",
     instructions: expect.arrayContaining([
       { op: "push_number", value: 1 },
@@ -15,12 +17,16 @@ test("Interpreter.ir emits a narrow executable IR for simple programs", () => {
       { op: "return" },
     ]),
   });
-  expect(Cosm.Interpreter.ir("base = 1; base = Kernel.dispatch(base, :plus, 2); base")).toMatchObject({
+  const reassignmentIr = Cosm.Interpreter.ir("base = 1; base = Kernel.dispatch(base, :plus, 2); base");
+  expect(reassignmentIr).toMatchObject({
     kind: "ir_program",
     instructions: expect.arrayContaining([
       { op: "assign_name", name: "base" },
     ]),
   });
+  const fibIr = Cosm.Interpreter.ir('def fib(n) if n <= 1 then n else fib(n - 1) + fib(n - 2) end end; fib(4)');
+  expect(fibIr.kind).toBe("ir_program");
+  expect(fibIr.instructions[0]).toMatchObject({ op: "define_function", name: "fib", params: ["n"] });
 });
 
 test("vm mode can execute a narrow subset with the same result as the interpreter", () => {
@@ -60,6 +66,16 @@ test("vm mode can execute page-assistant-shaped parity smoke", () => {
   const source = readFileSync("test/fixtures/vm/assistant_page.cosm", "utf8");
   expect(cosmEvalVm(source)).toBe("user: hello\nassistant: Use the Reset Session button. [offline]");
   expect(cosmEvalVm(source)).toBe(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
+});
+
+test("vm-supported corpus examples pass under both interpreter and vm", () => {
+  const catalog = cosmEval('require "examples/spec/index"; Examples::Spec.vm_supported()') as Array<{ path: string; expected: unknown }>;
+  expect(catalog.length).toBeGreaterThanOrEqual(8);
+  for (const example of catalog) {
+    const source = readFileSync(example.path, "utf8");
+    expect(cosmEvalVm(source)).toEqual(example.expected);
+    expect(cosmEvalVm(source)).toEqual(ValueAdapter.cosmToJS(Cosm.Interpreter.eval(source)));
+  }
 });
 
 test("vm mode fails clearly on unsupported constructs", () => {

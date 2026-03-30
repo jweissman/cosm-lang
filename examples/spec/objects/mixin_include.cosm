@@ -1,0 +1,11 @@
+module Labelable
+  def label()
+    "label:" + self.class.name
+  end
+end
+
+class Mixed
+end
+
+Mixed.include(Labelable)
+Mixed.new().label()

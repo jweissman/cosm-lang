@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 
-const source = readFileSync("test/fixtures/vm/support_transcript.cosm", "utf8");
+const source = readFileSync("examples/spec/algorithms/iterative_fib.cosm", "utf8");
 const rounds = 25;
 
 const measure = (label: string, fn: () => unknown) => {

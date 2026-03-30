@@ -1,0 +1,7 @@
+let router = HttpRouter.new()
+router.draw do
+  get "/hello" do |req|
+    HttpResponse.text("hello " + req.path, 200)
+  end
+end
+Kernel.inspect(router)

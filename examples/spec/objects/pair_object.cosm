@@ -1,0 +1,16 @@
+class Pair
+  def init(left, right)
+    true
+  end
+
+  def sum()
+    @left + @right
+  end
+
+  def inspect()
+    "<Pair " + @left.to_s() + ", " + @right.to_s() + ">"
+  end
+end
+
+let pair = Pair.new(1, 2)
+[pair.sum(), pair.inspect()]

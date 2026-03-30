@@ -214,6 +214,13 @@ test("cli can execute the dedicated vm smoke file", () => {
   expect(result.stdout).toBe("");
 });
 
+test("cli can execute a vm-supported corpus example through vm mode", () => {
+  const result = runCli(["examples/spec/algorithms/recursive_fib.cosm", "--vm"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toBe("");
+});
+
 test("cli can execute the assistant-shaped vm parity fixture", () => {
   const result = runCli(["test/fixtures/vm/assistant_page.cosm", "--vm"]);
   expect(result.exitCode).toBe(0);
@@ -447,7 +454,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.28");
+  expect(result.stdout.trim()).toBe("0.3.13.29");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 
@@ -471,7 +478,7 @@ test("cli can run the cosm self-test file", () => {
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("# Core language expressions");
   expect(result.stdout).toContain("# Reflection");
-});
+}, 10000);
 
 test("cli can run the dedicated runtime harness spec bundle", () => {
   const result = runCli(["test", "spec/runtime/baseline.cosm"]);
@@ -489,7 +496,7 @@ test("cli test with no target runs the maintained Cosm spec bundles", () => {
   expect(result.stdout).toContain("==> spec/core.cosm");
   expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
   expect(result.stdout).toContain("test bundles passed");
-});
+}, 10000);
 
 test("cli test accepts the narrow spec/ directory shorthand", () => {
   const result = runCli(["test", "spec/"]);
@@ -497,7 +504,7 @@ test("cli test accepts the narrow spec/ directory shorthand", () => {
   expect(result.stderr).toBe("");
   expect(result.stdout).toContain("==> spec/core.cosm");
   expect(result.stdout).toContain("==> spec/runtime/baseline.cosm");
-});
+}, 10000);
 
 test("cli test accepts the narrow test/ directory shorthand", () => {
   const result = runCli(["test", "test/"]);

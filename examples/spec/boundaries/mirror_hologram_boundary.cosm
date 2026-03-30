@@ -1,0 +1,5 @@
+require "cosm/hologram"
+
+let holo = Cosm::Hologram.wrap({ answer: 1 })
+holo.set(:answer, 2)
+[Mirror.status().mode, Cosm::Hologram.status().mode, holo.get(:answer)]

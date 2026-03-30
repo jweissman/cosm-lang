@@ -1,0 +1,1 @@
+[BasicObject.new().class.name, Object.new().class.name, Object.new().methods().length > 0]

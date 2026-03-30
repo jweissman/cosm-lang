@@ -101,6 +101,8 @@ end
 
 `yield(...)` is only valid when the current function or method was invoked with a trailing block. Calling `yield(...)` without a current block raises a structured block error.
 
+Cosm now also keeps a small executable corpus under `examples/spec/`. Those programs are ordinary `.cosm` files, not a second DSL, and they act as both teaching material and regression coverage.
+
 ```cosm
 let label = "co" + "sm";
 assert(1 + 1 == 2);

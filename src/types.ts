@@ -92,6 +92,7 @@ export type IrInstruction =
   | { op: "push_bool"; value: boolean }
   | { op: "push_string"; value: string }
   | { op: "push_symbol"; value: string }
+  | { op: "define_function"; name: string; params: string[]; body: CoreNode; defaults?: Record<string, CoreNode>; restParam?: string }
   | { op: "build_array"; length: number }
   | { op: "build_hash"; keys: string[] }
   | { op: "load_name"; name: string }

@@ -21,23 +21,27 @@ class NotebookExamples
     end
 
     def reflection_markup()
-      category("Object Protocol", "Start with the real BasicObject/Object split, then inspect receiver methods, method objects, text protocol, and the explicit core tower.", card(App::Examples.object_surface_split()) + card(App::Examples.receiver_reflection()) + card(App::Examples.method_lookup()) + card(App::Examples.text_protocol()) + card(App::Examples.core_tower()) + card(App::Examples.mixin_include()))
+      category("Object Protocol", "Start with the real BasicObject/Object split, then move into bound method lookup and a few small authored objects.", card(App::Examples.object_surface_split()) + card(App::Examples.receiver_reflection()) + card(App::Examples.method_lookup()) + card(App::Examples.counter_object()) + card(App::Examples.point_object()) + card(App::Examples.pair_object()) + card(App::Examples.mixin_include()))
+    end
+
+    def algorithms_markup()
+      category("Algorithms", "Keep a couple of tiny executable programs around as a stable semantic and VM proving surface.", card(App::Examples.recursive_fib()) + card(App::Examples.iterative_fib()))
     end
 
     def data_markup()
-      category("Data Models", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top. Local values validate here, while explicit scalar casts stay on core values and AI cast stays explicit.", card(App::Examples.data_model()) + card(App::Examples.schema_export()) + card(App::Examples.scalar_casts()))
+      category("Data Models", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top through explicit build and validate steps.", card(App::Examples.data_model_build_validate()))
     end
 
     def collections_markup()
-      category("Collections", "Collection, Enumerable, Sequence, and Mapping now explain the small authored collection surface more honestly.", card(App::Examples.enumerable_reduce()) + card(App::Examples.enumerable_filter()) + card(App::Examples.collection_lattice()))
+      category("Collections", "Keep a small stable array/hash corpus around while the larger collection surface continues to settle.", card(App::Examples.collections_array_hash()))
     end
 
     def boundary_markup()
-      category("Boundaries", "Mirror stays readonly, Hologram stays narrow and writable only for a small subset, and AI operations remain explicit runtime seams rather than hidden helpers.", card(App::Examples.mirror_boundary()) + card(App::Examples.mirror_runtime_value()) + card(App::Examples.hologram_boundary()) + card(App::Examples.hologram_mutation()) + card(App::Examples.ai_boundary()) + card(App::Examples.prompt_object()) + card(App::Examples.ai_status()) + card(App::Examples.ai_health()) + card(App::Examples.ai_cast_helper()))
+      category("Boundaries", "Mirror stays readonly, Hologram stays narrow and writable only for a small subset, and the example corpus keeps that seam visible.", card(App::Examples.mirror_hologram_boundary()))
     end
 
     def notebook_markup()
-      category("Notebook", "Persistent block pages, page-scoped sessions, and runtime-facing examples make the notebook the main wedge in this slice.", card(App::Examples.notebook_page()) + card(App::Examples.named_session()) + card(App::Examples.workflow_run()))
+      category("Notebook", "Persistent block pages and page-scoped sessions keep the notebook as the main wedge in this slice.", card(App::Examples.session_notebook()))
     end
 
     def services_markup()
@@ -45,7 +49,7 @@ class NotebookExamples
     end
 
     def markup()
-      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + data_markup() + collections_markup() + notebook_markup() + boundary_markup() + services_markup() })
+      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + algorithms_markup() + data_markup() + collections_markup() + notebook_markup() + boundary_markup() + services_markup() })
     end
 
     def category(title, description, cards)

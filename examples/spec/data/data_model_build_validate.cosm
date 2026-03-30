@@ -1,0 +1,9 @@
+let Ticket = Data.model("Ticket", {
+  title: Data.string(),
+  priority: Data.enum("low", "high")
+}, {
+  priority: "low"
+})
+
+let built = Ticket.build({ title: "Demo" })
+[built.at("title"), built.at("priority"), Ticket.validate(built)]

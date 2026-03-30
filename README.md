@@ -74,6 +74,7 @@ end
 ## Project Shape
 
 - `src/` contains the TS runtime, parser, interpreter, and VM seams
+- `examples/` contains the canonical executable Cosm example corpus
 - `cosm/` contains Cosm-authored stdlib-ish helpers
 - `spec/` contains Cosm-native language/runtime specs
 - `test/` contains Bun tests for parser/runtime/CLI/integration behavior
@@ -158,6 +159,6 @@ Cosm is intentionally still narrow in a few places:
 - no generalized tool runtime or multi-agent platform
 - no full JS interop bridge yet
 - `Mirror` is still readonly reflection only, and `Cosm::Hologram` is now only a tiny writable boundary wedge, not a full JS bridge
-- no fully general VM execution yet; `--vm` is still experimental and mainly for narrow parity checks against the smoke fixtures under `test/fixtures/vm/`
+- no fully general VM execution yet; `--vm` is still experimental and currently targets a documented supported corridor plus a small parity corpus under `examples/spec/` and `test/fixtures/vm/`
 
 That narrowness is deliberate: the project is still pushing more behavior into Cosm while keeping the runtime surface explicit and inspectable.

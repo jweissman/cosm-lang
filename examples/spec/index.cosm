@@ -1,0 +1,99 @@
+def entry(id, category, title, description, path, expected, vm_supported = false)
+  {
+    id: id,
+    category: category,
+    title: title,
+    description: description,
+    path: path,
+    code: Kernel.readText(path),
+    expected: expected,
+    vm_supported: vm_supported
+  }
+end
+
+def object_surface_split()
+  entry("object_surface_split", "Reflection", "BasicObject vs Object", "Keep the minimal root explicit while the everyday protocol begins at Object.", "examples/spec/reflection/object_surface_split.cosm", ["BasicObject", "Object", true], true)
+end
+
+def receiver_reflection()
+  entry("receiver_reflection", "Reflection", "Receiver reflection", "Use methods() on a live receiver to inspect the visible callable surface.", "examples/spec/reflection/receiver_reflection.cosm", true, true)
+end
+
+def method_lookup()
+  entry("method_lookup", "Reflection", "Method lookup", "Use method(:name) when you want the actual bound method object.", "examples/spec/reflection/method_lookup.cosm", "send", true)
+end
+
+def recursive_fib()
+  entry("recursive_fib", "Algorithms", "Recursive fib", "A small recursive def is still one of the clearest language stress tests.", "examples/spec/algorithms/recursive_fib.cosm", 21, true)
+end
+
+def iterative_fib()
+  entry("iterative_fib", "Algorithms", "Tail-recursive fib", "A loop-shaped fib written as explicit tail recursion keeps the VM corridor honest.", "examples/spec/algorithms/iterative_fib.cosm", 21, true)
+end
+
+def counter_object()
+  entry("counter_object", "Objects", "Counter object", "Simple object state and message-send composition without any framework layer.", "examples/spec/objects/counter_object.cosm", [2, 3])
+end
+
+def point_object()
+  entry("point_object", "Objects", "Point object", "Small value-like objects make the authored class surface easier to teach.", "examples/spec/objects/point_object.cosm", [4, 2])
+end
+
+def pair_object()
+  entry("pair_object", "Objects", "Pair object", "A tiny pair keeps inspect and ordinary instance methods visible together.", "examples/spec/objects/pair_object.cosm", [3, "<Pair 1, 2>"])
+end
+
+def mixin_include()
+  entry("mixin_include", "Objects", "Mixin include", "Modules stay explicit and included behavior remains part of the ordinary object story.", "examples/spec/objects/mixin_include.cosm", "label:Mixed")
+end
+
+def collections_array_hash()
+  entry("collections_array_hash", "Collections", "Array and Hash basics", "Exercise the small collection surface with stable array/hash reads and sends.", "examples/spec/collections/array_hash.cosm", [3, 1, 42], true)
+end
+
+def data_model_build_validate()
+  entry("data_model_build_validate", "Data", "Data.model build/validate", "Keep the structured record layer explicit through build and validate.", "examples/spec/data/data_model_build_validate.cosm", ["Demo", "low", true], true)
+end
+
+def mirror_hologram_boundary()
+  entry("mirror_hologram_boundary", "Boundaries", "Mirror and Hologram", "Mirror stays readonly while Hologram stays a tiny writable translation seam.", "examples/spec/boundaries/mirror_hologram_boundary.cosm", ["readonly-observer", "narrow-writable-boundary", 2])
+end
+
+def session_notebook()
+  entry("session_notebook", "Notebook", "Named session", "Notebook-style execution stays explicit through Session.named and isolated eval.", "examples/spec/notebook/session_notebook.cosm", 42, true)
+end
+
+def dispatch_helper()
+  entry("dispatch_helper", "Services", "Kernel.dispatch", "The explicit helper-form dispatch surface stays available when you already have a receiver.", "examples/spec/services/dispatch_helper.cosm", 3, true)
+end
+
+def router_sketch()
+  entry("router_sketch", "Services", "Router sketch", "Object-first routing stays explicit and inspectable.", "examples/spec/services/router_sketch.cosm", "#<HttpRouter routes: 1>")
+end
+
+def catalog()
+  let items = []
+  items = items.append(object_surface_split())
+  items = items.append(receiver_reflection())
+  items = items.append(method_lookup())
+  items = items.append(recursive_fib())
+  items = items.append(iterative_fib())
+  items = items.append(counter_object())
+  items = items.append(point_object())
+  items = items.append(pair_object())
+  items = items.append(mixin_include())
+  items = items.append(collections_array_hash())
+  items = items.append(data_model_build_validate())
+  items = items.append(mirror_hologram_boundary())
+  items = items.append(session_notebook())
+  items = items.append(dispatch_helper())
+  items = items.append(router_sketch())
+  items
+end
+
+def vm_supported()
+  let items = catalog()
+  items.filter do |example|
+    example.vm_supported
+  end
+end

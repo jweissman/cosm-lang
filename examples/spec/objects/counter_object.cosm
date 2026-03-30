@@ -1,0 +1,16 @@
+class Counter
+  def init(value)
+    true
+  end
+
+  def current()
+    @value
+  end
+
+  def increment()
+    Counter.new(@value + 1)
+  end
+end
+
+let counter = Counter.new(2)
+[counter.current(), counter.increment().current()]

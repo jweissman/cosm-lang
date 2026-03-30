@@ -1,0 +1,15 @@
+class Point
+  def init(x, y)
+    true
+  end
+
+  def move(dx, dy)
+    Point.new(@x + dx, @y + dy)
+  end
+
+  def to_pair()
+    [@x, @y]
+  end
+end
+
+Point.new(3, 4).move(1, -2).to_pair()

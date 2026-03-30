@@ -1,0 +1,9 @@
+def fib_loop(remaining, a, b)
+  if remaining == 0 then
+    a
+  else
+    fib_loop(remaining - 1, b, a + b)
+  end
+end
+
+fib_loop(8, 0, 1)

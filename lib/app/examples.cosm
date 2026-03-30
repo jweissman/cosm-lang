@@ -1,171 +1,35 @@
-def example(category, title, description, code)
-  { category: category, title: title, description: description, code: code }
-end
+require "examples/spec/index.cosm"
 
-def math_reflection()
-  example("Reflection", "Math + reflection", "Tiny arithmetic and runtime reflection smoke.", "1 + 2; Kernel.inspect(classes.Number)")
-end
+def object_surface_split() = Examples::Spec.object_surface_split();
 
-def receiver_reflection()
-  example("Reflection", "Receiver reflection", "See the simplified receiver-side symbol list.", "Object.new().methods()")
-end
+def receiver_reflection() = Examples::Spec.receiver_reflection();
 
-def object_surface_split()
-  example("Reflection", "BasicObject vs Object", "BasicObject stays minimal while Object begins the everyday reflective protocol.", "[Kernel.try(->() { BasicObject.new().methods() }).ok, Object.new().methods().length > 0]")
-end
+def method_lookup() = Examples::Spec.method_lookup();
 
-def method_lookup()
-  example("Reflection", "Method lookup", "Use method(:name) for the actual method object.", "Object.new().method(:send).name")
-end
+def recursive_fib() = Examples::Spec.recursive_fib();
 
-def text_protocol()
-  example("Reflection", "Text protocol", "Receiver-side inspect and to_s are part of the ordinary object protocol, not just Kernel trivia.", "class Printable do def inspect() \"<Printable>\" end; def to_s() \"printable\" end end; [Printable.new().inspect(), Printable.new().to_s()]")
-end
+def iterative_fib() = Examples::Spec.iterative_fib();
 
-def core_tower()
-  example("Reflection", "Core tower", "Inspect the explicit BasicObject/Object/Module/Class split.", "[classes.BasicObject.name, classes.Object.superclass.name, classes.Module.superclass.name, classes.Class.superclass.name]")
-end
+def counter_object() = Examples::Spec.counter_object();
 
-def mixin_include()
-  example("Reflection", "Mixin include", "Runtime-backed include can attach reusable module behavior to a class.", "require \"lib/support/label_mixin\"; class Mixed do end; Mixed.include(Support::LabelMixin); Mixed.new().label()")
-end
+def point_object() = Examples::Spec.point_object();
 
-def dispatch_helper()
-  example("Dispatch", "Kernel.dispatch", "Use the explicit helper-form dispatch API when you already have a receiver.", "Kernel.dispatch(1, :plus, 2)")
-end
+def pair_object() = Examples::Spec.pair_object();
 
-def data_model()
-  example("Data", "Data model", "Define a model on top of Schema and build a validated record-shaped value through it.", "let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }, { choice: \"yes\" }); Reason.build({ answer: \"hi\" })")
-end
+def mixin_include() = Examples::Spec.mixin_include();
 
-def schema_export()
-  example("Data", "Schema export", "Inspect a raw structural schema.", "Schema.object({ answer: Schema.string(), count: Schema.optional(Schema.number()) }).jsonSchema()")
-end
+def collections_array_hash() = Examples::Spec.collections_array_hash();
 
-def scalar_casts()
-  example("Data", "Scalar casts", "Core scalar values expose explicit conversion helpers.", "\"42\".to_i(); \"3.5\".to_f(); :answer.to_s()")
-end
+def data_model_build_validate() = Examples::Spec.data_model_build_validate();
 
-def enumerable_reduce()
-  example("Collections", "Enumerable reduce", "Use the small functional collection surface from Cosm itself.", "[1, 2, 3].reduce(0) do |acc, value| acc + value end")
-end
+def mirror_hologram_boundary() = Examples::Spec.mirror_hologram_boundary();
 
-def enumerable_filter()
-  example("Collections", "Enumerable filter", "Array and Hash pick up the authored Enumerable mixin through include.", "{ reset: true, note: false }.filter do |key, value| value end")
-end
+def session_notebook() = Examples::Spec.session_notebook();
 
-def enumerable_compact_map()
-  example("Collections", "Enumerable compact_map", "Build and filter in one pass through a small Cosm-authored helper.", "[1, 2, 3].compact_map do |value| value > 1 ? value + 10 : false end")
-end
+def dispatch_helper() = Examples::Spec.dispatch_helper();
 
-def enumerable_sum_by()
-  example("Collections", "Enumerable sum_by", "Aggregate through a helper that keeps the callback object-first.", "{ a: 1, b: 2 }.sum_by do |_key, value| value end")
-end
+def router_sketch() = Examples::Spec.router_sketch();
 
-def collection_lattice()
-  example("Collections", "Collection lattice", "Array and Hash now expose their small authored mixin lattice directly.", "[Array.includedModules.map do |mod| mod.name end, Hash.includedModules.map do |mod| mod.name end]")
-end
+def catalog() = Examples::Spec.catalog();
 
-def prompt_object()
-  example("AI", "Prompt object", "Inspect the explicit prompt runtime object.", "Prompt.text(\"Summarize Cosm in one sentence.\")")
-end
-
-def ai_status()
-  example("AI", "AI config", "Inspect discovered backend/model config without treating it as a health check.", "require \"cosm/ai\"; Cosm::AI.config()")
-end
-
-def ai_health()
-  example("AI", "AI health", "Probe whether the local backend is actually reachable.", "require \"cosm/ai\"; Cosm::AI.health()")
-end
-
-def ai_cast_helper()
-  example("AI", "AI cast helper", "Use the Cosm-authored ai helper with a model.", "require \"cosm/ai\"; let Reason = Cosm::Data.model(\"Reason\", { answer: Cosm::Data.string(), choice: Cosm::Data.enum(\"yes\", \"no\") }); Cosm::AI.cast(\"Return a Reason object.\", Reason)")
-end
-
-def prompt_data()
-  example("AI", "Prompt data", "Core support instructions now live in prompt data files loaded explicitly.", "require \"lib/support/prompt_data\"; Support::PromptData.iapetus_system()")
-end
-
-def mirror_boundary()
-  example("Boundaries", "Mirror boundary", "Mirror stays readonly and reports the visible Cosm surface of a value.", "Mirror.status()")
-end
-
-def mirror_runtime_value()
-  example("Boundaries", "Mirror on runtime value", "Observe a live receiver without mutating it.", "Mirror.reflect(Kernel).methods()")
-end
-
-def hologram_boundary()
-  example("Boundaries", "Hologram boundary", "Hologram is the narrow writable translation seam, not a general JS bridge.", "require \"cosm/hologram\"; Cosm::Hologram.status()")
-end
-
-def hologram_mutation()
-  example("Boundaries", "Hologram mutation", "Wrap a supported target and write through the narrow boundary.", "require \"cosm/hologram\"; holo = Cosm::Hologram.wrap({ answer: 1 }); holo.set(:answer, 2); holo.get(:answer)")
-end
-
-def ai_boundary()
-  example("Boundaries", "AI boundary", "AI operations stay explicit runtime surfaces rather than hidden helpers.", "require \"cosm/ai\"; Cosm::AI.boundary()")
-end
-
-def support_chat_step()
-  example("Support", "Chat step", "Run one pure-Cosm support-chat turn through the shared support core.", "require \"lib/support/chat\"; Support::Chat.step(\"\", \"How do I reset the notebook session?\").reply.text")
-end
-
-def support_step_model()
-  example("Support", "Chat step shape", "Inspect the model-backed step shape returned by the chatbot core.", "require \"lib/support/models\"; Support::Models.chat_step.json_schema()")
-end
-
-def support_page()
-  example("Support", "Page wedge", "The server app now has a tiny page-backed conversation wedge alongside the CLI and Slack service.", "require \"lib/support/controller\"; Support::Controller.page_conversation(\"demo\", \"user: hello\")")
-end
-
-def notebook_page()
-  example("Notebook", "Persistent page", "Notebook pages are now saved as durable local block documents.", "require \"lib/app/notebook_store\"; App::NotebookStore.create_page(\"Demo page\").title")
-end
-
-def workflow_run()
-  example("Notebook", "Linear workflow", "Ordered workflow steps stay explicit and Cosm-authored.", "require \"cosm/workflow\"; require \"cosm/ai\"; Cosm::Workflow.run([Cosm::Workflow.step(\"sum\", ->() { [1, 2, 3].sum() }), Cosm::Workflow.step(\"status\", ->() { Cosm::AI.config() })])")
-end
-
-def named_session()
-  example("Notebook", "Named session", "Page execution now reuses a stable named Session for the current page.", "let page = Session.named(\"notebook:demo\"); page.eval(\"let answer = 41\"); page.eval(\"answer + 1\")")
-end
-
-def router_sketch()
-  example("Services", "Router sketch", "Tiny object-first routing snippet.", "let router = HttpRouter.new(); router.draw do get \"/hello\" do |req| HttpResponse.text(\"hello \" + req.path, 200) end end; Kernel.inspect(router)")
-end
-
-def reflection()
-  [object_surface_split(), receiver_reflection(), method_lookup(), text_protocol(), core_tower(), mixin_include()]
-end
-
-def dispatch()
-  [dispatch_helper()]
-end
-
-def data()
-  [data_model(), schema_export(), scalar_casts()]
-end
-
-def collections()
-  [enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by(), collection_lattice()]
-end
-
-def ai()
-  [prompt_object(), ai_status(), ai_health(), ai_cast_helper(), prompt_data()]
-end
-
-def boundaries()
-  [mirror_boundary(), mirror_runtime_value(), hologram_boundary(), hologram_mutation(), ai_boundary()]
-end
-
-def services()
-  [router_sketch()]
-end
-
-def support()
-  [support_chat_step(), support_step_model(), support_page()]
-end
-
-def catalog()
-  [math_reflection(), object_surface_split(), receiver_reflection(), method_lookup(), text_protocol(), core_tower(), mixin_include(), dispatch_helper(), data_model(), schema_export(), scalar_casts(), enumerable_reduce(), enumerable_filter(), enumerable_compact_map(), enumerable_sum_by(), collection_lattice(), prompt_object(), ai_status(), ai_health(), ai_cast_helper(), prompt_data(), mirror_boundary(), mirror_runtime_value(), hologram_boundary(), hologram_mutation(), ai_boundary(), support_chat_step(), support_step_model(), support_page(), notebook_page(), workflow_run(), named_session(), router_sketch()]
-end
+def vm_supported() = Examples::Spec.vm_supported();

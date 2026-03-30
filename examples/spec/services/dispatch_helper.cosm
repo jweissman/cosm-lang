@@ -1,0 +1,1 @@
+Kernel.dispatch(1, :plus, 2)

@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.28
+## Current Release Target: 0.3.13.29
 
-`0.3.13.24`-`0.3.13.28` are best read as the hardening, canonicalization, and boundary-formalization line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.29` are best read as the hardening, canonicalization, boundary-formalization, and first example-corpus/VM-corridor line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -15,8 +15,9 @@
 - make the object protocol easier to teach directly through the notebook and authored core surfaces
 - make `Mirror`, `Hologram`, and explicit AI operations easier to explain as named runtime boundaries
 - formalize `~=` as the explicit semantic comparison seam while explicitly deferring `~`
+- add a spec-first executable example corpus and use it to pressure notebook teaching and the VM corridor
 - keep the Slack agent runtime available, but secondary
-- keep `--vm` honest through narrow interpreter/VM parity fixtures rather than treating it like a broad second runtime
+- keep `--vm` honest through a documented supported corridor plus narrow parity fixtures rather than treating it like a broad second runtime
 
 For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 

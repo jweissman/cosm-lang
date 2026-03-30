@@ -56,6 +56,22 @@ export class RuntimeIr {
         case "push_symbol":
           stack.push(hooks.internSymbol(instruction.value));
           break;
+        case "define_function": {
+          if (Object.hasOwn(currentEnv.bindings, instruction.name) && !currentEnv.allowTopLevelRebinds) {
+            throw new Error(`Name error: duplicate local '${instruction.name}'`);
+          }
+          const closure = Construct.closure(
+            instruction.name,
+            instruction.params,
+            instruction.body,
+            currentEnv,
+            instruction.defaults,
+            instruction.restParam,
+          );
+          currentEnv.bindings[instruction.name] = closure;
+          stack.push(closure);
+          break;
+        }
         case "build_array": {
           const items = popArgs(instruction.length);
           stack.push(Construct.array(items));
@@ -180,6 +196,21 @@ export class RuntimeIr {
         instructions.push({ op: "assign_name", name: ast.value });
         instructions.push({ op: "load_name", name: ast.value });
         return;
+      case "def": {
+        const [body] = ast.children ?? [];
+        if (!body) {
+          throw new Error("IR compile error: def is missing a body");
+        }
+        instructions.push({
+          op: "define_function",
+          name: ast.value,
+          params: ast.params ?? [],
+          body,
+          defaults: ast.defaults,
+          restParam: ast.restParam,
+        });
+        return;
+      }
       case "number":
         instructions.push({ op: "push_number", value: Number(ast.value) });
         return;

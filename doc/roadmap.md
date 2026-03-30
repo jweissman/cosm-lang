@@ -30,6 +30,7 @@ That overlap is fine, but the roadmap should describe what is true now rather th
 - notebook as the main teaching and experimentation surface
 - a narrow VM parity wedge with explicit smoke fixtures
 - split bootstrap, smaller parser responsibilities, subsystem runtime tests, and a documented runtime call flow
+- a spec-first executable example corpus that notebook and VM work can derive from
 
 ## What Is Still Partial
 
@@ -116,17 +117,16 @@ Current priority:
 Current priority:
 
 - keep the VM useful for parity/debugging
-- expand only where it overlaps with maintained core/notebook/support code
+- expand only where it overlaps with maintained core/notebook/support code and the executable example corpus
 - avoid pretending it is already the default runtime
 
 ## Near-Term Milestones
 
-### `0.3.13.28`: Final `0.3.13.x` Closeout
+### `0.3.13.29`: Example Corpus and VM Corridor
 
-- finish object-protocol paydown around `inspect`, `to_s`, `method`, and `methods`
-- push maintained Cosm code further toward block-first style where that syntax is now natural
-- finish converging runtime invocation toward the explicit invocation-context contract
-- formalize `~=` and `Cosm::AI.cast(...)` as the explicit semantic boundary, while deferring `~`
+- add a canonical executable example corpus under `examples/spec/`
+- use the corpus as a notebook/spec source of truth instead of ad hoc example strings
+- make a selected `vm_supported` subset of that corpus pass under both interpreter and VM
 
 ### `0.3.14.x`: Persistence, Tools, and Concurrency
 
