@@ -121,22 +121,19 @@ Current priority:
 
 ## Near-Term Milestones
 
-### `0.3.13.27`: Boundary Semantics
+### `0.3.13.28`: Final `0.3.13.x` Closeout
 
-- make the `Mirror` readonly contract explicit for runtime and host-backed values
-- make `Hologram` explicit as a narrow writable translation seam for a small supported subset
-- sharpen AI casting and semantic comparison as visible boundary operations, not just API helpers
-- defer `~=` / `~` expansion until the boundary model is calmer
+- finish object-protocol paydown around `inspect`, `to_s`, `method`, and `methods`
+- push maintained Cosm code further toward block-first style where that syntax is now natural
+- finish converging runtime invocation toward the explicit invocation-context contract
+- formalize `~=` and `Cosm::AI.cast(...)` as the explicit semantic boundary, while deferring `~`
 
-### `0.3.13.28`: Persistence and Runtime State
+### `0.3.14.x`: Persistence, Tools, and Concurrency
 
 - introduce a real store boundary
 - likely move durable runtime state toward SQLite
 - make replay / status / debug more legible
 - keep notebook and agent memory on the same explicit persistence story
-
-### `0.3.13.29`: Tool and Concurrency Wedge
-
 - add a tiny typed tool protocol only after persistence/boundary work is clearer
 - keep the agent loop explicit and message-native
 - consider a first small structured-concurrency down payment if the agent/tool runtime needs it

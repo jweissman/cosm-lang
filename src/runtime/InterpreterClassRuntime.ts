@@ -4,6 +4,7 @@ import { Bootstrap } from "./Bootstrap";
 import { CosmHttpRouterValue } from "../values/CosmHttpRouterValue";
 import { CosmSessionValue } from "../values/CosmSessionValue";
 import { InterpreterInvoke } from "./InterpreterInvoke";
+import { InvocationContext } from "./InvocationContext";
 
 type Repository = {
   classes: Record<string, CosmClass>;
@@ -12,7 +13,7 @@ type Repository = {
 type ClassRuntimeHooks = {
   lookupClass: (name: string, env: CosmEnv) => CosmClass;
   evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
   repository: Repository;
 };
 
@@ -122,7 +123,7 @@ export class InterpreterClassRuntime {
     }
 
     const ownArgs = args.slice(inheritedSlotCount);
-    hooks.invokeFunction(Construct.method("init", instance, initMethod, initMethod.declaringOwnerToken), ownArgs, instance);
+    hooks.invokeFunction(Construct.method("init", instance, initMethod, initMethod.declaringOwnerToken), ownArgs, { receiver: instance });
   }
 
   private static resolveInitializerArgs(classValue: CosmClass, args: CosmValue[]): CosmValue[] {

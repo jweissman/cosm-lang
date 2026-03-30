@@ -26,7 +26,7 @@ def args_from(argv)
   let channel_id = false
   let text_parts = []
 
-  argv.each(->(entry) {
+  argv.each do |entry|
     if index == 3 then
       channel_id = entry
     else
@@ -37,7 +37,7 @@ def args_from(argv)
       end
     end
     index = index + 1
-  })
+  end
 
   let text = text_parts.length == 0 ? false : text_parts.join(" ")
   if channel_id == false || text == false then

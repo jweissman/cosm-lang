@@ -107,6 +107,9 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
 
   try {
     expect(cosmEval('require "cosm/ai"; Cosm::AI.config().model')).toBe("mock-model");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().mode')).toBe("explicit-semantic-boundary");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().semantic_eq')).toBe('"left" ~= "right"');
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().deferred_operator')).toBe("~");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.health().ok')).toBe(true);
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");

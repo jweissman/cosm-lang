@@ -202,8 +202,8 @@ test("print and puts use receiver-side to_s for non-strings", () => {
 });
 
 test("receiver-side inspect and to_s mark the everyday object protocol boundary", () => {
-  expect(cosmEval("Object.new().inspect()")).toBe("{  }");
-  expect(cosmEval("Object.new().to_s()")).toBe("{  }");
+  expect(cosmEval("Object.new().inspect()")).toBe("#<Object>");
+  expect(cosmEval("Object.new().to_s()")).toBe("#<Object>");
   expect(cosmEval(`
     class Printable
       def inspect()

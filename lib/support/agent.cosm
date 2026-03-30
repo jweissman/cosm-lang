@@ -75,7 +75,12 @@ def stream_step_transcript(transcript, latest_text)
   step
 end
 
-def transcript_from_conversation(conversation) = conversation.messages.map(->(entry) { entry.role + ": " + entry.text }).join("\n");
+def transcript_from_conversation(conversation)
+  let lines = conversation.messages.map do |entry|
+    entry.role + ": " + entry.text
+  end
+  lines.join("\n")
+end
 
 def handle(conversation, inbound)
   Support::Models.conversation.validate(conversation)

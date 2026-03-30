@@ -5,6 +5,7 @@ import { CosmFunctionValue } from "../values/CosmFunctionValue";
 import { CosmModuleValue } from "../values/CosmModuleValue";
 import { CosmValueBase } from "../values/CosmValueBase";
 import { RuntimeInspect } from "./RuntimeInspect";
+import { InvocationContext } from "./InvocationContext";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -160,21 +161,21 @@ export class RuntimeDispatch {
     message: string,
     args: CosmValue[],
     repository: RuntimeRepository,
-    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue,
   ): CosmValue {
     this.sendTraceLogger?.(
       `[trace-send] ${RuntimeInspect.format(receiver)}.${message}(${args.map((arg) => RuntimeInspect.format(arg)).join(", ")})`,
     );
     try {
       const method = this.resolveSendTarget(receiver, message, repository);
-      return invokeFunction(method, args, receiver);
+      return invokeFunction(method, args, { receiver });
     } catch (error) {
       const missingHandler = this.lookupMissingMethodHandler(receiver, repository);
       if (missingHandler) {
         return invokeFunction(
           missingHandler,
           [Construct.symbol(message), Construct.array(args)],
-          receiver,
+          { receiver },
         );
       }
       throw error;
@@ -186,7 +187,7 @@ export class RuntimeDispatch {
     messageValue: CosmValue,
     args: CosmValue[],
     repository: RuntimeRepository,
-    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue,
     _env?: CosmEnv,
   ): CosmValue {
     return this.send(receiver, this.messageName(messageValue), args, repository, invokeFunction);
@@ -197,14 +198,14 @@ export class RuntimeDispatch {
     property: string,
     args: CosmValue[],
     repository: RuntimeRepository,
-    invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue,
+    invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue,
     env?: CosmEnv,
   ): CosmValue {
     const resolution = this.resolveAccessCallTarget(receiver, property, repository);
     if (resolution.kind === "send") {
       return this.send(receiver, property, args, repository, invokeFunction);
     }
-    return invokeFunction(resolution.callee, args, undefined, env);
+    return invokeFunction(resolution.callee, args, { env });
   }
 
   static resolveSendTarget(

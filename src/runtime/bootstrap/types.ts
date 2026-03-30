@@ -1,4 +1,5 @@
 import { CosmClass, CosmEnv, CosmFunction, CosmObject, CosmValue } from "../../types";
+import { InvocationContext } from "../InvocationContext";
 
 export type RuntimeRepository = {
   globals: Record<string, CosmValue>;
@@ -7,7 +8,7 @@ export type RuntimeRepository = {
 };
 
 export type BootstrapRuntime = {
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
   instantiateClass: (classValue: CosmClass, args: CosmValue[]) => CosmObject;
   invokeSend: (receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: CosmEnv) => CosmValue;
   classOf: (value: CosmValue) => CosmClass;

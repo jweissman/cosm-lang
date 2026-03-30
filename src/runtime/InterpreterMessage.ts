@@ -1,9 +1,10 @@
 import { CosmEnv, CosmValue } from "../types";
 import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
 import { InterpreterLookup } from "./InterpreterLookup";
+import { InvocationContext } from "./InvocationContext";
 
 type MessageHooks = {
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
   withFrame: <T>(frame: string, fn: () => T) => T;
   repository: RuntimeRepository;
 };
@@ -12,8 +13,12 @@ export class InterpreterMessage {
   static send(receiver: CosmValue, message: string, args: CosmValue[], env: CosmEnv | undefined, hooks: MessageHooks): CosmValue {
     const currentBlock = env ? InterpreterLookup.findCurrentBlock(env) : undefined;
     return hooks.withFrame(`send ${this.describeValue(receiver)}.${message}`, () =>
-      RuntimeDispatch.send(receiver, message, args, hooks.repository, (callee, invokeArgs, selfValue, scope) =>
-        hooks.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+      RuntimeDispatch.send(receiver, message, args, hooks.repository, (callee, invokeArgs, context) =>
+        hooks.invokeFunction(callee, invokeArgs, {
+          receiver: context?.receiver,
+          env: context?.env,
+          currentBlock,
+        }),
       ),
     );
   }
@@ -21,8 +26,12 @@ export class InterpreterMessage {
   static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env: CosmEnv | undefined, hooks: MessageHooks): CosmValue {
     const currentBlock = env ? InterpreterLookup.findCurrentBlock(env) : undefined;
     return hooks.withFrame(`send ${this.describeValue(receiver)}.${RuntimeDispatch.messageName(messageValue)}`, () =>
-      RuntimeDispatch.invokeSend(receiver, messageValue, args, hooks.repository, (callee, invokeArgs, selfValue, scope) =>
-        hooks.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+      RuntimeDispatch.invokeSend(receiver, messageValue, args, hooks.repository, (callee, invokeArgs, context) =>
+        hooks.invokeFunction(callee, invokeArgs, {
+          receiver: context?.receiver,
+          env: context?.env,
+          currentBlock,
+        }),
         env,
       ),
     );

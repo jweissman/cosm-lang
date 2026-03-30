@@ -1,6 +1,7 @@
 import { CoreNode, CosmClass, CosmEnv, CosmValue } from "../types";
 import { Construct } from "../Construct";
 import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
+import { InvocationContext } from "./InvocationContext";
 
 type InvokeHooks = {
   evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
@@ -210,7 +211,8 @@ export class InterpreterInvoke {
         calleeAst.value,
         args,
         hooks.repository,
-        (callee, invokeArgs, selfValue, scope) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock, hooks),
+        (callee, invokeArgs, context?: InvocationContext) =>
+          this.invokeFunction(callee, invokeArgs, context?.receiver, context?.env, currentBlock, hooks),
         env,
       );
     }

@@ -1,11 +1,12 @@
 import { Construct } from "../Construct";
 import { CoreNode, CosmEnv, CosmValue, IrInstruction, IrProgram } from "../types";
 import { RuntimeDispatch, RuntimeRepository } from "./RuntimeDispatch";
+import { InvocationContext } from "./InvocationContext";
 
 type IrRuntimeHooks = {
   lookupName: (name: string, env: CosmEnv) => CosmValue;
   lookupProperty: (receiver: CosmValue, property: string) => CosmValue;
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
   send: (receiver: CosmValue, message: string, args: CosmValue[], env?: CosmEnv) => CosmValue;
   internSymbol: (name: string) => CosmValue;
   createEnv: (parent?: CosmEnv) => CosmEnv;
@@ -101,7 +102,7 @@ export class RuntimeIr {
         case "call": {
           const args = popArgs(instruction.argc);
           const callee = popValue();
-          stack.push(hooks.invokeFunction(callee, args, undefined, currentEnv));
+          stack.push(hooks.invokeFunction(callee, args, { env: currentEnv }));
           break;
         }
         case "call_access": {

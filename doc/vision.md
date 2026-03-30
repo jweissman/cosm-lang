@@ -55,11 +55,12 @@ The interesting move is:
 - structured AI-guided casting is visible
 - deterministic validation remains explicit
 
-That is the intuition behind the still-not-yet-finalized boundary ideas:
+That is the intuition behind the current boundary surfaces:
 
 - `Schema` / `Data.model(...)`
 - `Cosm::AI.cast(...)`
-- `~=` / `~` as possible first-class operators
+- `~=` as the current explicit semantic comparison operator
+- a possible future `~` for structured semantic cast, once the boundary model settles
 
 The goal would be code where you can see exactly where inference enters:
 
@@ -68,10 +69,10 @@ if intent ~= "wants help" then
   ...
 end
 
-let person = text ~ PersonSchema
+let person = Cosm::AI.cast(text, PersonSchema)
 ```
 
-That is more interesting than hiding AI behind a library call, because the seam becomes part of the language model itself.
+That is more interesting than hiding AI behind a library call, because the seam becomes part of the language model itself. In the current line, `~=` is formalized while `~` remains intentionally deferred.
 
 ## Mirror and Hologram
 

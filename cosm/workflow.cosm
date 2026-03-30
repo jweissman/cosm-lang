@@ -3,7 +3,7 @@ def step(name, action)
 end
 
 def run(steps)
-  steps.map(->(item) {
+  steps.map do |item|
     let outcome = Kernel.try(->() { item.action() })
     {
       name: item.name,
@@ -12,5 +12,5 @@ def run(steps)
       inspect: outcome.inspect,
       error: outcome.error
     }
-  })
+  end
 end

@@ -14,6 +14,7 @@ import { InterpreterInvoke } from './runtime/InterpreterInvoke';
 import { InterpreterLookup } from './runtime/InterpreterLookup';
 import { InterpreterMessage } from './runtime/InterpreterMessage';
 import { InterpreterOperators } from './runtime/InterpreterOperators';
+import { InvocationContext, normalizeInvocationContext } from './runtime/InvocationContext';
 
 function never(_x: never): never {
   throw new Error("Unexpected value: " + _x);
@@ -154,7 +155,7 @@ namespace Cosm {
         evalDefault: (ast, env) => this.evalNode(ast, env),
       });
       const repository = Bootstrap.createRepository({
-        invokeFunction: (callee, args, selfValue, env) => this.invokeFunction(callee, args, selfValue, env),
+        invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
         instantiateClass: (classValue, args) => this.instantiateClass(classValue, args),
         invokeSend: (receiver, messageValue, args, env) => this.invokeSend(receiver, messageValue, args, env),
         classOf: (value) => this.classOf(value),
@@ -172,7 +173,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.27");
+        cosmRoot.fields.version = Construct.string("0.3.13.28");
       }
       return repository;
     }
@@ -214,7 +215,7 @@ namespace Cosm {
 
     private static evalRequire(ast: CoreNode, env: Env): CosmValue {
       const target = this.evalNode(this.expectChild(ast, 'require'), env);
-      return this.invokeFunction(this.repo().globals.require, [target], undefined, env);
+      return this.invokeFunction(this.repo().globals.require, [target], { env });
     }
 
     private static loadModule(name: string, _env: Env): CosmObject | undefined {
@@ -287,7 +288,7 @@ namespace Cosm {
       return InterpreterClassRuntime.evalClass(ast, env, {
         lookupClass: (name, scope) => this.lookupClass(name, scope),
         evalNode: (node, scope) => this.evalNode(node, scope),
-        invokeFunction: (callee, args, selfValue, scope, currentBlock) => this.invokeFunction(callee, args, selfValue, scope, currentBlock),
+        invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
         repository: { classes: this.repo().classes },
       });
     }
@@ -513,8 +514,15 @@ namespace Cosm {
       return InterpreterLookup.evalIvar(ast, env);
     }
 
-    private static invokeFunction(callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: Env, currentBlock?: CosmValue): CosmValue {
-      return InterpreterInvoke.invokeFunction(callee, args, selfValue, env, currentBlock, {
+    private static invokeFunction(
+      callee: CosmValue,
+      args: CosmValue[],
+      contextOrReceiver?: InvocationContext | CosmValue,
+      env?: Env,
+      currentBlock?: CosmValue,
+    ): CosmValue {
+      const context = normalizeInvocationContext(contextOrReceiver, env, currentBlock);
+      return InterpreterInvoke.invokeFunction(callee, args, context.receiver, context.env, context.currentBlock, {
         evalNode: (node, scope) => this.evalNode(node, scope),
         expectChild: (node, op) => this.expectChild(node, op),
         lookupName: (name, scope) => this.lookupName(name, scope),
@@ -547,7 +555,7 @@ namespace Cosm {
         RuntimeIr.execute(this.ir(input), env, {
           lookupName: (name, scope) => this.lookupName(name, scope),
           lookupProperty: (receiver, property) => this.lookupProperty(receiver, property),
-          invokeFunction: (callee, args, selfValue, scope) => this.invokeFunction(callee, args, selfValue, scope),
+          invokeFunction: (callee, args, context) => this.invokeFunction(callee, args, context),
           send: (receiver, message, args, scope) => this.send(receiver, message, args, scope),
           internSymbol: (name) => this.internSymbol(name),
           createEnv: (parent) => this.createEnv(parent),
@@ -588,14 +596,14 @@ namespace Cosm {
       return InterpreterClassRuntime.instantiateClass(classValue, args, {
         lookupClass: (name, env) => this.lookupClass(name, env),
         evalNode: (node, env) => this.evalNode(node, env),
-        invokeFunction: (callee, invokeArgs, selfValue, env, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, env, currentBlock),
+        invokeFunction: (callee, invokeArgs, context) => this.invokeFunction(callee, invokeArgs, context),
         repository: { classes: this.repo().classes },
       });
     }
 
     private static send(receiver: CosmValue, message: string, args: CosmValue[], env?: Env): CosmValue {
       return InterpreterMessage.send(receiver, message, args, env, {
-        invokeFunction: (callee, invokeArgs, selfValue, scope, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+        invokeFunction: (callee, invokeArgs, context) => this.invokeFunction(callee, invokeArgs, context),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
         repository: this.repo(),
       });
@@ -603,7 +611,7 @@ namespace Cosm {
 
     private static invokeSend(receiver: CosmValue, messageValue: CosmValue, args: CosmValue[], env?: Env): CosmValue {
       return InterpreterMessage.invokeSend(receiver, messageValue, args, env, {
-        invokeFunction: (callee, invokeArgs, selfValue, scope, currentBlock) => this.invokeFunction(callee, invokeArgs, selfValue, scope, currentBlock),
+        invokeFunction: (callee, invokeArgs, context) => this.invokeFunction(callee, invokeArgs, context),
         withFrame: (frame, fn) => this.withFrame(frame, fn),
         repository: this.repo(),
       });
@@ -615,8 +623,8 @@ namespace Cosm {
         expectChild: (node: CoreNode, op: string) => this.expectChild(node, op),
         expectChildren: (node: CoreNode, op: string) => this.expectChildren(node, op),
         send: (receiver: CosmValue, message: string, args: CosmValue[], scope?: Env) => this.send(receiver, message, args, scope),
-        invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, scope?: Env, currentBlock?: CosmValue) =>
-          this.invokeFunction(callee, args, selfValue, scope, currentBlock),
+        invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) =>
+          this.invokeFunction(callee, args, context),
       };
     }
 
@@ -647,6 +655,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.27";
+    export const version = "0.3.13.28";
 }
 export default Cosm;

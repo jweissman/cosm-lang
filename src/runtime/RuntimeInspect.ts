@@ -70,7 +70,7 @@ export class RuntimeInspect {
         }
         const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(", ");
         if (value.className === "Object") {
-          return `{ ${entries} }`;
+          return entries.length > 0 ? `#<Object ${entries}>` : "#<Object>";
         }
         return entries.length > 0 ? `#<${value.className} ${entries}>` : `#<${value.className}>`;
       }

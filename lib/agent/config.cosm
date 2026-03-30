@@ -30,7 +30,12 @@ def slack_allowed_channels()
   if raw == false then
     []
   else
-    raw.split(",").map(->(entry) { entry.trim() }).filter(->(entry) { entry != "" })
+    let trimmed = raw.split(",").map do |entry|
+      entry.trim()
+    end
+    trimmed.filter do |entry|
+      entry != ""
+    end
   end
 end
 

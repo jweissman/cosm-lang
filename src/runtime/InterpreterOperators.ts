@@ -1,11 +1,12 @@
 import { CoreNode, CosmEnv, CosmValue } from "../types";
+import { InvocationContext } from "./InvocationContext";
 
 type OperatorHooks = {
   evalNode: (ast: CoreNode, env: CosmEnv) => CosmValue;
   expectChild: (ast: CoreNode, op: string) => CoreNode;
   expectChildren: (ast: CoreNode, op: string) => [CoreNode, CoreNode];
   send: (receiver: CosmValue, message: string, args: CosmValue[], env?: CosmEnv) => CosmValue;
-  invokeFunction: (callee: CosmValue, args: CosmValue[], selfValue?: CosmValue, env?: CosmEnv, currentBlock?: CosmValue) => CosmValue;
+  invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
 };
 
 export class InterpreterOperators {
@@ -115,7 +116,7 @@ export class InterpreterOperators {
     if (!nativeMethod) {
       return null;
     }
-    const result = hooks.invokeFunction(nativeMethod, [right], left);
+    const result = hooks.invokeFunction(nativeMethod, [right], { receiver: left });
     if (result.type !== "bool") {
       throw new Error(`Type error: method ${message} must return a boolean`);
     }

@@ -644,6 +644,7 @@ do let x = 1; x + 2 end
 - `HttpRouter` is intentionally exact-path and object-first in `0.3.12.x`; route params, wildcards, middleware groups/macros, and richer route DSLs are still deferred.
 - `Mirror` is intentionally readonly and observational in `0.3.13.x`; it reflects Cosm-visible behavior, not arbitrary raw host-object shape. `Mirror.status()` now makes that contract explicit.
 - `Mirror` remains the readonly reflective wrapper. `Cosm::Hologram` now layers a tiny writable wrapper over Cosm-visible hash/object-like values, but it is still intentionally far short of a general JS bridge. `Cosm::Hologram.status()` is the supported way to inspect that narrow writable subset.
+- `~=` is the explicit semantic comparison seam in `0.3.13.x`. `Cosm::AI.cast(...)` is the explicit semantic-to-structured cast surface. `~` is intentionally deferred until a later boundary/interop line.
 - The files under `test/fixtures/vm/` are interpreter/VM parity smoke fixtures for the supported subset; they are not special VM-only modules.
 - Receiver-side `methods()` is now a symbol-list surface. Class-table `.methods` and `.classMethods` still return reflective objects, so dot access like `classes.Kernel.methods.assert` continues to work.
 - Built-in reflective method tables like `classes.Object.methods`, `classes.Class.methods`, `classes.Function.methods`, `classes.Method.methods`, `classes.Symbol.methods`, `classes.Namespace.methods`, and `classes.Kernel.methods` now come from the same explicit TS-backed exposure protocol that native lookup uses at runtime.
