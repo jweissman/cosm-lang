@@ -2,6 +2,7 @@ import { CosmNumberValue } from "./values/CosmNumberValue";
 import { CosmSymbolValue } from "./values/CosmSymbolValue";
 import { CosmMethodValue } from "./values/CosmMethodValue";
 import { CosmBoolValue } from "./values/CosmBoolValue";
+import { CosmNihilValue } from "./values/CosmNihilValue";
 import { CosmStringValue } from "./values/CosmStringValue";
 import { CosmArrayValue } from "./values/CosmArrayValue";
 import { CosmHashValue } from "./values/CosmHashValue";
@@ -34,6 +35,7 @@ export type CoreNodeKind =
   | 'lambda'
   | 'number'
   | 'bool'
+  | 'nihil'
   | 'string'
   | 'symbol'
   | 'ident'
@@ -91,6 +93,7 @@ export type CosmEnv = {
 export type IrInstruction =
   | { op: "push_number"; value: number }
   | { op: "push_bool"; value: boolean }
+  | { op: "push_nihil" }
   | { op: "push_string"; value: string }
   | { op: "push_symbol"; value: string }
   | { op: "define_function"; name: string; params: string[]; body: CoreNode; defaults?: Record<string, CoreNode>; restParam?: string }
@@ -117,6 +120,7 @@ export type IrProgram = {
 
 export type CosmNumber = CosmNumberValue;
 export type CosmBool = CosmBoolValue;
+export type CosmNihil = CosmNihilValue;
 export type CosmString = CosmStringValue;
 export type CosmSymbol = CosmSymbolValue;
 export type CosmArray = CosmArrayValue;
@@ -129,6 +133,7 @@ export type CosmClass = CosmClassValue;
 export type CosmValue =
   | CosmNumberValue
   | CosmBoolValue
+  | CosmNihilValue
   | CosmStringValue
   | CosmSymbolValue
   | CosmArrayValue
@@ -168,6 +173,7 @@ export type SurfaceNodeKind =
   | 'lambda_expr'
   | 'number'
   | 'bool'
+  | 'nihil'
   | 'string'
   | 'symbol'
   | 'ident'

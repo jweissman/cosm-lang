@@ -9,6 +9,7 @@ import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmErrorValue } from "./CosmErrorValue";
 import { CosmBoolValue } from "./CosmBoolValue";
+import { CosmNihilValue } from "./CosmNihilValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { ValueAdapter } from "../ValueAdapter";
@@ -212,9 +213,9 @@ export class CosmAiValue extends CosmObjectValue {
   private streamEvent(event: { kind: string; text?: string; first?: boolean; index?: number }): CosmValue {
     return new CosmNamespaceValue({
       kind: new CosmStringValue(event.kind),
-      text: event.text === undefined ? new CosmBoolValue(false) : new CosmStringValue(event.text),
+      text: event.text === undefined ? new CosmNihilValue() : new CosmStringValue(event.text),
       first: new CosmBoolValue(event.first === true),
-      index: event.index === undefined ? new CosmBoolValue(false) : new CosmNumberValue(event.index),
+      index: event.index === undefined ? new CosmNihilValue() : new CosmNumberValue(event.index),
     }, this.classRef);
   }
 

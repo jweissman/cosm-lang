@@ -129,6 +129,14 @@ Current priority:
 - add a tiny `expect(...)` surface and better Cosm-native failure output without replacing `assert` / `assert_equal`
 - keep docs/notebook/examples consistent about `Mirror`/`Hologram` as the path for shrinking bespoke TS-native boundary types over time
 
+### `0.3.13.34`: Nihil, Core Lift, and AI Surface Cleanup
+
+- add first-class `nihil` / `Nihil` and make `nihil` falsy in control flow
+- move optional-schema and host-`null` handling onto `nihil` instead of overloading boolean `false`
+- add authored predicate helpers like `nihil?`, `truthy?`, `falsy?`, and `present?`
+- deepen the authored `Object` / `Module` / `Class` facades so everyday behavior is less TS-owned
+- remove the weak `Cosm::AI.boundary()` doc-hash helper and keep the authored AI facade focused on operational surfaces
+
 ### `0.3.14.x`: Persistence, Tools, and Concurrency
 
 - introduce a real store boundary

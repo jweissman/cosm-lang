@@ -77,6 +77,8 @@ test("parser accepts one-line defs", () => {
 test("parser accepts explicit ivar assignment and conservative no-paren defs", () => {
   expect(() => Parser.parse('class Box\n  def init(value)\n    @value = value\n  end\n  def value = @value\nend\nBox.new(1).value()')).not.toThrow();
   expect(() => Parser.parse('class Greeter\n  def label\n    "hi"\n  end\nend\nGreeter.new().label()')).not.toThrow();
+  expect(() => Parser.parse('class Box\n  def empty? = false\nend\nBox.new().empty?()')).not.toThrow();
+  expect(() => Parser.parse('nihil')).not.toThrow();
   expect(() => Parser.parse('def add left, right = left + right')).toThrow("Parse error:");
 });
 

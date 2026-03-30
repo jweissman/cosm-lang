@@ -13,6 +13,7 @@ Line comments starting with `#` are ignored anywhere whitespace is allowed.
 
 - Numbers: `1`, `2.5`
 - Booleans: `true`, `false`
+- Missing/null-like value: `nihil`
 - Double-quoted strings: `"cosm"`, `"line\nbreak"`
 - Triple-quoted strings: `"""<h1>Hello #{name}</h1>"""`
 - Single-quoted strings: `'cosm'`, `'#{not interpolated}'`
@@ -431,7 +432,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.33`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.34`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -459,7 +460,7 @@ Class.class.name
 - `HttpResponse.headers`
 - `HttpServer.stop()`
   Stops a server started through `http.serve(...)`.
-- `http.headers(values = false)`
+- `http.headers(values = nihil)`
   Returns a host-backed Bun `Headers` object wrapped through Cosm's boundary layer so it can be inspected with `Mirror` and adapted read/write through `Cosm::Hologram`.
 - `Kernel.dispatch(receiver, message, ...args)`
   Performs an explicit helper-form message send where `message` is a string or symbol.
@@ -515,7 +516,7 @@ Class.class.name
   Built-in class for interned symbols via `:name` literals or `Symbol.intern("name")`.
 - User-defined classes also appear in `classes` within the current evaluation/session scope.
 - Core classes:
-  `BasicObject`, `Class`, `Module`, `Object`, `Number`, `Boolean`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `HostObject`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
+  `BasicObject`, `Class`, `Module`, `Object`, `Number`, `Boolean`, `Nihil`, `String`, `Array`, `Hash`, `Function`, `Mirror`, `HostObject`, `Http`, `HttpRequest`, `HttpResponse`, `HttpServer`, `HttpRouter`
 
 Examples:
 
@@ -562,6 +563,9 @@ Random.choice(["red", "green", "blue"])
 Mirror.reflect({ answer: 42 }).inspect()
 Mirror.reflect(Kernel).get(:assert)
 Mirror.status().mode
+nihil
+nihil.falsy?()
+Kernel.inspect(nihil)
 begin
   Kernel.raise("boom", { code: 7 })
 rescue err
@@ -575,7 +579,7 @@ Mirror.reflect(headers).inspect()
 Cosm::Hologram.wrap(headers).get(:accept)
 expect(headers).to_be_truthy()
 require "cosm/ai"
-Cosm::AI.boundary().mode
+Cosm::AI.compare("cat", "cat")
 Kernel.expectEqual([1, 2], [1, 2])
 HttpResponse.html("<h1>ok</h1>", 200)
 HttpResponse.text("ok", 201)

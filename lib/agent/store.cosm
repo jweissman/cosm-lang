@@ -35,9 +35,9 @@ def load_record(key)
       agent_thread_record.validate(value)
       value
     end
-    loaded.ok ? loaded.value : false
+    loaded.ok ? loaded.value : nihil
   else
-    false
+    nihil
   end
 end
 
@@ -80,30 +80,30 @@ def recent_activity() = load_activity_log();
 def save_conversation(conversation)
   let key = conversation.key
   let loaded = load_record(key)
-  let processed_events = loaded == false ? [] : loaded.processed_events
+  let processed_events = loaded.nihil?() ? [] : loaded.processed_events
   save_record(key, record(conversation, processed_events))
 end
 
 def processed(key, event_key)
   let loaded = load_record(key)
-  if loaded == false then
+  if loaded.nihil?() then
     false
   else
     let matched = loaded.processed_events.find do |entry|
       entry == event_key
     end
-    matched != false
+    matched.nihil?() == false
   end
 end
 
 def next_processed_events(loaded, event_key)
-  if loaded == false then
+  if loaded.nihil?() then
     [event_key]
   else
     let matched = loaded.processed_events.find do |entry|
       entry == event_key
     end
-    if matched != false then
+    if matched.nihil?() == false then
       loaded.processed_events
     else
       loaded.processed_events.append(event_key)

@@ -8,7 +8,7 @@ suite("Support chatbot helpers") do
     assert_equal(Support::Chat.append_transcript("user: hello", "assistant", "hi"), "user: hello\nassistant: hi")
   end
   it("step returns the structured chat-step model shape") do
-    let step = { transcript: "user: hello\nassistant: hi", reply: { should_reply: true, text: "hi", rationale: "mocked", tool_calls: false, tool_results: false } }
+    let step = { transcript: "user: hello\nassistant: hi", reply: { should_reply: true, text: "hi", rationale: "mocked", tool_calls: nihil, tool_results: nihil } }
     assert(Support::Models.chat_step.validate(step) == true)
   end
   it("banner stays descriptive") do

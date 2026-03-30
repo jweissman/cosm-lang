@@ -39,7 +39,7 @@ export class CosmErrorValue extends CosmObjectValue {
         if (!(message instanceof CosmStringValue)) {
           throw new Error("Type error: Error.new expects a string message");
         }
-        return new CosmErrorValue(message.value, [], details ?? Construct.bool(false), selfValue);
+        return new CosmErrorValue(message.value, [], details ?? Construct.nihil(), selfValue);
       }),
     },
   };
@@ -51,7 +51,7 @@ export class CosmErrorValue extends CosmObjectValue {
   constructor(
     public readonly messageText: string,
     public readonly backtraceItems: string[] = [],
-    public readonly detailsValue: CosmValue = Construct.bool(false),
+    public readonly detailsValue: CosmValue = Construct.nihil(),
     classRef?: CosmClassValue,
   ) {
     super("Error", {}, classRef);
@@ -65,9 +65,9 @@ export class CosmErrorValue extends CosmObjectValue {
       return error;
     }
     if (error instanceof Error) {
-      return new CosmErrorValue(error.message, [], Construct.bool(false), classRef);
+      return new CosmErrorValue(error.message, [], Construct.nihil(), classRef);
     }
-    return new CosmErrorValue(String(error), [], Construct.bool(false), classRef);
+    return new CosmErrorValue(String(error), [], Construct.nihil(), classRef);
   }
 
   static raise(messageOrError: CosmValue, classRef?: CosmClassValue, details?: CosmValue): never {
@@ -75,9 +75,9 @@ export class CosmErrorValue extends CosmObjectValue {
       throw new CosmRaisedError(messageOrError);
     }
     if (messageOrError instanceof CosmStringValue) {
-      throw new CosmRaisedError(new CosmErrorValue(messageOrError.value, [], details ?? Construct.bool(false), classRef));
+      throw new CosmRaisedError(new CosmErrorValue(messageOrError.value, [], details ?? Construct.nihil(), classRef));
     }
-    throw new CosmRaisedError(new CosmErrorValue(ValueAdapter.format(messageOrError), [], details ?? Construct.bool(false), classRef));
+    throw new CosmRaisedError(new CosmErrorValue(ValueAdapter.format(messageOrError), [], details ?? Construct.nihil(), classRef));
   }
 
   toDisplayString(): string {

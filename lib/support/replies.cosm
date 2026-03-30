@@ -4,10 +4,10 @@ def maybe_field(value, field)
   let result = Kernel.try do
     value.send(field)
   end
-  result.ok ? result.value : false
+  result.ok ? result.value : nihil
 end
 
-def text(text, rationale, internal_summary = false, next_mode = false)
+def text(text, rationale, internal_summary = nihil, next_mode = nihil)
   Support::Models.agent_reply.build({
     should_reply: true,
     text: text,

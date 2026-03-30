@@ -59,6 +59,8 @@ export class RuntimeDispatch {
         return classes.Number;
       case 'bool':
         return classes.Boolean;
+      case 'nihil':
+        return classes.Nihil;
       case 'string':
         return classes.String;
       case 'symbol':

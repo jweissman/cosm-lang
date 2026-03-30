@@ -28,7 +28,7 @@ type JsValue =
 export class ValueAdapter {
   static jsToCosm(value: JsValue): CosmValue {
     if (value === null) {
-      return Construct.bool(false);
+      return Construct.nihil();
     }
     if (typeof value === "number") {
       return Construct.number(value);
@@ -55,6 +55,8 @@ export class ValueAdapter {
         return value.value;
       case 'bool':
         return value.value;
+      case 'nihil':
+        return null;
       case 'string':
         return value.value;
       case 'symbol':
@@ -148,7 +150,7 @@ export class ValueAdapter {
             kind: "error",
             message: value.messageText,
             backtrace: value.backtraceItems,
-            details: value.detailsValue.type === "bool" && value.detailsValue.value === false ? false : this.cosmToJS(value.detailsValue),
+            details: value.detailsValue.type === "nihil" ? null : this.cosmToJS(value.detailsValue),
           };
         }
         if (value instanceof CosmSchemaValue) {

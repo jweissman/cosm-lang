@@ -1,23 +1,27 @@
 module Enumerable
-  def any(callback = false) = callback == false ? self.present() : self.find(callback) != false;
+  def any(callback = nihil) = callback.nihil?() ? self.present?() : self.find(callback).nihil?() == false
 
   def all(callback)
     self.reduce(true) do |acc, value|
-      acc == false ? false : callback(value)
+      acc.falsy?() ? false : callback(value)
     end
   end
 
-  def none() = self.empty();
+  def none? = self.empty?()
 
-  def one() = self.length == 1;
+  def none = self.none?()
 
-  def filter(callback) = self.select(callback);
+  def one? = self.length == 1
+
+  def one = self.one?()
+
+  def filter(callback) = self.select(callback)
 
   def compact_map(callback)
     let missing = :__cosm_compact_map_missing__
     self.reduce([]) do |acc, first, second = missing|
       let mapped = second == missing ? callback(first) : callback(first, second)
-      mapped == false ? acc : acc.append(mapped)
+      mapped.nihil?() ? acc : acc.append(mapped)
     end
   end
 
@@ -28,10 +32,10 @@ module Enumerable
         acc
       else
         let mapped = second == missing ? callback(first) : callback(first, second)
-        mapped == false ? missing : mapped
+        mapped.nihil?() ? missing : mapped
       end
     end
-    result == missing ? false : result
+    result == missing ? nihil : result
   end
 
   def flat_map(callback)
@@ -46,7 +50,7 @@ module Enumerable
     end
   end
 
-  def sum() = self.reduce(0) do |acc, value| acc + value end;
+  def sum = self.reduce(0) do |acc, value| acc + value end
 
   def sum_by(callback)
     let missing = :__cosm_sum_by_missing__

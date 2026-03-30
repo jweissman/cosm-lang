@@ -3,6 +3,7 @@ import { InvocationContext, normalizeInvocationContext } from "../runtime/Invoca
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmNumberValue } from "./CosmNumberValue";
+import { CosmNihilValue } from "./CosmNihilValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 
@@ -81,7 +82,7 @@ export class CosmArrayValue extends CosmValueBase {
         if (args.length !== 0) {
           throw new Error(`Arity error: first expects 0 arguments, got ${args.length}`);
         }
-        return selfValue.items[0] ?? new CosmBoolValue(false);
+        return selfValue.items[0] ?? new CosmNihilValue();
       });
     }
     if (name === "map") {
@@ -176,7 +177,7 @@ export class CosmArrayValue extends CosmValueBase {
             return item;
           }
         }
-        return new CosmBoolValue(false);
+        return new CosmNihilValue();
       });
     }
     if (name === "join") {

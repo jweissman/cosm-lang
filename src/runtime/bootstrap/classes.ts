@@ -36,6 +36,7 @@ export function createCoreClasses(): Record<string, CosmClass> {
   for (const name of [
     "Number",
     "Boolean",
+    "Nihil",
     "String",
     "Symbol",
     "Array",

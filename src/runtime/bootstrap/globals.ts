@@ -20,6 +20,7 @@ export function createCoreGlobals(classes: Record<string, CosmClass>): Record<st
     Object: classes.Object,
     Number: classes.Number,
     Boolean: classes.Boolean,
+    Nihil: classes.Nihil,
     String: classes.String,
     Symbol: classes.Symbol,
     Array: classes.Array,
@@ -133,6 +134,7 @@ export function installKernelGlobals(
   globals.Process = processObject;
   globals.Time = timeObject;
   globals.Random = randomObject;
+  globals.nihil = Construct.nihil();
   globals.ai = aiObject;
   globals.Data = modules["cosm/data"];
   globals.Session = classes.Session;
@@ -242,6 +244,7 @@ function installConstantRootFields(globals: Record<string, CosmValue>, modules: 
   cosmRoot.fields.Object = globals.Object;
   cosmRoot.fields.Module = globals.Module;
   cosmRoot.fields.Class = globals.Class;
+  cosmRoot.fields.Nihil = globals.Nihil;
   cosmRoot.fields.Kernel = globals.Kernel;
   cosmRoot.fields.Process = globals.Process;
   cosmRoot.fields.Time = globals.Time;

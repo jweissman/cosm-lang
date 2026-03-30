@@ -1,9 +1,9 @@
 export class InputNormalizer {
   private static isInlineDefLine(trimmed: string): boolean {
     return (
-      /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed)
-      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\s+[A-Za-z_][A-Za-z0-9_]*\s*=/.test(trimmed)
-      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\([^)]*\)\s*=/.test(trimmed)
+      /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\??\s*=/.test(trimmed)
+      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\??\s+[A-Za-z_][A-Za-z0-9_]*\??\s*=/.test(trimmed)
+      || /^def\s+(?:self\.)?[A-Za-z_][A-Za-z0-9_]*\??\([^)]*\)\s*=/.test(trimmed)
     );
   }
 
@@ -104,7 +104,7 @@ export class InputNormalizer {
     if (!trimmed) {
       return false;
     }
-    if (/^[A-Za-z_][A-Za-z0-9_]*\s*:(?!:)/.test(trimmed)) {
+    if (/^[A-Za-z_][A-Za-z0-9_]*\??\s*:(?!:)/.test(trimmed)) {
       return false;
     }
     if (trimmed.endsWith(";")) {

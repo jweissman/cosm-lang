@@ -1,27 +1,17 @@
-def status = ai.status();
+def status = ai.status()
 
-def config = ai.config();
+def config = ai.config()
 
-def health = ai.health();
+def health = ai.health()
 
-def complete(prompt) = ai.complete(prompt);
+def complete(prompt) = ai.complete(prompt)
 
-def compare(left, right) = ai.compare(left, right);
-
-def boundary()
-  {
-    mode: "explicit-semantic-boundary",
-    cast: "Cosm::AI.cast(prompt, schema_or_model)",
-    compare: "Cosm::AI.compare(left, right)",
-    semantic_eq: "\"left\" ~= \"right\"",
-    deferred_operator: "~",
-    deterministic_validation: "Schema.validate(...) / Data.model(...).validate(...)",
-    configured: ai.config().configured
-  }
-end
+def compare(left, right) = ai.compare(left, right)
 
 def schema_for(target)
-  let maybe_schema = Kernel.try(->() { target.schema() })
+  let maybe_schema = Kernel.try do
+    target.schema()
+  end
   if maybe_schema.ok then
     maybe_schema.value
   else
@@ -29,11 +19,9 @@ def schema_for(target)
   end
 end
 
-def cast(prompt, target) = ai.cast(prompt, schema_for(target));
+def cast(prompt, target) = ai.cast(prompt, schema_for(target))
 
-def chat_cast(messages, target) = ai.chat_cast(messages, schema_for(target));
-
-def reply(prompt, target) = cast(prompt, target);
+def chat_cast(messages, target) = ai.chat_cast(messages, schema_for(target))
 
 def stream(prompt)
   ai.stream(prompt) do |event|

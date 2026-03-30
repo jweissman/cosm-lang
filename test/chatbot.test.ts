@@ -26,15 +26,15 @@ test("pure Cosm support chat can step a transcript through the shared support-ag
             should_reply: true,
             text: "Reset the session with the Reset Session button in the notebook UI.",
             rationale: "mocked support reply",
-            tool_calls: false,
-            tool_results: false,
+            tool_calls: null,
+            tool_results: null,
           }
         : {
             should_reply: true,
             text: "I am not sure yet.",
             rationale: "mocked default",
-            tool_calls: false,
-            tool_results: false,
+            tool_calls: null,
+            tool_results: null,
           },
     )),
   });
@@ -61,15 +61,15 @@ test("support controller provides a thin conversation contract for shared chat f
       should_reply: true,
       text: "Reset the session with the Reset Session button in the notebook UI.",
       rationale: "mocked controller reply",
-      tool_calls: false,
-      tool_results: false,
+      tool_calls: null,
+      tool_results: null,
     })),
     chatCast: (_messages, schema) => schema.validateAndReturn(ValueAdapter.jsToCosm({
       should_reply: true,
       text: "Reset the session with the Reset Session button in the notebook UI.",
       rationale: "mocked controller reply",
-      tool_calls: false,
-      tool_results: false,
+      tool_calls: null,
+      tool_results: null,
     })),
   });
 

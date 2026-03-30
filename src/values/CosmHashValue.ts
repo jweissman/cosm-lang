@@ -4,6 +4,7 @@ import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmBoolValue } from "./CosmBoolValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmNumberValue } from "./CosmNumberValue";
+import { CosmNihilValue } from "./CosmNihilValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmValueBase } from "./CosmValueBase";
 
@@ -95,7 +96,7 @@ export class CosmHashValue extends CosmValueBase {
         }
         const [entry] = Object.entries(selfValue.entries);
         if (!entry) {
-          return new CosmBoolValue(false);
+          return new CosmNihilValue();
         }
         return new CosmArrayValue([new CosmStringValue(entry[0]), entry[1]]);
       });
@@ -178,7 +179,7 @@ export class CosmHashValue extends CosmValueBase {
             return new CosmArrayValue([new CosmStringValue(key), value]);
           }
         }
-        return new CosmBoolValue(false);
+        return new CosmNihilValue();
       });
     }
     if (name === "take") {

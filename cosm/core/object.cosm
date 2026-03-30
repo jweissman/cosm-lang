@@ -1,7 +1,17 @@
 class Object < BasicObject
-  def receiver_name() = self.class.name;
+  def receiver_name = self.class.name
 
-  def method_names()
+  def nihil? = self.class.name == "Nihil"
+
+  def falsy? = self == false || self.nihil?()
+
+  def truthy? = self.falsy?() == false
+
+  def present? = self.falsy?() == false
+
+  def blank? = self.present?() == false
+
+  def method_names
     self.methods().map do |name|
       name.name
     end

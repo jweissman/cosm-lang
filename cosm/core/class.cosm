@@ -1,12 +1,19 @@
 class Class < Module
-  def lineage
-    let labels = [self.name]
-    self.superclass == false ? labels : labels.append(self.superclass.name)
-  end
+  def lineage = self.lineage_from(self, [])
+
+  def lineage_from(current, labels) = current.nihil?() ? labels : self.lineage_from(current.superclass, labels.append(current.name))
 
   def included_module_names
     self.includedModules.map do |mod|
       mod.name
     end
+  end
+
+  def superclass_name = self.superclass.nihil?() ? nihil : self.superclass.name
+
+  def root? = self.superclass.nihil?()
+
+  def inherits_from?(target)
+    self.lineage().include(target.name)
   end
 end

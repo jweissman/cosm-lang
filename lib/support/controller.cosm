@@ -53,14 +53,14 @@ def cli_conversation(messages)
     messages: messages,
     session_name: "iapetus-cli",
     session_length: messages.length,
-    transcript: false,
-    context: false,
+    transcript: nihil,
+    context: nihil,
     created_at: now,
     updated_at: now
   })
 end
 
-def page_conversation(key, transcript, context = false)
+def page_conversation(key, transcript, context = nihil)
   let now = Time.isoNow()
   Support::Models.conversation.build({
     agent: "iapetus",
@@ -86,18 +86,18 @@ def page_inbound(key, text)
   Support::Models.inbound_message.build({ channel: "web", thread: key, user: "visitor", text: text, ts: key })
 end
 
-def current_transcript(conversation) = conversation.transcript == false ? Support::Agent.transcript_from_conversation(conversation) : conversation.transcript;
+def current_transcript(conversation) = conversation.transcript.nihil?() ? Support::Agent.transcript_from_conversation(conversation) : conversation.transcript
 
 def reply(conversation, inbound)
   Support::Models.conversation.validate(conversation)
   Support::Models.inbound_message.validate(inbound)
-  conversation.transcript == false && conversation.context == false ? Support::Agent.reply_for_conversation(conversation, inbound) : (conversation.context == false ? Support::Agent.reply_for_transcript(current_transcript(conversation), inbound.text) : Support::Agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context))
+  conversation.transcript.nihil?() && conversation.context.nihil?() ? Support::Agent.reply_for_conversation(conversation, inbound) : (conversation.context.nihil?() ? Support::Agent.reply_for_transcript(current_transcript(conversation), inbound.text) : Support::Agent.reply_for_context(current_transcript(conversation), inbound.text, conversation.context))
 end
 
 def stream_reply(conversation, inbound)
   Support::Models.conversation.validate(conversation)
   Support::Models.inbound_message.validate(inbound)
-  if conversation.context == false then
+  if conversation.context.nihil?() then
     Support::Agent.stream_reply_for_transcript(current_transcript(conversation), inbound.text) do |event|
       yield(event)
     end
@@ -109,7 +109,7 @@ def stream_reply(conversation, inbound)
 end
 
 def next_conversation(conversation, inbound, reply)
-  if conversation.transcript == false then
+  if conversation.transcript.nihil?() then
     let with_user = append_user_message(conversation, inbound)
     append_message(with_user, "assistant", reply.text)
   else

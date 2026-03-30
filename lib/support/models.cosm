@@ -4,8 +4,8 @@ let message = Data.model("message", {
   text: Data.string(),
   ts: Data.optional(Data.string())
 }, {
-  user: false,
-  ts: false
+  user: nihil,
+  ts: nihil
 })
 
 let conversation = Data.model("conversation", {
@@ -22,14 +22,14 @@ let conversation = Data.model("conversation", {
   created_at: Data.optional(Data.string()),
   updated_at: Data.optional(Data.string())
 }, {
-  agent: false,
-  transport: false,
-  session_name: false,
-  session_length: false,
-  transcript: false,
-  context: false,
-  created_at: false,
-  updated_at: false
+  agent: nihil,
+  transport: nihil,
+  session_name: nihil,
+  session_length: nihil,
+  transcript: nihil,
+  context: nihil,
+  created_at: nihil,
+  updated_at: nihil
 })
 
 let inbound_message = Data.model("inbound_message", {
@@ -41,15 +41,15 @@ let inbound_message = Data.model("inbound_message", {
   source: Data.optional(Data.string()),
   channel_kind: Data.optional(Data.string())
 }, {
-  source: false,
-  channel_kind: false
+  source: nihil,
+  channel_kind: nihil
 })
 
 let tool_call = Data.model("tool_call", {
   name: Data.string(),
   input_summary: Data.optional(Data.string())
 }, {
-  input_summary: false
+  input_summary: nihil
 })
 
 let tool_result = Data.model("tool_result", {
@@ -64,9 +64,9 @@ let agent_turn_plan = Data.model("agent_turn_plan", {
   internal_summary: Data.optional(Data.string()),
   next_mode: Data.optional(Data.string())
 }, {
-  rationale: false,
-  internal_summary: false,
-  next_mode: false
+  rationale: nihil,
+  internal_summary: nihil,
+  next_mode: nihil
 })
 
 let agent_reply = Data.model("agent_reply", {
@@ -80,13 +80,13 @@ let agent_reply = Data.model("agent_reply", {
   tool_calls: Data.optional(Data.array(tool_call)),
   tool_results: Data.optional(Data.array(tool_result))
 }, {
-  rationale: false,
-  internal_summary: false,
-  next_mode: false,
-  degraded: false,
-  failure_reason: false,
-  tool_calls: false,
-  tool_results: false
+  rationale: nihil,
+  internal_summary: nihil,
+  next_mode: nihil,
+  degraded: nihil,
+  failure_reason: nihil,
+  tool_calls: nihil,
+  tool_results: nihil
 })
 
 let chat_step = Data.model("chat_step", {
@@ -102,8 +102,8 @@ let agent_turn_result = Data.model("agent_turn_result", {
   command: Data.optional(Data.string()),
   outcome: Data.enum("reply", "command", "fallback")
 }, {
-  plan: false,
-  command: false
+  plan: nihil,
+  command: nihil
 })
 
 let controller_turn = agent_turn_result
@@ -121,5 +121,5 @@ let notebook_page = Data.model("notebook_page", {
   created_at: Data.string(),
   updated_at: Data.string()
 }, {
-  last_execution_summary: false
+  last_execution_summary: nihil
 })

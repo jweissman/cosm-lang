@@ -7,6 +7,8 @@ export class RuntimeInspect {
         return String(value.value);
       case "bool":
         return String(value.value);
+      case "nihil":
+        return "nihil";
       case "string":
         return JSON.stringify(value.value);
       case "symbol":

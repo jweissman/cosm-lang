@@ -25,8 +25,20 @@ test("blocks are scoped and value-producing", () => {
 test("if expressions choose a branch and scope it", () => {
   expect(cosmEval('if true then "yes" else "no" end')).toBe("yes");
   expect(cosmEval("if false then 1 else 2 end")).toBe(2);
+  expect(cosmEval("if nihil then 1 else 2 end")).toBe(2);
   expect(cosmEval('let x = "outer"; if true then do let x = "inner"; assert(x == "inner"); x end else "no" end; x')).toBe("outer");
   expect(() => cosmEval("if 1 then 2 else 3 end")).toThrow("Type error: if expects a boolean condition");
+});
+
+test("nihil and core predicates make absence explicit", () => {
+  expect(cosmEval("nihil")).toBeNull();
+  expect(cosmEval("Kernel.inspect(nihil)")).toBe("nihil");
+  expect(cosmEval("nihil.class.name")).toBe("Nihil");
+  expect(cosmEval("nihil.nihil?()")).toBe(true);
+  expect(cosmEval("nihil.falsy?()")).toBe(true);
+  expect(cosmEval("false.falsy?()")).toBe(true);
+  expect(cosmEval("true.truthy?()")).toBe(true);
+  expect(cosmEval('"cosm".present?()')).toBe(true);
 });
 
 test("user-defined functions work", () => {

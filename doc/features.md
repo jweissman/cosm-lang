@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.33
+## Current Release Target: 0.3.13.34
 
-`0.3.13.24`-`0.3.13.33` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, and tooling-consolidation line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.34` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, tooling-consolidation, and core-programmability line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -23,6 +23,7 @@
 - keep the Slack agent runtime available, but secondary
 - split Slack operational diagnostics out of `bin/cosm` and into a dedicated `agent` CLI
 - add a tiny `expect(...)` testing surface on top of the existing Cosm-native spec harness
+- add a first-class `nihil` value so missing/optional semantics stop overloading boolean `false`
 - keep `--vm` honest through a documented supported corridor plus narrow parity fixtures rather than treating it like a broad second runtime
 
 For `0.3.13.x`, the callable boundary still stays intentionally narrow:
@@ -64,7 +65,7 @@ For `0.3.13.x`, the callable boundary still stays intentionally narrow:
 - `Data` is now a module-backed ergonomic layer on top of `Schema`, with `Data.string()`, `Data.number()`, `Data.boolean()`, `Data.enum(...)`, `Data.array(...)`, `Data.optional(...)`, `Data.object(...)`, `Data.model(name, fields)`, and `Data.Model` values that expose `schema()`, `validate(...)`, and `jsonSchema()`.
 - Local schema/model work is validation-only in the taught surface; explicit scalar conversion now lives on core values through methods like `to_s()`, `to_i()`, and `to_f()`, while `cast(...)` is reserved for AI-assisted structured completion through `cosm.ai.cast(...)`.
 - A first narrow VM-prep artifact now exists through a VM-oriented IR plus `cosm --trace-ir` / `cosm --vm` for a small supported subset.
-- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `config()`, `health()`, `complete(...)`, `stream(...)`, `compare(...)`, and `boundary()`.
+- `require("cosm/ai.cosm")` now loads a Cosm-authored helper module that wraps `cosm.ai` with model-aware `cast(...)`, plus `status()`, `config()`, `health()`, `complete(...)`, `stream(...)`, and `compare(...)`.
 - `require("lib/app/examples.cosm")` now provides a small Cosm-authored examples surface with structured example records that the notebook can draw from without hardcoding all example source in view helpers.
 - A first Bun-native host-service slice now exists through `http` / `cosm.http`, with `http.serve(port, handler)` returning an `HttpServer` object that exposes `.port`, `.url`, and `.stop()`. `handler` may be a function, a bound method, or a service object that implements `handle(req)`.
 - HTTP handlers now receive a real `HttpRequest` object and can return a string-like body, a transitional hash, or a first-class `HttpResponse` object created via `HttpResponse.ok(...)`, `HttpResponse.text(...)`, or `HttpResponse.json(...)`. `HttpRequest.form()` now provides a tiny URL-encoded form view for simple app-layer pages.

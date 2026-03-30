@@ -1,7 +1,7 @@
 class Hash < Object
   def at(key)
     self.find_map do |current_key, value|
-      current_key == key ? value : false
+      current_key == key ? value : nihil
     end
   end
 end

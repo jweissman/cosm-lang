@@ -89,8 +89,8 @@ test("assistant page can still reuse the shared controller core through the app 
       should_reply: true,
       text: "Use the Reset Session button in the notebook.",
       rationale: "mocked assistant page reply",
-      tool_calls: false,
-      tool_results: false,
+      tool_calls: null,
+      tool_results: null,
     })),
   });
 

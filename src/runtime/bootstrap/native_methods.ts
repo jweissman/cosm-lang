@@ -16,6 +16,7 @@ import { CosmKernelValue } from "../../values/CosmKernelValue";
 import { CosmMethodValue } from "../../values/CosmMethodValue";
 import { CosmMirrorValue } from "../../values/CosmMirrorValue";
 import { CosmModuleValue } from "../../values/CosmModuleValue";
+import { CosmNihilValue } from "../../values/CosmNihilValue";
 import { CosmNamespaceValue } from "../../values/CosmNamespaceValue";
 import { CosmObjectValue } from "../../values/CosmObjectValue";
 import { CosmProcessValue } from "../../values/CosmProcessValue";
@@ -59,6 +60,10 @@ export function installBootNativeMethods(classes: BootClasses): void {
   Object.assign(classes.Symbol.methods, manifestMethods(
     Construct.symbol("example"),
     CosmSymbolValue.manifest,
+  ));
+  Object.assign(classes.Nihil.methods, manifestMethods(
+    new CosmNihilValue(),
+    CosmValueBase.objectManifest,
   ));
   Object.assign(classes.Namespace.methods, manifestMethods(
     new CosmNamespaceValue({}, classes.Namespace),

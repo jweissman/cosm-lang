@@ -60,30 +60,30 @@ Cosm {
     = ClassMetaDefStmt ";"?
 
   ClassMetaDefStmt
-    = kw_def ident "(" ParamList? ")" "=" Exp                       -- inline_params
-    | kw_def ident ident "=" Exp                                    -- inline_arg
-    | kw_def ident "=" Exp                                          -- inline
-    | kw_def ident DoOpt StatementList kw_end                       -- block_no_parens
-    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end   -- block
+    = kw_def name "(" ParamList? ")" "=" Exp                       -- inline_params
+    | kw_def name ident "=" Exp                                    -- inline_arg
+    | kw_def name "=" Exp                                          -- inline
+    | kw_def name DoOpt StatementList kw_end                       -- block_no_parens
+    | kw_def name "(" ParamList? ")" DoOpt StatementList kw_end   -- block
 
   ClassDefStmt
-    = kw_def kw_self "." ident "(" ParamList? ")" "=" Exp                     -- class_inline_params
-    | kw_def kw_self "." ident ident "=" Exp                                  -- class_inline_arg
-    | kw_def kw_self "." ident "=" Exp                                        -- class_inline
-    | kw_def kw_self "." ident DoOpt StatementList kw_end                     -- class_no_parens
-    | kw_def kw_self "." ident "(" ParamList? ")" DoOpt StatementList kw_end  -- class
-    | kw_def ident "(" ParamList? ")" "=" Exp                                 -- instance_inline_params
-    | kw_def ident ident "=" Exp                                              -- instance_inline_arg
-    | kw_def ident "=" Exp                                                    -- instance_inline
-    | kw_def ident DoOpt StatementList kw_end                                 -- instance_no_parens
-    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end              -- instance
+    = kw_def kw_self "." name "(" ParamList? ")" "=" Exp                     -- class_inline_params
+    | kw_def kw_self "." name ident "=" Exp                                  -- class_inline_arg
+    | kw_def kw_self "." name "=" Exp                                        -- class_inline
+    | kw_def kw_self "." name DoOpt StatementList kw_end                     -- class_no_parens
+    | kw_def kw_self "." name "(" ParamList? ")" DoOpt StatementList kw_end  -- class
+    | kw_def name "(" ParamList? ")" "=" Exp                                 -- instance_inline_params
+    | kw_def name ident "=" Exp                                              -- instance_inline_arg
+    | kw_def name "=" Exp                                                    -- instance_inline
+    | kw_def name DoOpt StatementList kw_end                                 -- instance_no_parens
+    | kw_def name "(" ParamList? ")" DoOpt StatementList kw_end              -- instance
 
   DefStmt
-    = kw_def ident "(" ParamList? ")" "=" Exp   -- inline_params
-    | kw_def ident ident "=" Exp                -- inline_arg
-    | kw_def ident "=" Exp                      -- inline
-    | kw_def ident DoOpt StatementList kw_end   -- block_no_parens
-    | kw_def ident "(" ParamList? ")" DoOpt StatementList kw_end  -- block
+    = kw_def name "(" ParamList? ")" "=" Exp   -- inline_params
+    | kw_def name ident "=" Exp                -- inline_arg
+    | kw_def name "=" Exp                      -- inline
+    | kw_def name DoOpt StatementList kw_end   -- block_no_parens
+    | kw_def name "(" ParamList? ")" DoOpt StatementList kw_end  -- block
 
   LetStmt
     = kw_let ident "=" Exp
@@ -171,6 +171,7 @@ Cosm {
     | string
     | symbol
     | boolean
+    | kw_nihil  -- nihil
     | self
     | ivar
     | ident
@@ -302,6 +303,7 @@ Cosm {
   kw_if = "if" ~alnum
   kw_let = "let" ~alnum
   kw_module = "module" ~alnum
+  kw_nihil = "nihil" ~alnum
   kw_require = "require" ~alnum
   kw_rescue = "rescue" ~alnum
   kw_self = "self" ~alnum
@@ -324,6 +326,7 @@ Cosm {
     | kw_if
     | kw_let
     | kw_module
+    | kw_nihil
     | kw_require
     | kw_rescue
     | kw_self
@@ -333,10 +336,10 @@ Cosm {
     | kw_yield
 
   ident  (an identifier)
-    = ~keyword identStart identRest*
+    = ~keyword identStart identRest* predicateSuffix?
 
   name
-    = identStart identRest*
+    = identStart identRest* predicateSuffix?
 
   const_name
     = upper identRest*
@@ -348,6 +351,9 @@ Cosm {
   identRest
     = alnum
     | "_"
+
+  predicateSuffix
+    = "?"
 
   number  (a number)
     = digit* "." digit+  -- fract

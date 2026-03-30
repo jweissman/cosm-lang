@@ -161,7 +161,7 @@ export class AiRuntime {
     return Construct.namespace({
       backend: Construct.string(config.backend),
       baseUrl: Construct.string(config.baseUrl),
-      model: config.model ? Construct.string(config.model) : Construct.bool(false),
+      model: config.model ? Construct.string(config.model) : Construct.nihil(),
       configured: Construct.bool(config.configured),
     }, namespaceClassRef);
   }
@@ -172,10 +172,10 @@ export class AiRuntime {
     return Construct.namespace({
       backend: Construct.string(config.backend),
       baseUrl: Construct.string(config.baseUrl),
-      model: config.model ? Construct.string(config.model) : Construct.bool(false),
+      model: config.model ? Construct.string(config.model) : Construct.nihil(),
       configured: Construct.bool(config.configured),
       ok: Construct.bool(result.ok),
-      error: result.error ? Construct.string(result.error) : Construct.bool(false),
+      error: result.error ? Construct.string(result.error) : Construct.nihil(),
     }, namespaceClassRef);
   }
 

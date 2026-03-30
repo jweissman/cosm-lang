@@ -50,6 +50,9 @@ export class RuntimeIr {
         case "push_bool":
           stack.push(Construct.bool(instruction.value));
           break;
+        case "push_nihil":
+          stack.push(Construct.nihil());
+          break;
         case "push_string":
           stack.push(Construct.string(instruction.value));
           break;
@@ -149,10 +152,10 @@ export class RuntimeIr {
           break;
         case "jump_if_false": {
           const condition = popValue();
-          if (condition.type !== "bool") {
+          if (!this.isFalseLike(condition) && condition.type !== "bool") {
             throw new Error("Type error: if expects a boolean condition");
           }
-          if (!condition.value) {
+          if (this.isFalseLike(condition)) {
             index = instruction.target - 1;
           }
           break;
@@ -216,6 +219,9 @@ export class RuntimeIr {
         return;
       case "bool":
         instructions.push({ op: "push_bool", value: ast.value === "true" });
+        return;
+      case "nihil":
+        instructions.push({ op: "push_nihil" });
         return;
       case "string":
         if ((ast.children?.length ?? 0) > 0) {
@@ -374,5 +380,9 @@ export class RuntimeIr {
 
   private static never(_instruction: never): never {
     throw new Error("Unexpected IR instruction");
+  }
+
+  private static isFalseLike(value: CosmValue): boolean {
+    return (value.type === "bool" && value.value === false) || value.type === "nihil";
   }
 }

@@ -698,6 +698,7 @@ export class Parser {
         sescape_tab: (_tab) => ({ kind: 'string', value: "\t" }),
         boolean_true: (_value) => ({ kind: 'bool', value: 'true' }),
         boolean_false: (_value) => ({ kind: 'bool', value: 'false' }),
+        PriExp_nihil: (_value) => ({ kind: 'nihil', value: 'nihil' }),
         self: (_value) => ({ kind: 'ident', value: 'self' }),
         ivar: (_at, name) => ({ kind: 'ivar', value: name.sourceString }),
         number_whole: (digits) => ({ kind: 'number', value: digits.sourceString }),
@@ -705,7 +706,10 @@ export class Parser {
           kind: 'number',
           value: `${whole.sourceString}.${fraction.sourceString}`,
         }),
-        ident: (_fst, chars) => ({ kind: 'ident', value: _fst.sourceString + chars.sourceString }),
+        ident: (_fst, chars, predicateSuffix) => ({
+          kind: 'ident',
+          value: _fst.sourceString + chars.sourceString + predicateSuffix.sourceString,
+        }),
       });
 
       const matchResult = grammar.match(InputNormalizer.normalize(input));

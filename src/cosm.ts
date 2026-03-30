@@ -71,6 +71,8 @@ namespace Cosm {
           return Construct.number(Number(ast.value));
         case 'bool':
           return Construct.bool(ast.value === 'true');
+        case 'nihil':
+          return Construct.nihil();
         case 'string':
           if (!ast.children?.length) {
             return Construct.string(ast.value);
@@ -173,7 +175,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.33");
+        cosmRoot.fields.version = Construct.string("0.3.13.34");
       }
       return repository;
     }
@@ -359,20 +361,24 @@ namespace Cosm {
     }
 
     private static isReservedBindingName(name: string): boolean {
-      return ["begin", "class", "def", "do", "else", "end", "if", "let", "module", "rescue", "then", "yield", "super", "require", "true", "false", "self"].includes(name);
+      return ["begin", "class", "def", "do", "else", "end", "if", "let", "module", "nihil", "rescue", "then", "yield", "super", "require", "true", "false", "self"].includes(name);
     }
 
     private static evalIf(ast: CoreNode, env: Env): CosmValue {
       const conditionAst = this.expectChild(ast, 'if');
       const condition = this.evalNode(conditionAst, env);
-      if (condition.type !== 'bool') {
+      if (!this.isFalseLike(condition) && condition.type !== 'bool') {
         throw new Error('Type error: if expects a boolean condition');
       }
       const [thenBranch, elseBranch] = ast.children ?? [];
       if (!thenBranch || !elseBranch) {
         throw new Error('Invalid AST: if node must have then and else branches');
       }
-      return this.evalNode(condition.value ? thenBranch : elseBranch, env);
+      return this.evalNode(this.isFalseLike(condition) ? elseBranch : thenBranch, env);
+    }
+
+    private static isFalseLike(value: CosmValue): boolean {
+      return (value.type === 'bool' && value.value === false) || value.type === 'nihil';
     }
 
     private static evalLambda(ast: CoreNode, env: Env): CosmValue {
@@ -661,6 +667,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.33";
+    export const version = "0.3.13.34";
 }
 export default Cosm;

@@ -12,7 +12,7 @@ def identity = {
   persistence: "file-backed-thread"
 }
 
-def conversation_key(channel, thread, transport = false) = transport == false || transport == "slack" ? channel + ":" + thread : transport + ":" + channel + ":" + thread
+def conversation_key(channel, thread, transport = nihil) = transport.nihil?() || transport == "slack" ? channel + ":" + thread : transport + ":" + channel + ":" + thread
 
 def session_name(key) = identity().session_prefix + key
 
@@ -29,17 +29,17 @@ def local_target(name = "iapetus")
   target("cli", name, "local", "you")
 end
 
-def inbound_for_target(target, text, ts = false)
+def inbound_for_target(target, text, ts = nihil)
   Support::Models.inbound_message.build({
     channel: target.channel,
     thread: target.thread,
     user: target.user,
     text: text,
-    ts: ts == false ? Time.isoNow() : ts
+    ts: ts.nihil?() ? Time.isoNow() : ts
   })
 end
 
-def conversation_for_target(target, transcript = false, context = false)
+def conversation_for_target(target, transcript = nihil, context = nihil)
   let now = Time.isoNow()
   let key = conversation_key(target.channel, target.thread, target.transport)
   Support::Models.conversation.build({
@@ -58,17 +58,17 @@ def conversation_for_target(target, transcript = false, context = false)
   })
 end
 
-def conversation_for_inbound(inbound, transcript = false, context = false, transport = "slack")
+def conversation_for_inbound(inbound, transcript = nihil, context = nihil, transport = "slack")
   conversation_for_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
 end
 
-def load_conversation_for_target(target, transcript = false, context = false)
+def load_conversation_for_target(target, transcript = nihil, context = nihil)
   let key = conversation_key(target.channel, target.thread, target.transport)
   let loaded = Agent::Store.load_record(key)
-  loaded == false ? conversation_for_target(target, transcript, context) : loaded.conversation
+  loaded.nihil?() ? conversation_for_target(target, transcript, context) : loaded.conversation
 end
 
-def load_conversation(inbound, transcript = false, context = false, transport = "slack")
+def load_conversation(inbound, transcript = nihil, context = nihil, transport = "slack")
   load_conversation_for_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
 end
 
@@ -78,16 +78,16 @@ def processed(inbound, event_key, transport = "slack") = Agent::Store.processed(
 
 def mark_processed(conversation, event_key) = Agent::Store.mark_processed(conversation, event_key)
 
-def reset_target(target, transcript = false, context = false)
+def reset_target(target, transcript = nihil, context = nihil)
   let fresh = conversation_for_target(target, transcript, context)
   save_conversation(fresh)
 end
 
-def reset_conversation(inbound, transcript = false, context = false, transport = "slack")
+def reset_conversation(inbound, transcript = nihil, context = nihil, transport = "slack")
   reset_target(target(inbound.channel, inbound.thread, transport, inbound.user), transcript, context)
 end
 
-def command_name(text) = text == "help" || text == "/help" ? "help" : (text == "reset" || text == "/reset" ? "reset" : (text == "status" || text == "/status" ? "status" : false));
+def command_name(text) = text == "help" || text == "/help" ? "help" : (text == "reset" || text == "/reset" ? "reset" : (text == "status" || text == "/status" ? "status" : nihil))
 
 def from_command(conversation, inbound, command)
   if command == "reset" then
@@ -105,7 +105,7 @@ end
 def fallback_reply(conversation, inbound, error_message) = Support::Controller.fallback(conversation, inbound, error_message)
 
 def activity_summary(turn)
-  let base = turn.command == false ? turn.outcome : "command:" + turn.command
+  let base = turn.command.nihil?() ? turn.outcome : "command:" + turn.command
   let text = turn.reply.text
   let preview = text.length > 80 ? "[truncated] " + text.length.to_s() + " chars" : text
   base + " " + preview
@@ -133,10 +133,10 @@ end
 
 def execute_turn(conversation, inbound)
   let command = command_name(inbound.text)
-  command == false ? from_controller_turn(conversation, inbound) : from_command(conversation, inbound, command)
+  command.nihil?() ? from_controller_turn(conversation, inbound) : from_command(conversation, inbound, command)
 end
 
-def execute_stored_turn(inbound, transcript = false, context = false)
+def execute_stored_turn(inbound, transcript = nihil, context = nihil)
   let conversation = load_conversation(inbound, transcript, context)
   let turn = execute_turn(conversation, inbound)
   let saved = save_conversation(turn.conversation)
@@ -144,7 +144,7 @@ def execute_stored_turn(inbound, transcript = false, context = false)
   Support::Models.agent_turn_result.build({ conversation: saved, inbound: turn.inbound, plan: turn.plan, reply: turn.reply, command: turn.command, outcome: turn.outcome })
 end
 
-def execute_stored_turn_for_target(target, text, transcript = false, context = false)
+def execute_stored_turn_for_target(target, text, transcript = nihil, context = nihil)
   let inbound = inbound_for_target(target, text)
   let conversation = load_conversation_for_target(target, transcript, context)
   let turn = execute_turn(conversation, inbound)

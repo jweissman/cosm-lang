@@ -8,6 +8,7 @@ import { CosmHashValue } from "./CosmHashValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmArrayValue } from "./CosmArrayValue";
 import { CosmBoolValue } from "./CosmBoolValue";
+import { CosmNihilValue } from "./CosmNihilValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { Construct } from "../Construct";
 import { CosmErrorValue } from "./CosmErrorValue";
@@ -207,7 +208,7 @@ export class CosmSchemaValue extends CosmObjectValue {
         }
         return;
       case "optional":
-        if (value instanceof CosmBoolValue && value.value === false) {
+        if (value instanceof CosmNihilValue) {
           return;
         }
         this.expectInnerSchema("optional").validateValue(value, path);
@@ -232,7 +233,7 @@ export class CosmSchemaValue extends CosmObjectValue {
       case "object": {
         const entries = this.extractEntries(value, path);
         for (const [key, schema] of Object.entries(this.expectFieldSchemas().fields)) {
-          (schema as CosmSchemaValue).validateValue(entries[key] ?? Construct.bool(false), `${path}.${key}`);
+          (schema as CosmSchemaValue).validateValue(entries[key] ?? Construct.nihil(), `${path}.${key}`);
         }
         return;
       }

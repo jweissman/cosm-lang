@@ -8,6 +8,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.Class.superclass.name")).toBe("Module");
   expect(cosmEval("classes.Number.name")).toBe("Number");
   expect(cosmEval("classes.Boolean.superclass.name")).toBe("Object");
+  expect(cosmEval("classes.Nihil.superclass.name")).toBe("Object");
   expect(cosmEval("classes.Class.name")).toBe("Class");
   expect(cosmEval("classes.Kernel.name")).toBe("Kernel");
   expect(cosmEval("classes.Process.name")).toBe("Process");
@@ -61,6 +62,7 @@ test("member access can inspect the class repository", () => {
   expect(cosmEval("classes.HttpRouter.methods.draw.name")).toBe("draw");
   expect(cosmEval("classes.Mirror.classMethods.reflect.name")).toBe("reflect");
   expect(cosmEval("Number.name")).toBe("Number");
+  expect(cosmEval("Nihil.name")).toBe("Nihil");
 });
 
 test("Kernel and Cosm expose reflective services", () => {
@@ -111,13 +113,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.33");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.34");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.33");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.34");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -237,7 +239,7 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('require "cosm/hologram"; headers = http.headers({ accept: "application/json" }); holo = Cosm::Hologram.wrap(headers); holo.set("x-runtime", "cosm"); [holo.get(:accept), holo.get("x-runtime")]')).toEqual(["application/json", "cosm"]);
   expect(cosmEval('Mirror.status().mode')).toBe("readonly-observer");
   expect(cosmEval('Mirror.status().intended_role')).toBe("readonly-view-and-delegation-surface");
-  expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().mode')).toBe("explicit-semantic-boundary");
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.compare("cat", "cat")')).toBe(true);
   expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
 });
 

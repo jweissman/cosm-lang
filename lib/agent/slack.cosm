@@ -238,12 +238,12 @@ def extract_inbound(payload)
         else
           let effective_channel_kind = channel_type.ok ? channel_type.value : inferred_channel_kind(channel.value)
           let kind = inbound_kind(type_value.value, effective_channel_kind)
-          if kind == false then
+          if kind.nihil?() then
             false
           else
             let thread_value = payload_field(event, :thread_ts)
             let thread = thread_value.ok ? thread_value.value : ts.value
-            if allowed_inbound(kind, channel.value, thread) == false then
+            if allowed_inbound(kind, channel.value, thread).falsy?() then
               false
             else
               let value = {
@@ -271,12 +271,12 @@ end
 
 def inbound_kind(event_type, channel_kind)
   if event_type == "app_mention" then
-    channel_kind == "channel" || channel_kind == "group" ? "app_mention" : false
+    channel_kind == "channel" || channel_kind == "group" ? "app_mention" : nihil
   else
     if event_type != "message" then
-      false
+      nihil
     else
-      channel_kind == "im" ? "dm" : (channel_kind == "channel" || channel_kind == "group" ? "thread_reply" : false)
+      channel_kind == "im" ? "dm" : (channel_kind == "channel" || channel_kind == "group" ? "thread_reply" : nihil)
     end
   end
 end
@@ -284,18 +284,18 @@ end
 def allowed_channel(channel_id)
   Agent::Config.slack_allowed_channels().find do |entry|
     entry == channel_id
-  end != false
+  end.nihil?() == false
 end
 
 def activated_thread(channel_id, thread)
-  Agent::Store.load_record(Agent::Runtime.conversation_key(channel_id, thread, "slack")) != false
+  Agent::Store.load_record(Agent::Runtime.conversation_key(channel_id, thread, "slack")).nihil?() == false
 end
 
 def allowed_inbound(kind, channel_id, thread)
   if kind == "dm" then
     true
   else
-    if allowed_channel(channel_id) == false then
+    if allowed_channel(channel_id).falsy?() then
       false
     else
       kind == "app_mention" ? true : activated_thread(channel_id, thread)
@@ -318,7 +318,7 @@ def event_key(payload, inbound)
 end
 
 def header(req, name)
-  req.headers.has(name) ? req.headers.get(name) : false
+  req.headers.has(name) ? req.headers.get(name) : nihil
 end
 
 def api_url()

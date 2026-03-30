@@ -45,8 +45,8 @@ test("agent runtime executes and persists a transport-agnostic stored turn", () 
       should_reply: true,
       text: "Reset it from the notebook session controls.",
       rationale: "mocked",
-      tool_calls: false,
-      tool_results: false,
+      tool_calls: null,
+      tool_results: null,
     })),
   });
 
@@ -100,8 +100,8 @@ test("agent runtime sends system, history, and latest user input as ordered chat
       messages: [{ role: "user", user: "U101", text: "First question", ts: "1710000100.000001" }],
       session_name: existing.session_name,
       session_length: 1,
-      transcript: false,
-      context: false,
+      transcript: nihil,
+      context: nihil,
       created_at: existing.created_at,
       updated_at: existing.updated_at
     }
@@ -146,15 +146,15 @@ test("local Iapetus chat reuses the shared runtime and durable store", () => {
             should_reply: true,
             text: "You can also inspect the current stored conversation with status.",
             rationale: "mocked follow-up",
-            tool_calls: false,
-            tool_results: false,
+            tool_calls: null,
+            tool_results: null,
           }
         : {
             should_reply: true,
             text: "You can call Session.default().reset() to clear it in code.",
             rationale: "mocked first reply",
-            tool_calls: false,
-            tool_results: false,
+            tool_calls: null,
+            tool_results: null,
           },
     )),
   });

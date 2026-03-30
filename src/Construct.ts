@@ -1,6 +1,7 @@
 import {
   CosmNumber,
   CosmBool,
+  CosmNihil,
   CosmString,
   CosmSymbol,
   CosmValue,
@@ -22,6 +23,7 @@ import { CosmHashValue } from "./values/CosmHashValue";
 import { CosmArrayValue } from "./values/CosmArrayValue";
 import { CosmStringValue } from "./values/CosmStringValue";
 import { CosmBoolValue } from "./values/CosmBoolValue";
+import { CosmNihilValue } from "./values/CosmNihilValue";
 import { CosmNumberValue } from "./values/CosmNumberValue";
 import { CosmSymbolValue } from "./values/CosmSymbolValue";
 import { CosmMethodValue } from "./values/CosmMethodValue";
@@ -36,6 +38,7 @@ import { CosmDataModelValue } from "./values/CosmDataModelValue";
 export class Construct {
   static number(value: number): CosmNumber { return new CosmNumberValue(value); }
   static bool(value: boolean): CosmBool { return new CosmBoolValue(value); }
+  static nihil(): CosmNihil { return new CosmNihilValue(); }
   static string(value: string): CosmString { return new CosmStringValue(value); }
   static symbol(name: string): CosmSymbol { return new CosmSymbolValue(name); }
   static array(items: CosmValue[]): CosmArray { return new CosmArrayValue(items); }
@@ -52,7 +55,7 @@ export class Construct {
   static module(name: string, fields: Record<string, CosmValue>, classRef?: CosmClass): CosmObject {
     return new CosmModuleValue(name, fields, classRef);
   }
-  static error(message: string, backtrace: string[] = [], details: CosmValue = this.bool(false), classRef?: CosmClass): CosmObject {
+  static error(message: string, backtrace: string[] = [], details: CosmValue = this.nihil(), classRef?: CosmClass): CosmObject {
     return new CosmErrorValue(message, backtrace, details, classRef);
   }
   static schema(kind: "string" | "number" | "boolean" | "array" | "enum" | "object" | "optional", state: Record<string, CosmValue> = {}, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {

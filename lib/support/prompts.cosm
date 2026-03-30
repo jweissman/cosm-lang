@@ -72,8 +72,8 @@ def latest_user_message(inbound) = { role: "user", content: inbound.text };
 
 def reply_messages(conversation, inbound)
   let base = [system_message()]
-  let with_context = conversation.context == false ? base : base.append(context_message(conversation.context))
-  let with_transcript = conversation.transcript == false ? with_context : with_context.append(legacy_transcript_message(conversation.transcript))
+  let with_context = conversation.context.nihil?() ? base : base.append(context_message(conversation.context))
+  let with_transcript = conversation.transcript.nihil?() ? with_context : with_context.append(legacy_transcript_message(conversation.transcript))
   let message_history = history_messages(conversation)
   let with_history = message_history.reduce(with_transcript) do |acc, entry|
     acc.append(entry)

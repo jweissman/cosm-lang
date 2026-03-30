@@ -21,23 +21,23 @@ test("Cosm::AI status reports LM Studio defaults clearly", () => {
     const status = cosmEval('require "cosm/ai"; Cosm::AI.status()') as {
       backend: string;
       baseUrl: string;
-      model: boolean;
+      model: string | null;
       configured: boolean;
     };
     const config = cosmEval('require "cosm/ai"; Cosm::AI.config()') as {
       backend: string;
       baseUrl: string;
-      model: boolean;
+      model: string | null;
       configured: boolean;
     };
     expect(status.backend).toBe("lmstudio");
     expect(status.baseUrl).toBe("http://127.0.0.1:1/v1");
-    expect(status.model).toBe(false);
+    expect(status.model).toBeNull();
     expect(status.configured).toBe(false);
     expect(config).toEqual(status);
     const health = cosmEval('require "cosm/ai"; Cosm::AI.health()') as {
       ok: boolean;
-      error: string | boolean;
+      error: string | null;
     };
     expect(health.ok).toBe(false);
     expect(typeof health.error).toBe("string");
@@ -91,7 +91,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
       model: Construct.string("mock-model"),
       configured: Construct.bool(true),
       ok: Construct.bool(true),
-      error: Construct.bool(false),
+      error: Construct.nihil(),
     }),
     complete: (prompt) => Construct.string(`complete:${prompt}`),
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
@@ -107,9 +107,6 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
 
   try {
     expect(cosmEval('require "cosm/ai"; Cosm::AI.config().model')).toBe("mock-model");
-    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().mode')).toBe("explicit-semantic-boundary");
-    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().semantic_eq')).toBe('"left" ~= "right"');
-    expect(cosmEval('require "cosm/ai"; Cosm::AI.boundary().deferred_operator')).toBe("~");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.health().ok')).toBe(true);
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");

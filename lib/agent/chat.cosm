@@ -30,9 +30,7 @@ def run(name = "iapetus")
   loop(name)
 end
 
-def local_command(input)
-  input == "prompt" || input == "/prompt" ? "prompt" : (input == "preview" || input == "/preview" ? "preview" : (input == "runtime" || input == "/runtime" ? "runtime" : false))
-end
+def local_command(input) = input == "prompt" || input == "/prompt" ? "prompt" : (input == "preview" || input == "/preview" ? "preview" : (input == "runtime" || input == "/runtime" ? "runtime" : nihil))
 
 def handle_local_command(input, name = "iapetus")
   let command = local_command(input)
@@ -57,7 +55,7 @@ def loop(name = "iapetus")
     Kernel.puts("iapetus> Goodbye for now.")
   else
     let command = local_command(input)
-    if command == false then
+    if command.nihil?() then
       let turn = step(input, name)
       Kernel.puts("iapetus> " + turn.reply.text)
       loop(name)

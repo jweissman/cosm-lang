@@ -1,9 +1,13 @@
 class Module < Object
-  def entry_names()
+  def entry_names
     self.keys().map do |name|
       name.name
     end
   end
 
-  def include_into(target) = target.include(self);
+  def entry_count = self.keys().length
+
+  def has_entry?(name) = self.keys().include(name)
+
+  def include_into(target) = target.include(self)
 end

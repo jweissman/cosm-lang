@@ -242,11 +242,12 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval("[].none()")).toBe(true);
   expect(cosmEval("[1].one()")).toBe(true);
   expect(cosmEval("[1, 2, 3].filter(->(value) { value > 1 })")).toEqual([2, 3]);
-  expect(cosmEval("[1, false, 3].compact()")).toEqual([1, 3]);
-  expect(cosmEval("[].presence()")).toBe(false);
+  expect(cosmEval("[1, nihil, 3].compact()")).toEqual([1, 3]);
+  expect(cosmEval("[1, false, 3].compact()")).toEqual([1, false, 3]);
+  expect(cosmEval("[].presence()")).toBeNull();
   expect(cosmEval("[1].presence()")).toEqual([1]);
-  expect(cosmEval('[1, 2, 3].compact_map(->(value) { value > 1 ? value + 10 : false })')).toEqual([12, 13]);
-  expect(cosmEval('[1, 2, 3].find_map(->(value) { value > 1 ? value + 10 : false })')).toBe(12);
+  expect(cosmEval('[1, 2, 3].compact_map(->(value) { value > 1 ? value + 10 : nihil })')).toEqual([12, 13]);
+  expect(cosmEval('[1, 2, 3].find_map(->(value) { value > 1 ? value + 10 : nihil })')).toBe(12);
   expect(cosmEval("[1, 2].flat_map(->(value) { [value, value + 10] })")).toEqual([1, 11, 2, 12]);
   expect(cosmEval("[1, 2, 3].sum()")).toBe(6);
   expect(cosmEval("[1, 2, 3].sum_by(->(value) { value + 1 })")).toBe(9);
@@ -262,7 +263,7 @@ test("Array and Hash pick up small Enumerable-style helpers through include()", 
   expect(cosmEval('{ a: 1, b: 2 }.first()')).toEqual(["a", 1]);
   expect(cosmEval('{ a: 1, b: 2 }.keys()')).toEqual(["a", "b"]);
   expect(cosmEval('{ a: 1, b: 2 }.find(->(key, value) { value > 1 })')).toEqual(["b", 2]);
-  expect(cosmEval('{ a: 1, b: 2 }.find_map(->(key, value) { value > 1 ? key + value.to_s() : false })')).toBe("b2");
+  expect(cosmEval('{ a: 1, b: 2 }.find_map(->(key, value) { value > 1 ? key + value.to_s() : nihil })')).toBe("b2");
   expect(cosmEval('{ a: 1, b: 2 }.reject(->(key, value) { value > 1 })')).toEqual({ a: 1 });
   expect(cosmEval('{ a: 1, b: 2 }.take(1)')).toEqual({ a: 1 });
   expect(cosmEval('{ a: 1, b: 2 }.reduce("", ->(acc, key, value) { acc + key + value.to_s() })')).toBe("a1b2");

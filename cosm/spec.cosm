@@ -1,7 +1,7 @@
 require "cosm/test"
 
-def with_block_or(callable = false)
-  if callable != false then
+def with_block_or(callable = nihil)
+  if callable.nihil?() == false then
     callable
   else
     if Kernel.blockGiven() then
@@ -12,26 +12,26 @@ def with_block_or(callable = false)
   end
 end
 
-def suite(name, body = false) = Cosm::Test.describe(name, with_block_or(body));
+def suite(name, body = nihil) = Cosm::Test.describe(name, with_block_or(body))
 
-def it(name, body = false) = Cosm::Test.test(name, with_block_or(body));
+def it(name, body = nihil) = Cosm::Test.test(name, with_block_or(body))
 
 class Expectation
   def init(actual) @actual = actual end
 
-  def to_eql(expected, message = false)
-    if message == false then
+  def to_eql(expected, message = nihil)
+    if message.nihil?() then
       Cosm::Test.expectEqual(@actual, expected)
     else
       Cosm::Test.expectEqual(@actual, expected, message)
     end
   end
 
-  def to_be_truthy(message = false)
-    if @actual != false then
+  def to_be_truthy(message = nihil)
+    if @actual.truthy?() then
       true
     else
-      if message == false then
+      if message.nihil?() then
         Kernel.raise("Expectation failed: expected truthy value, got " + Kernel.inspect(@actual))
       else
         Kernel.raise("Expectation failed: " + message)
@@ -39,25 +39,25 @@ class Expectation
     end
   end
 
-  def to_raise(message = false)
-    if Mirror.reflect(@actual).has(:call) == false then
+  def to_raise(message = nihil)
+    if Mirror.reflect(@actual).has(:call).falsy?() then
       Kernel.raise("Type error: expect(...).to_raise expects a callable value")
     else
-      false
+      nihil
     end
 
     result = Kernel.try(@actual)
     if result.ok then
       Kernel.raise("Expectation failed: expected a raised error")
     else
-      false
+      nihil
     end
 
     error = result.error
-    if message != false then
+    if message.nihil?() == false then
       assert_equal(error.message, message)
     else
-      false
+      nihil
     end
     error
   end
@@ -65,42 +65,42 @@ end
 
 def expect(actual) = Expectation.new(actual)
 
-def assert(value, message = false)
-  if message == false then
+def assert(value, message = nihil)
+  if message.nihil?() then
     Kernel.assert(value)
   else
     Kernel.assert(value, message)
   end
 end
 
-def refute(value, message = false)
-  if message == false then
-    Kernel.assert(value == false)
+def refute(value, message = nihil)
+  if message.nihil?() then
+    Kernel.assert(value.falsy?())
   else
-    Kernel.assert(value == false, message)
+    Kernel.assert(value.falsy?(), message)
   end
 end
 
-def assert_equal(actual, expected, message = false)
-  if message == false then
+def assert_equal(actual, expected, message = nihil)
+  if message.nihil?() then
     Cosm::Test.expectEqual(actual, expected)
   else
     Cosm::Test.expectEqual(actual, expected, message)
   end
 end
 
-def expect_raises(body, message = false)
+def expect_raises(body, message = nihil)
   result = Kernel.try(body)
   if result.ok then
     Kernel.raise("Expectation failed: expected a raised error")
   else
-    false
+    nihil
   end
   error = result.error
-  if message != false then
+  if message.nihil?() == false then
     assert_equal(error.message, message)
   else
-    false
+    nihil
   end
   error
 end
@@ -110,7 +110,7 @@ def finish()
   if summary.failed > 0 then
     Kernel.raise("Spec failures: " + summary.failed, summary)
   else
-    false
+    nihil
   end
   summary
 end

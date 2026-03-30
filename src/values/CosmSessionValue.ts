@@ -52,8 +52,8 @@ export class CosmSessionValue extends CosmObjectValue {
     properties: {
       name: (self) => new CosmStringValue(self.sessionName),
       length: (self) => new CosmNumberValue(self.historyEntries.length),
-      lastResult: (self) => self.lastResultValue ?? Construct.bool(false),
-      lastError: (self) => self.lastErrorValue ?? Construct.bool(false),
+      lastResult: (self) => self.lastResultValue ?? Construct.nihil(),
+      lastError: (self) => self.lastErrorValue ?? Construct.nihil(),
     },
     methods: {
       eval: () => new CosmFunctionValue("eval", (args, selfValue) => {
@@ -181,7 +181,7 @@ export class CosmSessionValue extends CosmObjectValue {
   tryEvalSource(source: string): CosmValue {
     const result = this.runtimeHandle.tryEval(source);
     this.applyResult(source, result);
-    return this.resultNamespace(result.ok ? result.value : Construct.bool(false), result.error);
+    return this.resultNamespace(result.ok ? result.value : Construct.nihil(), result.error);
   }
 
   reset(): void {
@@ -196,7 +196,7 @@ export class CosmSessionValue extends CosmObjectValue {
       source: new CosmStringValue(entry.source),
       ok: new CosmBoolValue(entry.ok),
       inspect: new CosmStringValue(entry.inspect),
-      error: entry.error ?? Construct.bool(false),
+      error: entry.error ?? Construct.nihil(),
     })));
   }
 
@@ -205,13 +205,13 @@ export class CosmSessionValue extends CosmObjectValue {
     const latestInspect = this.runtimeHandle.history().at(-1)?.inspect;
     return new CosmNamespaceValue({
       ok: new CosmBoolValue(wrappedError === false),
-      value: wrappedError === false ? value : Construct.bool(false),
+      value: wrappedError === false ? value : Construct.nihil(),
       inspect: new CosmStringValue(
         wrappedError === false
           ? (latestInspect ?? ValueAdapter.format(value))
           : wrappedError.toDisplayString(),
       ),
-      error: wrappedError === false ? Construct.bool(false) : wrappedError,
+      error: wrappedError === false ? Construct.nihil() : wrappedError,
     });
   }
 

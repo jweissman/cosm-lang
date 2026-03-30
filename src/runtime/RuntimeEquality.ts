@@ -11,6 +11,8 @@ export class RuntimeEquality {
       case 'bool':
       case 'string':
         return left.value === (right as typeof left).value;
+      case 'nihil':
+        return true;
       case 'symbol':
         return left.name === (right as typeof left).name;
       case 'class':
