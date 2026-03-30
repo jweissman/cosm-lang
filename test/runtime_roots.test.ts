@@ -103,7 +103,7 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval('require "lib/app/examples"; App::Examples.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/examples"; App::Examples.receiver_reflection().code')).toBe("Object.new().methods().length > 0\n");
   expect(cosmEval('require "lib/app/examples"; App::Examples.dispatch_helper().code')).toBe("Kernel.dispatch(1, :plus, 2)\n");
-  expect(cosmEval('require "lib/app/examples"; App::Examples.catalog().length')).toBe(15);
+  expect(cosmEval('require "lib/app/examples"; App::Examples.catalog().length')).toBe(16);
   expect(cosmEval('require "lib/app/app"; App.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/views/index"; App::Views.class.name')).toBe("Module");
   expect(cosmEval('require "lib/app/app"; App::App.class.name')).toBe("App class");
@@ -114,13 +114,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.38");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.39");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.38");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.39");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);

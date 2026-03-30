@@ -3,6 +3,8 @@ require "cosm/hologram"
 let headers = http.headers({ accept: "notebook" })
 let reflected = Mirror.reflect(headers)
 let reflected_inspect = reflected.inspect()
+# Host-backed headers normalize their keys, so string writes and symbol reads
+# intentionally meet at the same boundary surface here.
 let host_holo = Cosm::Hologram.wrap(headers)
 host_holo.set("x-runtime", "cosm")
 let json_holo = Cosm::Hologram.project_json({ answer: 41, active: true, missing: nihil })

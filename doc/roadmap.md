@@ -27,13 +27,14 @@ The `0.3.13.x` line should now be read as one long consolidation arc:
 - a spec-first example corpus shared by notebook teaching and the VM corridor
 - explicit boundary objects through `Mirror`, `Cosm::Hologram`, `Schema`, `Data`, and `Cosm::AI`
 
-## What `0.3.13.38` Should Finish
+## What `0.3.13.39` Finishes
 
 - the visible object/reflection protocol
 - the taught `methods` / `method(:name)` / `classMethod(:name)` split
 - one concrete boundary proof that is easy to explain:
   - `Mirror` over a host-backed HTTP object
-  - `Hologram` over a JSON-shaped writable projection
+  - `Hologram.project_json(...)` over a JSON-shaped writable projection
+- authored-vs-native method provenance through `origin`
 - the docs handoff from `0.3.13.x` to `0.3.14.x`
 
 ## What Comes Next

@@ -27,7 +27,7 @@ export class CosmClassValue extends CosmValueBase {
       superclass: (self) => self.superclass,
       slots: (self) => new CosmArrayValue(self.slots.map((slot) => new CosmStringValue(slot))),
       methods: (self) => new CosmNamespaceValue(self.visibleInstanceMethods()),
-      methodTable: (self) => new CosmNamespaceValue(self.visibleInstanceMethods()),
+      instanceMethods: (self) => new CosmNamespaceValue(self.visibleInstanceMethods()),
       classMethods: (self) => {
         const classMethodOwner = self.classRef && self.classRef !== self ? self.classRef : undefined;
         return new CosmNamespaceValue(classMethodOwner?.visibleInstanceMethods() ?? self.classMethods);

@@ -44,17 +44,9 @@ export class InterpreterLookup {
   static evalAccess(ast: CoreNode, env: CosmEnv, hooks: LookupHooks): CosmValue {
     return hooks.withFrame(`access ${this.describeAccessTarget(ast)}`, () => {
       const receiver = hooks.evalNode(hooks.expectChild(ast, "access"), env);
-      if (ast.value === "methods") {
-        try {
-          const sendTarget = RuntimeDispatch.resolveSendTarget(receiver, "methods", hooks.repository);
-          if (this.isZeroArityCallable(sendTarget)) {
-            return hooks.invokeFunction(sendTarget, [], { receiver, env });
-          }
-        } catch (error) {
-          if (!(error instanceof Error) || !error.message.includes("'methods'")) {
-            throw error;
-          }
-        }
+      const sendTarget = RuntimeDispatch.tryResolveSendTarget(receiver, ast.value, hooks.repository);
+      if (sendTarget && this.shouldInvokeNullaryAccess(receiver, ast.value, sendTarget)) {
+        return hooks.invokeFunction(sendTarget, [], { receiver, env });
       }
       const value = hooks.lookupProperty(receiver, ast.value);
       if (this.shouldInvokeNullaryAccess(receiver, ast.value, value)) {
@@ -126,21 +118,7 @@ export class InterpreterLookup {
     if (!selfValue) {
       return undefined;
     }
-    try {
-      return RuntimeDispatch.resolveSendTarget(selfValue, name, repository);
-    } catch (error) {
-      if (
-        error instanceof Error
-        && (
-          error.message.includes(`has no property '${name}'`)
-          || error.message.includes(`has no instance method '${name}'`)
-          || error.message.includes(`has no class method '${name}'`)
-        )
-      ) {
-        return undefined;
-      }
-      throw error;
-    }
+    return RuntimeDispatch.tryResolveSendTarget(selfValue, name, repository);
   }
 
   private static shouldInvokeNullaryAccess(receiver: CosmValue, property: string, value: CosmValue): boolean {

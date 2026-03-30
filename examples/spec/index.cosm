@@ -23,6 +23,10 @@ def method_lookup()
   entry("method_lookup", "Reflection", "Method lookup", "Use method(:name) when you want the actual bound method object.", "examples/spec/reflection/method_lookup.cosm", "send", true)
 end
 
+def method_origin()
+  entry("method_origin", "Reflection", "Method origin", "Method.origin makes the authored-facade versus native-substrate split visible through ordinary reflection.", "examples/spec/reflection/method_origin.cosm", ["authored-cosm", "native-ts"])
+end
+
 def recursive_fib()
   entry("recursive_fib", "Algorithms", "Recursive fib", "A small recursive def is still one of the clearest language stress tests.", "examples/spec/algorithms/recursive_fib.cosm", 21, true)
 end
@@ -76,6 +80,7 @@ def catalog()
   items = items.append(object_surface_split())
   items = items.append(receiver_reflection())
   items = items.append(method_lookup())
+  items = items.append(method_origin())
   items = items.append(recursive_fib())
   items = items.append(iterative_fib())
   items = items.append(counter_object())

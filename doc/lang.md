@@ -432,7 +432,7 @@ Class.class.name
 - `Kernel.inspect(value)`
   Returns the Cosm-oriented inspected string for a value.
 - `http.serve(port, handler)`
-  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.38`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
+  Starts a tiny Bun-native HTTP server. `handler` may be a first-class function, a bound method, or an object that implements `handle(req)`. The resolved handler receives an `HttpRequest` object and may return either a string-like body value, an `HttpResponse` object, or a transitional hash like `{ status: 201, body: "ok" }`. In `0.3.13.39`, `HttpRequest` and `HttpResponse` remain transitional wrappers rather than the final host-boundary story.
 - `HttpRouter.new()`
 - `router.handle(method, path, handler)`
 - `router.handle(req)`
@@ -574,6 +574,8 @@ end
 require "cosm/hologram"
 Cosm::Hologram.status().mode
 Cosm::Hologram.project_json({ answer: 41, missing: nihil }).set(:answer, 42)
+Array.method(:compact_blank).origin
+Kernel.method(:assert).origin
 let headers = http.headers({ accept: "application/json" })
 Mirror.reflect(headers).inspect()
 Cosm::Hologram.wrap(headers).get(:accept)

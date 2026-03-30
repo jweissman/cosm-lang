@@ -50,8 +50,9 @@ export function createJsonObjectAdapter(): HostCapabilityAdapter<JsonObjectTarge
       return ValueAdapter.jsToCosm(target[key] as Parameters<typeof ValueAdapter.jsToCosm>[0]);
     },
     set: (target, key, value) => {
-      target[key] = ValueAdapter.cosmToJS(value);
-      return ValueAdapter.jsToCosm(target[key] as Parameters<typeof ValueAdapter.jsToCosm>[0]);
+      const jsValue = ValueAdapter.cosmToJS(value);
+      target[key] = jsValue;
+      return ValueAdapter.jsToCosm(jsValue as Parameters<typeof ValueAdapter.jsToCosm>[0]);
     },
   };
 }

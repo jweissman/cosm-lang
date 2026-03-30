@@ -9,6 +9,8 @@ def receiver_reflection = Examples::Spec.receiver_reflection()
 
 def method_lookup = Examples::Spec.method_lookup()
 
+def method_origin = Examples::Spec.method_origin()
+
 def recursive_fib = Examples::Spec.recursive_fib()
 
 def iterative_fib = Examples::Spec.iterative_fib()

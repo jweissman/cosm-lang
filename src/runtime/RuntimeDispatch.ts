@@ -211,7 +211,7 @@ export class RuntimeDispatch {
     message: string,
     repository: RuntimeRepository,
   ): CosmValue {
-    if (receiver.type === "class" && message === "methods") {
+    if (receiver.type === 'class') {
       const instanceEntry = receiver.lookupInstanceMethodEntry(message);
       if (instanceEntry) {
         return this.bindMethod(receiver, instanceEntry.method, instanceEntry.token);
@@ -229,6 +229,28 @@ export class RuntimeDispatch {
         if (instanceEntry) {
           return this.bindMethod(receiver, instanceEntry.method, instanceEntry.token);
         }
+      }
+      throw error;
+    }
+  }
+
+  static tryResolveSendTarget(
+    receiver: CosmValue,
+    message: string,
+    repository: RuntimeRepository,
+  ): CosmValue | undefined {
+    try {
+      return this.resolveSendTarget(receiver, message, repository);
+    } catch (error) {
+      if (
+        error instanceof Error
+        && (
+          error.message.includes(`has no property '${message}'`)
+          || error.message.includes(`has no instance method '${message}'`)
+          || error.message.includes(`has no class method '${message}'`)
+        )
+      ) {
+        return undefined;
       }
       throw error;
     }

@@ -12,10 +12,10 @@ class Class < Module
 
   def ancestor_names() = self.lineage()
 
-  def instance_method(name) = self.methodTable.get(name)
+  def instance_method(name) = self.method(name)
 
   def instance_method_names()
-    self.methodTable.keys().map do |name|
+    self.instanceMethods.keys().map do |name|
       name.name
     end
   end

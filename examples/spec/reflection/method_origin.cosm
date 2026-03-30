@@ -1,0 +1,1 @@
+[Array.method(:compact_blank).origin, Kernel.method(:assert).origin]

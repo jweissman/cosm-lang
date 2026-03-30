@@ -1,6 +1,6 @@
 # HTTP Boundary Notes
 
-`0.3.13.38` treats the current HTTP runtime as a mixed boundary rather than a final design.
+`0.3.13.39` treats the current HTTP runtime as a mixed boundary rather than a final design.
 
 ## Current Classification
 

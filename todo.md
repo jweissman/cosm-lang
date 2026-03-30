@@ -14,14 +14,15 @@ The `0.3.13.x` line ended up as one long runtime-identity push:
 - a narrower dedicated agent CLI and better Cosm-native test UX
 - explicit intrinsic ownership notes for the remaining TS-backed runtime seams
 
-## What `0.3.13.38` Closes
+## What `0.3.13.39` Closes
 
 - finish the visible object/reflection protocol enough to teach honestly
-- make `methods` behave like the ordinary nullary surface instead of a reflective-table special case
+- keep `methods` behaving like the ordinary nullary surface without a fragile runtime lookup hack
 - keep `method(:name)` / `classMethod(:name)` as the callable-identity path
 - settle one concrete boundary proof:
   - `Mirror` over a host-backed HTTP object
-  - `Hologram` over a JSON-shaped writable projection
+  - `Hologram.project_json(...)` as an explicit JSON-shaped host-boundary projection helper
+- make authored-vs-native method provenance visible through `origin`
 - align docs so they describe the line that actually landed
 
 ## Next After `0.3.13.x`

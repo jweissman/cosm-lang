@@ -228,6 +228,11 @@ test("core scalar values expose explicit conversion helpers", () => {
   expect(cosmEval(":status.to_s()")).toBe("status");
 });
 
+test("method origin makes authored versus native behavior visible", () => {
+  expect(cosmEval("Array.method(:compact_blank).origin")).toBe("authored-cosm");
+  expect(cosmEval("Kernel.method(:assert).origin")).toBe("native-ts");
+});
+
 test("Array and Hash pick up small Enumerable-style helpers through include()", () => {
   expect(cosmEval('Cosm::Enumerable.class.name')).toBe("Module");
   expect(cosmEval('Cosm::Enumerable.name')).toBe("Enumerable");
