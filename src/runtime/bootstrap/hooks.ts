@@ -82,6 +82,7 @@ export function installRuntimeHooks(runtime: BootstrapRuntime, getCurrentReposit
     cast: (prompt, schema) => AiRuntime.cast(prompt, schema),
     chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema),
     compare: (left, right) => AiRuntime.compare(left, right),
+    resolve: (prompt, options) => AiRuntime.resolve(prompt, options),
     stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
     invoke: (callee, args, context) => runtime.invokeFunction(callee, args, context.receiver, context.env, context.currentBlock),
   });

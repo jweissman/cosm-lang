@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import Cosm from "../src/cosm";
 import { ValueAdapter } from "../src/ValueAdapter";
 import { Construct } from "../src/Construct";
 import { CosmAiValue } from "../src/values/CosmAiValue";
-import { AiRuntime, normalizeSemanticPair, parseOpenAiStreamBlock, parseSemanticCompareText, parseStructuredCompletionText } from "../src/runtime/AiRuntime";
+import { AiRuntime, normalizeSemanticPair, parseOpenAiStreamBlock, parseSemanticCompareText, parseSemanticResolveText, parseStructuredCompletionText } from "../src/runtime/AiRuntime";
 import { CosmSchemaValue } from "../src/values/CosmSchemaValue";
 
 const cosmEval = (input: string) => ValueAdapter.cosmToJS(Cosm.Interpreter.eval(input));
@@ -97,6 +98,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     cast: (prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`cast:${prompt}`)),
     chatCast: (messages, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.string(`chat:${messages.map((entry) => `${entry.role}:${entry.content}`).join("|")}`)),
     compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+    resolve: (prompt, options) => options.find((option) => prompt.toLowerCase().includes(option)) ?? options[0],
     stream: (prompt, onEvent) => {
       onEvent({ kind: "waiting", index: 0, text: "iapetus> [thinking |]" });
       onEvent({ kind: "chunk", text: `stream:${prompt}`, first: true, index: 0 });
@@ -111,6 +113,8 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.semantic_compare("Hello", " hello ")')).toBe(true);
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.resolve("please review this change", ["reply", "review", "ignore"])')).toBe("review");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.resolve("please reset the session", [:help, :reset])')).toEqual({ kind: "symbol", name: "reset" });
     expect(cosmEval('require "cosm/ai"; "hello" as Schema.string()')).toBe("cast:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.chat_cast([{ role: "system", content: "rules" }, { role: "user", content: "hello" }], Schema.string())')).toBe("chat:system:rules|user:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
@@ -149,6 +153,7 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
       chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema as CosmSchemaValue),
       compare: (left, right) => AiRuntime.compare(left, right),
+      resolve: (prompt, options) => AiRuntime.resolve(prompt, options),
       stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
     });
   }
@@ -174,8 +179,9 @@ test("semantic cast syntax normalizes Data models through the same cast path", (
       kind: Construct.string("query"),
       subject: Construct.string("tickets"),
     })),
-    compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
-  });
+      compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+      resolve: (prompt, options) => options.find((option) => prompt.toLowerCase().includes(option)) ?? options[0],
+    });
 
   try {
     expect(cosmEval(`
@@ -195,6 +201,54 @@ test("semantic cast syntax normalizes Data models through the same cast path", (
       cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
       chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema as CosmSchemaValue),
       compare: (left, right) => AiRuntime.compare(left, right),
+      resolve: (prompt, options) => AiRuntime.resolve(prompt, options),
+      stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
+    });
+  }
+});
+
+test("semantic resolve parsing and runtime errors stay explicit", () => {
+  expect(parseSemanticResolveText('{"choice":"review"}')).toBe("review");
+  expect(() => parseSemanticResolveText('{"choice":42}')).toThrow("AI semantic resolution returned an invalid payload");
+  expect(() => parseSemanticResolveText('{"choice":')).toThrow("AI semantic resolution returned invalid JSON");
+});
+
+test("thesis-facing AI examples run in their intended shape under mocked AI", () => {
+  CosmAiValue.installRuntimeHooks({
+    status: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+    }),
+    health: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+      ok: Construct.bool(true),
+      error: Construct.nihil(),
+    }),
+    cast: (_prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.hash({
+      kind: Construct.string("query"),
+      subject: Construct.string("tickets"),
+    })),
+    compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+    resolve: (_prompt, options) => options.includes("review") ? "review" : options[0],
+  });
+
+  try {
+    expect(cosmEval(readFileSync("examples/spec/ai/intent_router.cosm", "utf8"))).toBe("query:tickets");
+    expect(cosmEval(readFileSync("examples/spec/ai/support_triage.cosm", "utf8"))).toBe("review:tickets");
+  } finally {
+    CosmAiValue.installRuntimeHooks({
+      status: () => AiRuntime.status(),
+      health: () => AiRuntime.health(),
+      complete: (prompt) => AiRuntime.complete(prompt),
+      cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
+      chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema as CosmSchemaValue),
+      compare: (left, right) => AiRuntime.compare(left, right),
+      resolve: (prompt, options) => AiRuntime.resolve(prompt, options),
       stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
     });
   }

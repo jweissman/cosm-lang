@@ -1,0 +1,25 @@
+require "cosm/ai"
+
+data SupportIntent
+  attribute :kind, enum: ["query", "command", "feedback"]
+  attribute :subject, String
+end
+
+let input = "Please review the notebook reset flow and file a follow-up issue if needed"
+
+if Cosm::AI.available?() then
+  let parsed = input as SupportIntent
+  let action = Cosm::AI.resolve(input, ["reply", "review", "ignore"])
+
+  if action == "review" then
+    "review:" + parsed.subject
+  else
+    if action == "reply" then
+      "reply:" + parsed.subject
+    else
+      "ignore:" + parsed.subject
+    end
+  end
+else
+  "review:" + input
+end

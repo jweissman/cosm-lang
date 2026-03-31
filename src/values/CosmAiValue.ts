@@ -22,6 +22,7 @@ export class CosmAiValue extends CosmObjectValue {
   private static castHandler?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static chatCastHandler?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
   private static compareHandler?: (left: string, right: string, env?: CosmEnv) => boolean;
+  private static resolveHandler?: (prompt: string, options: string[], env?: CosmEnv) => string;
   private static streamHandler?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
   private static invokeHandler?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
 
@@ -32,6 +33,7 @@ export class CosmAiValue extends CosmObjectValue {
     cast?: (prompt: string, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     chatCast?: (messages: Array<{ role: string; content: string }>, schema: CosmSchemaValue, env?: CosmEnv) => CosmValue;
     compare?: (left: string, right: string, env?: CosmEnv) => boolean;
+    resolve?: (prompt: string, options: string[], env?: CosmEnv) => string;
     stream?: (prompt: string, onEvent: (event: { kind: string; text?: string; first?: boolean; index?: number }) => void, env?: CosmEnv) => CosmValue;
     invoke?: (callee: CosmValue, args: CosmValue[], context: InvocationContext) => CosmValue;
   }): void {
@@ -52,6 +54,9 @@ export class CosmAiValue extends CosmObjectValue {
     }
     if ("compare" in hooks) {
       this.compareHandler = hooks.compare;
+    }
+    if ("resolve" in hooks) {
+      this.resolveHandler = hooks.resolve;
     }
     if ("stream" in hooks) {
       this.streamHandler = hooks.stream;
@@ -176,6 +181,26 @@ export class CosmAiValue extends CosmObjectValue {
         const right = selfValue.expectPrompt(args[1], "cosm.ai.compare");
         return selfValue.compare(left, right, env);
       }),
+      resolve: () => new CosmFunctionValue("resolve", (args, selfValue, env) => {
+        if (!(selfValue instanceof CosmAiValue)) {
+          throw new Error("Type error: resolve expects an Ai receiver");
+        }
+        if (args.length !== 2) {
+          throw new Error(`Arity error: cosm.ai.resolve expects 2 arguments, got ${args.length}`);
+        }
+        const prompt = selfValue.expectPrompt(args[0], "cosm.ai.resolve");
+        const options = selfValue.expectResolveOptions(args[1], "cosm.ai.resolve");
+        if (!CosmAiValue.resolveHandler) {
+          CosmErrorValue.raise(new CosmStringValue("AI backend is not configured for semantic resolution"), selfValue.errorClassRef);
+        }
+        const labels = options.map((option) => option.label);
+        const chosen = CosmAiValue.resolveHandler(prompt, labels, env);
+        const match = options.find((option) => option.label === chosen);
+        if (!match) {
+          throw new Error(`AI resolve returned unknown option: ${JSON.stringify(chosen)}`);
+        }
+        return match.value;
+      }),
       stream: () => new CosmFunctionValue("stream", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {
           throw new Error("Type error: stream expects an Ai receiver");
@@ -257,6 +282,31 @@ export class CosmAiValue extends CosmObjectValue {
         throw new Error(`Type error: ${context} expects message hashes with string role and content`);
       }
       return { role, content };
+    });
+  }
+
+  private expectResolveOptions(value: CosmValue, context: string): Array<{ label: string; value: CosmValue }> {
+    if (value.type !== "array") {
+      throw new Error(`Type error: ${context} expects an Array of strings or symbols`);
+    }
+    if (value.items.length === 0) {
+      throw new Error(`Value error: ${context} expects at least 1 option`);
+    }
+    const labels = new Set<string>();
+    return value.items.map((entry) => {
+      const label = entry.type === "string"
+        ? entry.value
+        : entry.type === "symbol"
+          ? entry.name
+          : undefined;
+      if (!label) {
+        throw new Error(`Type error: ${context} expects an Array of strings or symbols`);
+      }
+      if (labels.has(label)) {
+        throw new Error(`Value error: ${context} options must be distinct`);
+      }
+      labels.add(label);
+      return { label, value: entry };
     });
   }
 

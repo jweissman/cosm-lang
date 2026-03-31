@@ -1,6 +1,6 @@
 # Intrinsic Ownership
 
-`0.3.13.36`-`0.3.13.40` close out the language push by making intrinsic ownership explicit instead of leaving it as “whatever is still in TS.”
+`0.3.13.36`-`0.3.13.41` close out the language push by making intrinsic ownership explicit instead of leaving it as “whatever is still in TS.”
 
 ## Ownership Rule
 

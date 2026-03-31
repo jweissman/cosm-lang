@@ -87,6 +87,10 @@ def ai_structured_cast()
   entry("ai_structured_cast", "AI Seams", "Structured cast", "`as` is the taught structured semantic-cast surface, while `data` declarations and model-instance field reads keep the resulting program in ordinary Cosm object code.", "examples/spec/ai/structured_cast.cosm", "(AI result)")
 end
 
+def ai_support_triage()
+  entry("ai_support_triage", "AI Seams", "Support triage", "Use `Cosm::AI.resolve(...)` for the next visible seam: semantic decision after structured extraction, before ordinary deterministic handling resumes.", "examples/spec/ai/support_triage.cosm", "(AI result)")
+end
+
 def catalog()
   let items = []
   items = items.append(object_surface_split())
@@ -111,6 +115,7 @@ end
 def ai_catalog()
   let items = []
   items = items.append(ai_intent_router())
+  items = items.append(ai_support_triage())
   items = items.append(ai_semantic_match())
   items = items.append(ai_structured_cast())
   items

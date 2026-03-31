@@ -117,6 +117,21 @@ export function parseSemanticCompareText(content: string): boolean {
   return equal;
 }
 
+export function parseSemanticResolveText(content: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "invalid JSON";
+    throw new Error(`AI semantic resolution returned invalid JSON: ${message}`);
+  }
+  const choice = (parsed as { choice?: unknown }).choice;
+  if (typeof choice !== "string" || choice.length === 0) {
+    throw new Error("AI semantic resolution returned an invalid payload");
+  }
+  return choice;
+}
+
 function contentFromStreamPayload(delta: unknown): string {
   if (typeof delta === "string") {
     return delta;
@@ -254,6 +269,40 @@ export class AiRuntime {
       }),
     });
     return parseSemanticCompareText(content);
+  }
+
+  static resolve(value: string, options: string[]): string {
+    if (options.length === 0) {
+      throw new Error("AI semantic resolution expects at least 1 option");
+    }
+    const content = this.chat([
+      {
+        role: "system",
+        content: [
+          "Choose the single best option for the given input.",
+          "Only choose from the provided options.",
+          "Return the exact chosen option string as structured JSON.",
+          "Do not explain the answer.",
+        ].join(" "),
+      },
+      {
+        role: "user",
+        content: `Input: ${value}\nOptions:\n${options.map((option, index) => `${index + 1}. ${option}`).join("\n")}`,
+      },
+    ], {
+      responseFormat: this.jsonSchemaResponseFormat("semantic_resolve", {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          choice: {
+            type: "string",
+            enum: options,
+          },
+        },
+        required: ["choice"],
+      }),
+    });
+    return parseSemanticResolveText(content);
   }
 
   private static chat(messages: ChatMessage[], options?: ChatOptions): string {

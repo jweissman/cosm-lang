@@ -3,10 +3,10 @@ require "examples/spec/index.cosm"
 # App-facing notebook/example presentation stays derived from the canonical
 # corpus so the VM corridor and the taught language surface share one source.
 
-# Q: What exactly is this needed for? Can we not just include Examples::Spec directly somehow rather than manually delegate all of these?
 def ai_intent_router = Examples::Spec.ai_intent_router()
 def ai_catalog = Examples::Spec.ai_catalog()
 def ai_semantic_match = Examples::Spec.ai_semantic_match()
+def ai_support_triage = Examples::Spec.ai_support_triage()
 def ai_structured_cast = Examples::Spec.ai_structured_cast()
 def catalog = Examples::Spec.catalog()
 def collections_array_hash = Examples::Spec.collections_array_hash()

@@ -49,7 +49,7 @@ class NotebookExamples
     end
 
     def ai_markup()
-      category("AI Seams", "Start here: `data ... end` declares the contract, `as` extracts structured intent, and ordinary model-instance reads like `parsed.kind.query?` keep the code after inference explicit and deterministic.", card(App::Examples.ai_intent_router()) + card(App::Examples.ai_semantic_match()) + card(App::Examples.ai_structured_cast()))
+      category("AI Seams", "Start here: `data ... end` declares the contract, `as` extracts structured intent, `Cosm::AI.resolve(...)` makes semantic choice explicit, and ordinary model-instance reads keep the code after inference deterministic.", card(App::Examples.ai_intent_router()) + card(App::Examples.ai_support_triage()) + card(App::Examples.ai_semantic_match()) + card(App::Examples.ai_structured_cast()))
     end
 
     def markup()

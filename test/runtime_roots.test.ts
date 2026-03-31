@@ -114,13 +114,13 @@ test("modules, views, and runtime roots expose predictable reflective surfaces",
   expect(cosmEval("Cosm.length >= 3")).toBe(true);
   expect(cosmEval("Cosm.has(:version)")).toBe(true);
   expect(cosmEval("Cosm.keys().length >= 3")).toBe(true);
-  expect(cosmEval('Cosm.version')).toBe("0.3.13.40");
+  expect(cosmEval('Cosm.version')).toBe("0.3.13.41");
   expect(cosmEval('classes.get(:Kernel).name')).toBe("Kernel");
   expect(cosmEval("Cosm.values().length >= Cosm.length")).toBe(true);
   expect(cosmEval("Kernel.class.name")).toBe("Kernel");
   expect(cosmEval("classes.class.name")).toBe("Namespace");
   expect(cosmEval("Cosm.class.name")).toBe("Module");
-  expect(cosmEval("Cosm.version")).toBe("0.3.13.40");
+  expect(cosmEval("Cosm.version")).toBe("0.3.13.41");
   expect(cosmEval("Cosm::Data.class.name")).toBe("Module");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.class.name')).toBe("Module");
   expect(cosmEval("Process.argv().length >= 1")).toBe(true);
@@ -219,6 +219,7 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Kernel.try(->() { Schema.string().validate(1) }).error.details.path')).toBe("$");
   expect(cosmEvalWithoutAi('Kernel.try(->() { require "cosm/ai"; Cosm::AI.complete("hi") }).error.message')).toContain("AI backend is not configured");
   expect(cosmEvalWithoutAi('Kernel.try(->() { require "cosm/ai"; Cosm::AI.cast("hi", Schema.string()) }).error.message')).toContain("AI backend is not configured");
+  expect(cosmEvalWithoutAi('Kernel.try(->() { require "cosm/ai"; Cosm::AI.resolve("hi", ["reply", "ignore"]) }).error.message')).toContain("AI backend is not configured");
   expect(cosmEvalWithoutAi('Kernel.try(->() { "cats" ~= "felines" }).error.message')).toContain("AI backend is not configured");
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).inspect()')).toBe('#<Data::Model "Reason">');
   expect(cosmEval('Data.model("Reason", { answer: Data.string() }).schema().inspect()')).toBe('Schema.object({ answer: Schema.string() })');
@@ -241,6 +242,7 @@ test("Error, Schema, Prompt, Ai, and Mirror remain wired into the reflective run
   expect(cosmEval('Mirror.status().mode')).toBe("readonly-observer");
   expect(cosmEval('Mirror.status().intended_role')).toBe("readonly-view-and-delegation-surface");
   expect(cosmEval('require "cosm/ai"; Cosm::AI.compare("cat", "cat")')).toBe(true);
+  expect(cosmEval('require "cosm/ai"; Cosm::AI.resolve.class.name')).toBe("Function");
   expect(cosmEval("class Tool do end; classes.Tool.name")).toBe("Tool");
 });
 

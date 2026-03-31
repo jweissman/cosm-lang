@@ -12,6 +12,8 @@ def compare(left, right) = ai.compare(left, right)
 
 def semantic_compare(left, right) = compare(left, right)
 
+def resolve(value, options) = ai.resolve(value, options)
+
 def schema_for(target)
   if target.class.name == "DataModel" then
     target
