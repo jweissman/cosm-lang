@@ -1,8 +1,8 @@
 # Cosm Features
 
-## Current Release Target: 0.3.13.39
+## Current Release Target: 0.3.13.40
 
-`0.3.13.24`-`0.3.13.39` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, tooling-consolidation, core-programmability, intrinsic-ownership, reflection-cleanup, and VM-legibility line that follows the core-tower/authored-facade work:
+`0.3.13.24`-`0.3.13.40` are best read as the hardening, canonicalization, boundary-formalization, example-corpus/VM-corridor, ergonomics, host-boundary-proof, tooling-consolidation, core-programmability, intrinsic-ownership, reflection-cleanup, VM-legibility, and thesis-alignment line that follows the core-tower/authored-facade work:
 
 - split runtime bootstrap into explicit domain modules instead of one monolith
 - move parser input normalization out of `parser.ts`
@@ -15,6 +15,8 @@
 - make the object protocol easier to teach directly through the notebook and authored core surfaces
 - make `Mirror`, `Hologram`, and explicit AI operations easier to explain as named runtime boundaries
 - formalize `~=` as the explicit semantic comparison seam while explicitly deferring `~`
+- add `as` as the taught structured semantic-cast surface over the existing `Cosm::AI.cast(...)` runtime seam
+- move the notebook and example corpus closer to the AI-seam thesis instead of treating that story as a side category
 - add a spec-first executable example corpus and use it to pressure notebook teaching and the VM corridor
 - make `cosm test` default to deterministic `_spec.cosm` discovery instead of relying on one bundle file
 - allow conservative omitted-paren `def` forms for zero/one-arg inline authored methods, while keeping multi-arg defs parenthesized

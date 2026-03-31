@@ -148,6 +148,20 @@ export class CosmSchemaValue extends CosmObjectValue {
     super("Schema", {}, classRef);
   }
 
+  innerSchema(): CosmSchemaValue | undefined {
+    const inner = this.schemaState.inner;
+    return inner instanceof CosmSchemaValue ? inner : undefined;
+  }
+
+  optionValues(): string[] {
+    if (this.schemaKind !== "enum") {
+      return [];
+    }
+    return this.expectOptions().items
+      .filter((item): item is CosmStringValue => item instanceof CosmStringValue)
+      .map((item) => item.value);
+  }
+
   private static expectSchema(value: CosmValue, context: string): CosmSchemaValue {
     if (!(value instanceof CosmSchemaValue)) {
       throw new Error(`Type error: ${context} expects a Schema argument`);

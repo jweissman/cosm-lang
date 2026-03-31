@@ -5,6 +5,7 @@ import { RuntimeDispatch } from './runtime/RuntimeDispatch';
 import { Bootstrap } from './runtime/Bootstrap';
 import { CosmErrorValue } from './values/CosmErrorValue';
 import { CosmRaisedError } from './runtime/CosmRaisedError';
+import { CosmDataModelValue } from './values/CosmDataModelValue';
 import { CosmSessionValue } from './values/CosmSessionValue';
 import { ValueAdapter } from './ValueAdapter';
 import { RuntimeIr } from './runtime/RuntimeIr';
@@ -135,6 +136,8 @@ namespace Cosm {
         }
         case 'eq':
           return Construct.bool(InterpreterOperators.evalEquality(ast, true, env, this.operatorHooks()));
+        case 'semantic_cast':
+          return InterpreterOperators.evalSemanticCast(ast, env, this.operatorHooks());
         case 'semantic_eq':
           return InterpreterOperators.evalSemanticEquality(ast, env, this.operatorHooks());
         case 'neq':
@@ -175,7 +178,7 @@ namespace Cosm {
       this.preloadStdlibModules(repository);
       const cosmRoot = repository.globals.Cosm;
       if (cosmRoot?.type === "object") {
-        cosmRoot.fields.version = Construct.string("0.3.13.39");
+        cosmRoot.fields.version = Construct.string("0.3.13.40");
       }
       return repository;
     }
@@ -654,7 +657,24 @@ namespace Cosm {
         send: (receiver: CosmValue, message: string, args: CosmValue[], scope?: Env) => this.send(receiver, message, args, scope),
         invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) =>
           this.invokeFunction(callee, args, context),
+        semanticCast: (value: CosmValue, target: CosmValue, scope?: Env) => this.semanticCast(value, target, scope),
       };
+    }
+
+    private static semanticCast(value: CosmValue, target: CosmValue, env?: Env): CosmValue {
+      const schemaTarget = this.normalizeSemanticCastTarget(target, env);
+      return this.send(this.repo().globals.ai, "cast", [value, schemaTarget], env);
+    }
+
+    private static normalizeSemanticCastTarget(target: CosmValue, env?: Env): CosmValue {
+      if (target instanceof CosmDataModelValue) {
+        return target;
+      }
+      const schemaLookup = RuntimeDispatch.tryResolveSendTarget(target, "schema", this.repo());
+      if (!schemaLookup) {
+        return target;
+      }
+      return this.invokeFunction(schemaLookup, [], { receiver: target, env });
     }
 
     private static withFrame<T>(frame: string, fn: () => T): T {
@@ -684,6 +704,6 @@ namespace Cosm {
     }
   }
 
-    export const version = "0.3.13.39";
+    export const version = "0.3.13.40";
 }
 export default Cosm;

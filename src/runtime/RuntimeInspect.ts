@@ -73,6 +73,12 @@ export class RuntimeInspect {
         if (value.className === "DataModel" && "modelName" in value) {
           return `#<Data::Model ${JSON.stringify(String(value.modelName))}>`;
         }
+        if (value.className === "DataRecord" && "inspectText" in value) {
+          return value.inspectText();
+        }
+        if (value.className === "EnumTag" && "literal" in value) {
+          return `:${String(value.literal)}`;
+        }
         const entries = Object.entries(value.fields).map(([key, entry]) => `${key}: ${this.format(entry)}`).join(", ");
         if (value.className === "Object") {
           return entries.length > 0 ? `#<Object ${entries}>` : "#<Object>";

@@ -66,6 +66,12 @@ test("parser accepts ternary expressions", () => {
   expect(() => Parser.parse('require "cosm/ai"; Cosm::AI.config().configured ? "ready" : "missing"')).not.toThrow();
 });
 
+test("parser accepts explicit semantic cast syntax", () => {
+  expect(() => Parser.parse('require "cosm/ai"; "hello" as Schema.string()')).not.toThrow();
+  expect(() => Parser.parse('require "cosm/ai"; let Intent = Data.model("Intent", { kind: Data.string() }); "show me tickets" as Intent')).not.toThrow();
+  expect(() => Parser.parse('data Intent\n  attribute :kind, enum: ["query", "command", "feedback"]\n  attribute :subject, String\nend\n"show me tickets" as Intent')).not.toThrow();
+});
+
 test("parser accepts one-line defs", () => {
   expect(() => Parser.parse('def status = ai.status(); status()')).not.toThrow();
   expect(() => Parser.parse('def greet name = "hi " + name; greet("cosm")')).not.toThrow();

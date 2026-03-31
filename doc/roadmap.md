@@ -4,8 +4,8 @@
 
 Cosm is now best understood as:
 
-- a small reflective OO language in the JS runtime universe
-- a notebook-first proving wedge
+- a language with visible AI seams in the JS runtime universe
+- a notebook-first proving wedge for those seams
 - a narrower secondary assistant/agent/service wedge
 - a runtime increasingly explained by authored Cosm surfaces rather than only TS internals
 
@@ -27,27 +27,25 @@ The `0.3.13.x` line should now be read as one long consolidation arc:
 - a spec-first example corpus shared by notebook teaching and the VM corridor
 - explicit boundary objects through `Mirror`, `Cosm::Hologram`, `Schema`, `Data`, and `Cosm::AI`
 
-## What `0.3.13.39` Finishes
+## What `0.3.14.x` Starts Once The Thesis Code Is Real
 
-- the visible object/reflection protocol
-- the taught `methods` / `method(:name)` / `classMethod(:name)` split
-- one concrete boundary proof that is easy to explain:
-  - `Mirror` over a host-backed HTTP object
-  - `Hologram.project_json(...)` over a JSON-shaped writable projection
-- authored-vs-native method provenance through `origin`
-- the docs handoff from `0.3.13.x` to `0.3.14.x`
+- the thesis-first line:
+  - one flagship intent-router example
+  - `~=` plus `as` as the visible AI seam pair
+  - notebook/examples/docs teaching Cosm through that program first
+- keep the rest of the runtime work in service of the thesis rather than as endless prerequisite cleanup
 
 ## What Comes Next
 
-### `0.3.14.x`: Persistence and Explicit Store Boundary
+### `0.3.14.x`: Thesis Pressure First
 
-- introduce a named `Cosm::Store` runtime seam
-- likely move durable runtime state toward SQLite
-- keep notebook and agent history on the same explicit persistence boundary
-- improve replay, inspection, and debugability through that store
+- tighten AI/runtime surfaces where the thesis program reveals awkwardness
+- consider `Cosm::Store` only if the notebook or thesis examples truly need a stronger persistence seam
+- keep host-boundary and runtime cleanup secondary unless it materially helps the flagship program
 
-### After Persistence
+### After The Thesis Surface Is Calm
 
+- explicit `Cosm::Store` boundary if it earns its keep
 - tiny typed tool/runtime protocol
 - Docker/sandboxing through explicit host-boundary objects rather than raw shelling
 - richer agent runtime semantics only after the store boundary is calm

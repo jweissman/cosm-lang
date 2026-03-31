@@ -29,7 +29,7 @@ class NotebookExamples
     end
 
     def data_markup()
-      category("Data Models", "Schema is the raw structural contract; Data builds ergonomic model-shaped helpers on top through explicit build and validate steps.", card(App::Examples.data_model_build_validate()))
+      category("Data Models", "Schema is the raw structural contract; Data now also teaches a thesis-shaped model layer with real model instances, property reads, and enum predicates.", card(App::Examples.data_model_build_validate()))
     end
 
     def collections_markup()
@@ -48,8 +48,12 @@ class NotebookExamples
       category("Services", "The service layer stays object-first and deliberately small, with explicit dispatch still available when you need it.", card(App::Examples.dispatch_helper()) + card(App::Examples.router_sketch()))
     end
 
+    def ai_markup()
+      category("AI Seams", "Start here: `data ... end` declares the contract, `as` extracts structured intent, and ordinary model-instance reads like `parsed.kind.query?` keep the code after inference explicit and deterministic.", card(App::Examples.ai_intent_router()) + card(App::Examples.ai_semantic_match()) + card(App::Examples.ai_structured_cast()))
+    end
+
     def markup()
-      App::Rendering::HtmlView.render(example_section_template(), { groups: reflection_markup() + algorithms_markup() + data_markup() + collections_markup() + notebook_markup() + boundary_markup() + services_markup() })
+      App::Rendering::HtmlView.render(example_section_template(), { groups: ai_markup() + reflection_markup() + algorithms_markup() + data_markup() + collections_markup() + notebook_markup() + boundary_markup() + services_markup() })
     end
 
     def category(title, description, cards)

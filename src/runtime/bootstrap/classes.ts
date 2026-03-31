@@ -57,6 +57,8 @@ export function createCoreClasses(): Record<string, CosmClass> {
     "Ai",
     "Session",
     "DataModel",
+    "DataRecord",
+    "EnumTag",
     "Http",
     "HttpRequest",
     "HttpResponse",

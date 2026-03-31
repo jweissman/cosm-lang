@@ -27,12 +27,12 @@ The `0.3.13.x` line ended up as one long runtime-identity push:
 
 ## Next After `0.3.13.x`
 
-`0.3.14.x` should begin with the explicit persistence/store boundary:
+`0.3.14.x` should begin by proving the thesis more directly:
 
-- introduce `Cosm::Store` as a named runtime seam
-- likely back it with SQLite
-- move notebook and agent durable state onto the same explicit store story
-- only then reopen tools, Docker/sandboxing, and broader runtime orchestration
+- lead with one flagship intent-router example
+- make `~=` and `as` the taught visible AI seam pair
+- let notebook/examples/docs tell that story first
+- only introduce `Cosm::Store` when the thesis program or notebook genuinely needs it
 
 ## Longer-Term Ideas Worth Preserving
 

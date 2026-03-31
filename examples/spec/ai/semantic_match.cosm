@@ -1,0 +1,9 @@
+# Semantic matching routes through ~= explicitly.
+# The seam is visible in the syntax, not hidden in a library call.
+# "cat" matches "feline" because ~= uses AI to evaluate semantic equivalence —
+# not because of any string transformation.
+let tags = ["feline", "vehicle", "computation", "thinking"]
+let query = "cat"
+tags.filter do |tag|
+  tag ~= query
+end

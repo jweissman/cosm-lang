@@ -75,6 +75,18 @@ def router_sketch()
   entry("router_sketch", "Services", "Router sketch", "Object-first routing stays explicit and inspectable through a tiny multi-route service object.", "examples/spec/services/router_sketch.cosm", "#<HttpRouter routes: 2>")
 end
 
+def ai_semantic_match()
+  entry("ai_semantic_match", "AI Seams", "Semantic match", "~= routes semantic comparison through the AI boundary explicitly. The seam is visible in the syntax, not hidden in a library call.", "examples/spec/ai/semantic_match.cosm", "(requires AI backend)")
+end
+
+def ai_intent_router()
+  entry("ai_intent_router", "AI Seams", "Intent router", "A small intent router makes the thesis concrete: `data ... end` declares the contract, `as` extracts structured intent, and ordinary enum predicates like `parsed.kind.query?` keep the post-inference logic deterministic.", "examples/spec/ai/intent_router.cosm", "(AI result)")
+end
+
+def ai_structured_cast()
+  entry("ai_structured_cast", "AI Seams", "Structured cast", "`as` is the taught structured semantic-cast surface, while `data` declarations and model-instance field reads keep the resulting program in ordinary Cosm object code.", "examples/spec/ai/structured_cast.cosm", "(AI result)")
+end
+
 def catalog()
   let items = []
   items = items.append(object_surface_split())
@@ -93,6 +105,14 @@ def catalog()
   items = items.append(session_notebook())
   items = items.append(dispatch_helper())
   items = items.append(router_sketch())
+  items
+end
+
+def ai_catalog()
+  let items = []
+  items = items.append(ai_intent_router())
+  items = items.append(ai_semantic_match())
+  items = items.append(ai_structured_cast())
   items
 end
 

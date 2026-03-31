@@ -40,6 +40,8 @@ export function createCoreGlobals(classes: Record<string, CosmClass>): Record<st
     Ai: classes.Ai,
     Session: classes.Session,
     DataModel: classes.DataModel,
+    DataRecord: classes.DataRecord,
+    EnumTag: classes.EnumTag,
     Http: classes.Http,
     HttpRequest: classes.HttpRequest,
     HttpResponse: classes.HttpResponse,
@@ -104,6 +106,8 @@ export function createCoreModules(classes: Record<string, CosmClass>): Record<st
         classes.Schema,
         classes.Error,
         classes.Namespace,
+        classes.DataRecord,
+        classes.EnumTag,
         expectDataValueEntries(defaults, "Data.model defaults", classes.Error),
       );
     }),

@@ -2,14 +2,15 @@
 
 ## Short Version
 
-Cosm is trying to become a reflective language where the important seams stay visible.
+Cosm is trying to become a language where the important seams stay visible, especially AI inference.
 
 That means:
 
+- AI inference enters through visible language/runtime operations, not hidden helpers
+- deterministic validation remains explicit beside that inference
 - OO structure is explicit
 - runtime reflection is honest
 - host boundaries are named and inspectable
-- AI inference enters through visible language/runtime operations, not hidden helpers
 
 The project is not trying to be Ruby, JavaScript, or a framework with a language attached. The interesting version of Cosm is a small language whose runtime can explain itself, project itself, and selectively cross into stochastic or host-backed computation without hiding where that happens.
 
@@ -17,24 +18,28 @@ The project is not trying to be Ruby, JavaScript, or a framework with a language
 
 The strongest version of Cosm is:
 
-- a reflective OO runtime
-- a notebook-first workbench
-- a principled deterministic/stochastic seam
-- explicit host-boundary objects
+- a language with visible semantic seams
+- a notebook-first proving surface for those seams
+- deterministic validation next to stochastic interpretation
+- a reflective OO runtime that supports that story honestly
 
 That is why the project keeps circling the same few concepts:
 
+- `~=` and `as`
+- `Schema`, `Data`, `Prompt`, and `Cosm::AI`
 - `BasicObject` / `Object` / `Module` / `Class`
-- `Kernel`, `Schema`, `Data`, `Session`, `Cosm::AI`
+- `Kernel`, `Session`
 - `Mirror` and `Hologram`
 - notebook as the primary proving surface
 
 ## Notebook First
 
-The notebook should remain the flagship wedge until the language/runtime feels calm and teachable.
+The notebook should remain the flagship wedge because it is the clearest place to teach the thesis program first and the runtime second.
 
 It is the right proving surface because it pressures:
 
+- AI seams and fallback behavior
+- structured validation
 - persistent sessions
 - reflection and rendering
 - object inspection
@@ -47,7 +52,7 @@ The notebook is also the clearest place where a future “runtime synchronizatio
 
 ## Visible AI Seams
 
-The long-term interesting move is not “Cosm can call an LLM API.”
+The interesting move is not “Cosm can call an LLM API.”
 
 The interesting move is:
 
@@ -62,17 +67,17 @@ That is the intuition behind the current boundary surfaces:
 - `~=` as the current explicit semantic comparison operator
 - a possible future `~` for structured semantic cast, once the boundary model settles
 
-The goal would be code where you can see exactly where inference enters:
+The goal is code where you can see exactly where inference enters:
 
 ```cosm
 if intent ~= "wants help" then
   ...
 end
 
-let person = Cosm::AI.cast(text, PersonSchema)
+let person = text as PersonSchema
 ```
 
-That is more interesting than hiding AI behind a library call, because the seam becomes part of the language model itself. In the current line, `~=` is formalized while `~` remains intentionally deferred.
+That is more interesting than hiding AI behind a library call, because the seam becomes part of the language model itself. In the current line, `~=` and `as` are the visible seams, while `~` remains intentionally deferred.
 
 ## Mirror and Hologram
 
@@ -115,21 +120,13 @@ The runtime should keep moving toward these principles:
 
 ## What Comes Next
 
-The highest-value next work after the `0.3.13.x` closeout is not “more syntax.”
+The highest-value next work is whatever makes the thesis program clearer and more compelling.
 
-It is:
+That means:
 
-- finishing the object/reflection cleanup
-- settling one concrete boundary proof
-- introducing a real persistence boundary
-- only then adding richer tool/runtime and concurrency ideas
-
-That order matters. If Cosm gets those layers right, the later features become coherent:
-
-- tools as reflective runtime objects
-- semantic operators as first-class routing/validation seams
-- browser/runtime projection through safe reflective boundaries
-- richer agent loops written in Cosm itself
+- teaching one flagship intent-router-style program extremely well
+- tightening the AI seam surfaces where they are awkward in real examples
+- only adding persistence or richer runtime boundaries if the thesis program actually needs them
 
 ## What We Are Not Optimizing For Yet
 

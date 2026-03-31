@@ -1,5 +1,7 @@
 def status = ai.status()
 
+def available?() = ai.health().ok
+
 def config = ai.config()
 
 def health = ai.health()
@@ -8,7 +10,12 @@ def complete(prompt) = ai.complete(prompt)
 
 def compare(left, right) = ai.compare(left, right)
 
+def semantic_compare(left, right) = compare(left, right)
+
 def schema_for(target)
+  if target.class.name == "DataModel" then
+    target
+  else
   let maybe_schema = Kernel.try do
     target.schema()
   end
@@ -16,6 +23,7 @@ def schema_for(target)
     maybe_schema.value
   else
     target
+  end
   end
 end
 

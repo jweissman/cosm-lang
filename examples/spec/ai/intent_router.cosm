@@ -1,0 +1,28 @@
+require "cosm/ai"
+
+data Intent
+  attribute :kind, enum: ["query", "command", "feedback"]
+  attribute :subject, String
+end
+
+let input = "show me all open tickets assigned to me"
+
+if Cosm::AI.available?() then
+  let parsed = input as Intent
+
+  if parsed.kind.query? then
+    "query:" + parsed.subject
+  else
+    if parsed.kind.command? then
+      "command:" + parsed.subject
+    else
+      "feedback:" + parsed.subject
+    end
+  end
+else
+  let fallback = Intent.build({
+    kind: "feedback",
+    subject: input
+  })
+  "fallback:" + fallback.subject
+end

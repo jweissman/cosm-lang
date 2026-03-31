@@ -5,6 +5,54 @@ import { Lowerer } from "./lowerer";
 import { InputNormalizer } from "./InputNormalizer";
 
 export class Parser {
+    private static access(receiver: SurfaceNode, property: string, target?: string): SurfaceNode {
+      return {
+        kind: 'access',
+        value: property,
+        left: receiver,
+        target,
+      };
+    }
+
+    private static call(callee: SurfaceNode, args: SurfaceNode[]): SurfaceNode {
+      return {
+        kind: 'call',
+        value: '',
+        left: callee,
+        children: args,
+      };
+    }
+
+    private static dataCall(method: string, args: SurfaceNode[]): SurfaceNode {
+      return this.call(this.access({ kind: 'ident', value: 'Data' }, method), args);
+    }
+
+    private static dataNamedAttributeSpec(node: SurfaceNode): SurfaceNode {
+      if (node.kind === 'ident') {
+        if (node.value === 'String') {
+          return this.dataCall('string', []);
+        }
+        if (node.value === 'Number') {
+          return this.dataCall('number', []);
+        }
+        if (node.value === 'Boolean') {
+          return this.dataCall('boolean', []);
+        }
+      }
+      return node;
+    }
+
+    private static dataModelExpression(name: string, attributes: SurfaceNode[]): SurfaceNode {
+      return this.dataCall('model', [
+        { kind: 'string', value: name },
+        {
+          kind: 'hash',
+          value: '',
+          children: attributes,
+        },
+      ]);
+    }
+
     private static appendTrailingBlock(callNode: SurfaceNode, trailingBlockAst: SurfaceNode): SurfaceNode {
       const normalizedBlock = trailingBlockAst.kind === 'list'
         ? trailingBlockAst.children?.[0]
@@ -183,6 +231,24 @@ export class Parser {
             children: Parser.listChildren(body.ast()),
           };
         },
+        DataStmt: (_data, name, _do, _semi, body, _end) => ({
+          kind: 'let_stmt',
+          value: name.sourceString,
+          left: Parser.dataModelExpression(name.sourceString, Parser.listChildren(body.ast())),
+        }),
+        DataBody: (attributes) => ({
+          kind: 'list',
+          value: '',
+          children: attributes.children.map((child) => child.ast()),
+        }),
+        DataAttributeStmt: (_attribute, field, _comma, spec, _semi) => ({
+          kind: 'pair',
+          value: field.ast().value,
+          left: spec.ast(),
+        }),
+        DataAttributeSpec_enum: (_enum, _colon, items) =>
+          Parser.dataCall('enum', Parser.listChildren(items.ast())),
+        DataAttributeSpec_named: (typeName) => Parser.dataNamedAttributeSpec(typeName.ast()),
         ClassSuper: (_lt, name) => ({
           kind: 'class_super',
           value: name.sourceString,
@@ -510,6 +576,7 @@ export class Parser {
         }),
         OrExp_or: (left, _op, right) => ({ kind: 'or', value: '', left: left.ast(), right: right.ast() }),
         AndExp_and: (left, _op, right) => ({ kind: 'and', value: '', left: left.ast(), right: right.ast() }),
+        CmpExp_semanticCast: (left, _op, right) => ({ kind: 'semantic_cast', value: '', left: left.ast(), right: right.ast() }),
         CmpExp_eq: (left, _op, right) => ({ kind: 'eq', value: '', left: left.ast(), right: right.ast() }),
         CmpExp_semanticEq: (left, _op, right) => ({ kind: 'semantic_eq', value: '', left: left.ast(), right: right.ast() }),
         CmpExp_neq: (left, _op, right) => ({ kind: 'neq', value: '', left: left.ast(), right: right.ast() }),

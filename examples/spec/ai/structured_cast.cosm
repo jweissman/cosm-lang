@@ -1,0 +1,25 @@
+require "cosm/ai"
+
+# The contract is ordinary deterministic data.
+data Intent
+  attribute :kind, enum: ["query", "command", "feedback"]
+  attribute :subject, String
+end
+
+let input = "show me all open tickets assigned to me"
+
+if Cosm::AI.available?() then
+  # `as` is the taught structured semantic-cast surface.
+  # It still lowers to Cosm::AI.cast(...) under the hood.
+  let parsed = input as Intent
+
+  # Deterministic branching after the AI seam stays ordinary OO code.
+  if parsed.kind.query? then
+    "query for: #{parsed.subject}"
+  else
+    "#{parsed.kind}: #{parsed.subject}"
+  end
+else
+  # No inference available. Fall back to an ordinary deterministic build.
+  Intent.build({ kind: "feedback", subject: input })
+end

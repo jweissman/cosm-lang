@@ -3,7 +3,9 @@ import { manifestClassMethods, manifestMethods } from "../RuntimeManifest";
 import { CosmAiValue } from "../../values/CosmAiValue";
 import { CosmClassValue } from "../../values/CosmClassValue";
 import { CosmDataModelValue } from "../../values/CosmDataModelValue";
+import { CosmDataRecordValue } from "../../values/CosmDataRecordValue";
 import { CosmErrorValue } from "../../values/CosmErrorValue";
+import { CosmEnumTagValue } from "../../values/CosmEnumTagValue";
 import { CosmFunctionValue } from "../../values/CosmFunctionValue";
 import { CosmHostObjectValue } from "../../values/CosmHostObjectValue";
 import { CosmHologramHandleValue } from "../../values/CosmHologramHandleValue";
@@ -118,8 +120,21 @@ export function installBootNativeMethods(classes: BootClasses): void {
     CosmSessionValue.manifest,
   ));
   Object.assign(classes.DataModel.methods, manifestMethods(
-    new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace, {}),
+    new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace, classes.DataRecord, classes.EnumTag, {}),
     CosmDataModelValue.manifest,
+  ));
+  Object.assign(classes.DataRecord.methods, manifestMethods(
+    new CosmDataRecordValue(
+      new CosmDataModelValue("Example", {}, classes.DataModel, classes.Schema, classes.Error, classes.Namespace, classes.DataRecord, classes.EnumTag, {}),
+      {},
+      classes.DataRecord,
+      classes.EnumTag,
+    ),
+    CosmDataRecordValue.manifest,
+  ));
+  Object.assign(classes.EnumTag.methods, manifestMethods(
+    new CosmEnumTagValue("example", ["example"], classes.EnumTag),
+    CosmEnumTagValue.manifest,
   ));
   Object.assign(classes.Http.methods, manifestMethods(
     new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HostObject, classes.HttpRequest, classes.HttpResponse),

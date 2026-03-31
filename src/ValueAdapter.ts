@@ -14,6 +14,8 @@ import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
 import { CosmSessionValue } from "./values/CosmSessionValue";
 import { CosmDataModelValue } from "./values/CosmDataModelValue";
+import { CosmDataRecordValue } from "./values/CosmDataRecordValue";
+import { CosmEnumTagValue } from "./values/CosmEnumTagValue";
 import { RuntimeInspect } from "./runtime/RuntimeInspect";
 import { Construct } from "./Construct";
 
@@ -184,6 +186,14 @@ export class ValueAdapter {
             fields: value.nativeProperty("fields") ? this.cosmToJS(value.nativeProperty("fields")!) : {},
             defaults: value.nativeProperty("defaults") ? this.cosmToJS(value.nativeProperty("defaults")!) : {},
           };
+        }
+        if (value instanceof CosmDataRecordValue) {
+          return Object.fromEntries(
+            Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),
+          );
+        }
+        if (value instanceof CosmEnumTagValue) {
+          return value.literal;
         }
         return Object.fromEntries(
           Object.entries(value.fields).map(([key, entry]) => [key, this.cosmToJS(entry)]),

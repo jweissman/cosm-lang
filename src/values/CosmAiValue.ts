@@ -13,6 +13,7 @@ import { CosmNihilValue } from "./CosmNihilValue";
 import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { ValueAdapter } from "../ValueAdapter";
+import { CosmDataModelValue } from "./CosmDataModelValue";
 
 export class CosmAiValue extends CosmObjectValue {
   private static statusHandler?: () => CosmValue;
@@ -122,13 +123,17 @@ export class CosmAiValue extends CosmObjectValue {
           throw new Error(`Arity error: cosm.ai.cast expects 2 arguments, got ${args.length}`);
         }
         const prompt = selfValue.expectPrompt(args[0], "cosm.ai.cast");
-        if (!(args[1] instanceof CosmSchemaValue)) {
-          throw new Error("Type error: cosm.ai.cast expects a Schema");
-        }
         if (!CosmAiValue.castHandler) {
           CosmErrorValue.raise(new CosmStringValue("AI backend is not configured for cast"), selfValue.errorClassRef);
         }
-        return CosmAiValue.castHandler(prompt, args[1], env);
+        const target = args[1];
+        if (target instanceof CosmDataModelValue) {
+          return target.validateAndReturn(CosmAiValue.castHandler(prompt, target.toSchema(), env));
+        }
+        if (!(target instanceof CosmSchemaValue)) {
+          throw new Error("Type error: cosm.ai.cast expects a Schema or DataModel");
+        }
+        return CosmAiValue.castHandler(prompt, target, env);
       }),
       chat_cast: () => new CosmFunctionValue("chat_cast", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {
@@ -137,18 +142,28 @@ export class CosmAiValue extends CosmObjectValue {
         if (args.length !== 2) {
           throw new Error(`Arity error: cosm.ai.chat_cast expects 2 arguments, got ${args.length}`);
         }
-        if (!(args[1] instanceof CosmSchemaValue)) {
-          throw new Error("Type error: cosm.ai.chat_cast expects a Schema");
-        }
         const messages = selfValue.expectMessages(args[0], "cosm.ai.chat_cast");
+        const target = args[1];
         if (CosmAiValue.chatCastHandler) {
-          return CosmAiValue.chatCastHandler(messages, args[1], env);
+          if (target instanceof CosmDataModelValue) {
+            return target.validateAndReturn(CosmAiValue.chatCastHandler(messages, target.toSchema(), env));
+          }
+          if (!(target instanceof CosmSchemaValue)) {
+            throw new Error("Type error: cosm.ai.chat_cast expects a Schema or DataModel");
+          }
+          return CosmAiValue.chatCastHandler(messages, target, env);
         }
         if (!CosmAiValue.castHandler) {
           CosmErrorValue.raise(new CosmStringValue("AI backend is not configured for cast"), selfValue.errorClassRef);
         }
         const flattened = messages.map((entry) => `${entry.role}: ${entry.content}`).join("\n\n");
-        return CosmAiValue.castHandler(flattened, args[1], env);
+        if (target instanceof CosmDataModelValue) {
+          return target.validateAndReturn(CosmAiValue.castHandler(flattened, target.toSchema(), env));
+        }
+        if (!(target instanceof CosmSchemaValue)) {
+          throw new Error("Type error: cosm.ai.chat_cast expects a Schema or DataModel");
+        }
+        return CosmAiValue.castHandler(flattened, target, env);
       }),
       compare: () => new CosmFunctionValue("compare", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {

@@ -34,6 +34,8 @@ import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
 import { CosmSessionValue } from "./values/CosmSessionValue";
 import { CosmDataModelValue } from "./values/CosmDataModelValue";
+import { CosmDataRecordValue } from "./values/CosmDataRecordValue";
+import { CosmEnumTagValue } from "./values/CosmEnumTagValue";
 
 export class Construct {
   static number(value: number): CosmNumber { return new CosmNumberValue(value); }
@@ -70,8 +72,14 @@ export class Construct {
   static session(name: string, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
     return new CosmSessionValue(name, classRef, errorClassRef);
   }
-  static dataModel(name: string, fieldSchemas: Record<string, CosmSchemaValue>, classRef?: CosmClass, schemaClassRef?: CosmClass, errorClassRef?: CosmClass, namespaceClassRef?: CosmClass, defaults: Record<string, CosmValue> = {}): CosmObject {
-    return new CosmDataModelValue(name, fieldSchemas, classRef, schemaClassRef, errorClassRef, namespaceClassRef, defaults);
+  static dataModel(name: string, fieldSchemas: Record<string, CosmSchemaValue>, classRef?: CosmClass, schemaClassRef?: CosmClass, errorClassRef?: CosmClass, namespaceClassRef?: CosmClass, recordClassRef?: CosmClass, enumTagClassRef?: CosmClass, defaults: Record<string, CosmValue> = {}): CosmObject {
+    return new CosmDataModelValue(name, fieldSchemas, classRef, schemaClassRef, errorClassRef, namespaceClassRef, recordClassRef, enumTagClassRef, defaults);
+  }
+  static dataRecord(model: CosmDataModelValue, fields: Record<string, CosmValue>, classRef?: CosmClass, enumTagClassRef?: CosmClass): CosmObject {
+    return new CosmDataRecordValue(model, fields, classRef, enumTagClassRef);
+  }
+  static enumTag(literal: string, options: string[], classRef?: CosmClass): CosmObject {
+    return new CosmEnumTagValue(literal, options, classRef);
   }
   static class(
     name: string,

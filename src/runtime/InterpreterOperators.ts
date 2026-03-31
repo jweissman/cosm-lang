@@ -7,6 +7,7 @@ type OperatorHooks = {
   expectChildren: (ast: CoreNode, op: string) => [CoreNode, CoreNode];
   send: (receiver: CosmValue, message: string, args: CosmValue[], env?: CosmEnv) => CosmValue;
   invokeFunction: (callee: CosmValue, args: CosmValue[], context?: InvocationContext) => CosmValue;
+  semanticCast: (value: CosmValue, target: CosmValue, env?: CosmEnv) => CosmValue;
 };
 
 export class InterpreterOperators {
@@ -104,6 +105,13 @@ export class InterpreterOperators {
     const left = hooks.evalNode(leftAst, env);
     const right = hooks.evalNode(rightAst, env);
     return hooks.send(left, "semanticEq", [right], env);
+  }
+
+  static evalSemanticCast(ast: CoreNode, env: CosmEnv, hooks: OperatorHooks): CosmValue {
+    const [leftAst, rightAst] = hooks.expectChildren(ast, "semantic_cast");
+    const value = hooks.evalNode(leftAst, env);
+    const target = hooks.evalNode(rightAst, env);
+    return hooks.semanticCast(value, target, env);
   }
 
   private static tryNativePredicate(

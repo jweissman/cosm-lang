@@ -33,6 +33,8 @@ test("Data models support nested casts and reflective schema export", () => {
 
 test("Data models can build validated record-shaped hashes with defaults", () => {
   expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no"), note: Cosm::Data.optional(Cosm::Data.string()) }, { choice: "yes", note: nihil }); Reason.build({ answer: "hi" })')).toEqual({ answer: "hi", choice: "yes", note: null });
+  expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") }); Reason.build({ answer: "hi", choice: "yes" }).class.name')).toBe("DataRecord");
+  expect(cosmEval('let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") }); let built = Reason.build({ answer: "hi", choice: "yes" }); [built.choice.yes?, built.answer, built.at(:choice) == "yes"]')).toEqual([true, "hi", true]);
 
   expect(cosmEval(`
     let Reason = Cosm::Data.model("Reason", { answer: Cosm::Data.string(), choice: Cosm::Data.enum("yes", "no") })
@@ -72,4 +74,15 @@ test("cosm/ai.cosm can cast into a Data model through the runtime AI boundary", 
       compare: (left, right) => AiRuntime.compare(left, right),
     });
   }
+});
+
+test("data declarations lower to Data models with thesis-shaped property reads", () => {
+  expect(cosmEval(`
+    data Intent
+      attribute :kind, enum: ["query", "command", "feedback"]
+      attribute :subject, String
+    end
+    let parsed = Intent.build({ kind: "query", subject: "tickets" })
+    [Intent.class.name, parsed.kind.query?, parsed.subject, parsed.to_h().subject]
+  `)).toEqual(["DataModel", true, "tickets", "tickets"]);
 });

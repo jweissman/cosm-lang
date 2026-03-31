@@ -123,6 +123,7 @@ import { SurfaceNode, CoreNode, CoreNodeKind } from "../types";
         case 'or':
         case 'and':
         case 'eq':
+        case 'semantic_cast':
         case 'semantic_eq':
         case 'neq':
         case 'lt':

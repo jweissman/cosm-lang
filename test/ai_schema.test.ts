@@ -110,6 +110,8 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     expect(cosmEval('require "cosm/ai"; Cosm::AI.health().ok')).toBe(true);
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");
+    expect(cosmEval('require "cosm/ai"; Cosm::AI.semantic_compare("Hello", " hello ")')).toBe(true);
+    expect(cosmEval('require "cosm/ai"; "hello" as Schema.string()')).toBe("cast:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.chat_cast([{ role: "system", content: "rules" }, { role: "user", content: "hello" }], Schema.string())')).toBe("chat:system:rules|user:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);
     let stdout = "";
@@ -139,6 +141,52 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     }
     expect(stdout).toContain("[waiting]");
     expect(stdout).toContain("stream:hello");
+  } finally {
+    CosmAiValue.installRuntimeHooks({
+      status: () => AiRuntime.status(),
+      health: () => AiRuntime.health(),
+      complete: (prompt) => AiRuntime.complete(prompt),
+      cast: (prompt, schema) => AiRuntime.cast(prompt, schema as CosmSchemaValue),
+      chatCast: (messages, schema) => AiRuntime.chatCast(messages, schema as CosmSchemaValue),
+      compare: (left, right) => AiRuntime.compare(left, right),
+      stream: (prompt, onEvent) => AiRuntime.stream(prompt, onEvent),
+    });
+  }
+});
+
+test("semantic cast syntax normalizes Data models through the same cast path", () => {
+  CosmAiValue.installRuntimeHooks({
+    status: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+    }),
+    health: () => Construct.namespace({
+      backend: Construct.string("mock"),
+      baseUrl: Construct.string("http://mock"),
+      model: Construct.string("mock-model"),
+      configured: Construct.bool(true),
+      ok: Construct.bool(true),
+      error: Construct.nihil(),
+    }),
+    cast: (_prompt, schema) => (schema as CosmSchemaValue).validateAndReturn(Construct.hash({
+      kind: Construct.string("query"),
+      subject: Construct.string("tickets"),
+    })),
+    compare: (left, right) => left.trim().toLowerCase() === right.trim().toLowerCase(),
+  });
+
+  try {
+    expect(cosmEval(`
+      require "cosm/ai"
+      data Intent
+        attribute :kind, enum: ["query", "command", "feedback"]
+        attribute :subject, String
+      end
+      let parsed = "show me my open tickets" as Intent
+      [parsed.kind.query?, parsed.kind == "query", parsed.subject]
+    `)).toEqual([true, true, "tickets"]);
   } finally {
     CosmAiValue.installRuntimeHooks({
       status: () => AiRuntime.status(),

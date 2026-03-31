@@ -9,7 +9,8 @@ Cosm {
     = ";" Statement
 
   Statement
-    = ClassStmt
+    = DataStmt
+    | ClassStmt
     | ModuleStmt
     | DefStmt
     | LetStmt
@@ -39,6 +40,19 @@ Cosm {
 
   ClassStmt
     = kw_class const_name ClassSuper? DoOpt ClassBody kw_end
+
+  DataStmt
+    = kw_data const_name DoOpt ";"? DataBody kw_end
+
+  DataBody
+    = DataAttributeStmt*
+
+  DataAttributeStmt
+    = kw_attribute symbol "," DataAttributeSpec ";"?
+
+  DataAttributeSpec
+    = kw_enum ":" BareArray  -- enum
+    | ConstPath              -- named
 
   ClassSuper
     = "<" ConstPath
@@ -128,7 +142,8 @@ Cosm {
     | CmpExp
 
   CmpExp
-    = AddExp "~=" AddExp  -- semanticEq
+    = AddExp kw_as AddExp -- semanticCast
+    | AddExp "~=" AddExp  -- semanticEq
     | AddExp "==" AddExp  -- eq
     | AddExp "!=" AddExp  -- neq
     | AddExp "<=" AddExp  -- lte
@@ -302,12 +317,16 @@ Cosm {
   self
     = kw_self
 
+  kw_as = "as" ~alnum
+  kw_attribute = "attribute" ~(alnum | "_")
   kw_class = "class" ~alnum
+  kw_data = "data" ~(alnum | "_")
   kw_begin = "begin" ~alnum
   kw_def = "def" ~alnum
   kw_do = "do" ~alnum
   kw_else = "else" ~alnum
   kw_end = "end" ~alnum
+  kw_enum = "enum" ~(alnum | "_")
   kw_false = "false" ~alnum
   kw_if = "if" ~alnum
   kw_let = "let" ~alnum
@@ -326,11 +345,15 @@ Cosm {
 
   keyword
     = kw_begin
+    | kw_as
+    | kw_attribute
     | kw_class
+    | kw_data
     | kw_def
     | kw_do
     | kw_else
     | kw_end
+    | kw_enum
     | kw_false
     | kw_if
     | kw_let

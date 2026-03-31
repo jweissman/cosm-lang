@@ -1,11 +1,12 @@
 # cosm-lang
 
-Cosm is a small reflective programming language for interactive tooling, service objects, and explicit runtime boundaries.
+Cosm is a small reflective programming language centered on visible AI seams, explicit runtime boundaries, and inspectable object behavior.
 
-It is designed to stay legible about classes, message send, modules, validation, and host interop instead of hiding them behind framework magic. The current tree includes the language runtime, a small standard-library layer written in Cosm, a notebook-first app wedge for learning and experimentation, narrower separate assistant and Slack-facing agent wedges, and a more explicit boundary story around `Mirror`, `Hologram`, and `Cosm::AI`.
+It is designed to stay legible about where semantic inference enters a program. `~=` makes semantic comparison explicit, `as` makes structured semantic extraction explicit, and `Schema` / `Data` keep deterministic validation visible after inference. Around that thesis, Cosm also keeps classes, message send, modules, and host interop inspectable instead of hiding them behind framework magic.
 
 ## What Cosm Emphasizes
 
+- visible AI seams through `~=` and `as`
 - reflective classes, metaclasses, modules, and message send
 - an explicit `BasicObject` / `Object` / `Module` / `Class` tower with authored Cosm core facades
 - explicit runtime roots like `Kernel`, `Process`, `Time`, `Random`, `Schema`, and `Data`
@@ -42,15 +43,18 @@ end
 ```cosm
 require "cosm/ai"
 
-Ticket = Data.model("Ticket", {
-  title: Data.string(),
-  priority: Data.enum("low", "high")
-}, {
-  priority: "low"
+let Intent = Data.model("Intent", {
+  kind: Data.enum("query", "command", "feedback"),
+  subject: Data.string()
 })
 
-Ticket.build({ title: "Demo" })
-Cosm::AI.cast(Prompt.text("title: Demo, priority: high"), Ticket)
+let parsed = "show me all open tickets assigned to me" as Intent
+
+if parsed.at("kind") ~= "query" then
+  "query:" + parsed.at("subject")
+else
+  parsed.at("kind") + ":" + parsed.at("subject")
+end
 ```
 
 ```cosm
@@ -120,7 +124,7 @@ Notebook workflow:
 - `just server` starts the notebook-first app wedge
 - `/notebook` is the current flagship surface for learning the language and exploring the runtime
 - notebook pages are durable local block documents with one named session per page
-- notebook examples focus on the object protocol, core tower, collection lattice, and explicit runtime objects
+- notebook examples now lead with the AI-seam thesis program, then widen into the object protocol and runtime boundaries that support it
 
 Iapetus workflow:
 

@@ -8,6 +8,8 @@ import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmSchemaValue } from "./CosmSchemaValue";
 import { CosmStringValue } from "./CosmStringValue";
 import { CosmHashValue } from "./CosmHashValue";
+import { CosmDataRecordValue } from "./CosmDataRecordValue";
+import { CosmEnumTagValue } from "./CosmEnumTagValue";
 
 export class CosmDataModelValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmDataModelValue> = {
@@ -62,6 +64,8 @@ export class CosmDataModelValue extends CosmObjectValue {
           selfValue.schemaClassRef,
           selfValue.errorClassRef,
           selfValue.namespaceClassRef,
+          selfValue.recordClassRef,
+          selfValue.enumTagClassRef,
           { ...selfValue.fieldDefaults, ...defaults },
         );
       }),
@@ -103,6 +107,8 @@ export class CosmDataModelValue extends CosmObjectValue {
     private readonly schemaClassRef?: CosmClassValue,
     private readonly errorClassRef?: CosmClassValue,
     private readonly namespaceClassRef?: CosmClassValue,
+    private readonly recordClassRef?: CosmClassValue,
+    private readonly enumTagClassRef?: CosmClassValue,
     private readonly fieldDefaults: Record<string, CosmValue> = {},
   ) {
     super("DataModel", {}, classRef);
@@ -118,17 +124,51 @@ export class CosmDataModelValue extends CosmObjectValue {
   }
 
   validateAndReturn(value: CosmValue): CosmValue {
-    return this.toSchema().validateAndReturn(value);
+    const validated = this.toSchema().validateAndReturn(value);
+    const entries = this.expectEntries(validated, "DataModel.validate");
+    return new CosmDataRecordValue(this, entries, this.recordClassRef, this.enumTagClassRef);
+  }
+
+  fieldSchema(name: string): CosmSchemaValue | undefined {
+    return this.fieldSchemas[name];
   }
 
   private buildRecord(value?: CosmValue): CosmHashValue {
     const provided = value === undefined
       ? {}
       : this.expectEntries(value, "DataModel.build");
+    const normalized = Object.fromEntries(
+      Object.entries(provided).map(([key, entry]) => [key, this.normalizeFieldValue(key, entry)]),
+    );
     return new CosmHashValue({
       ...this.fieldDefaults,
-      ...provided,
+      ...normalized,
     });
+  }
+
+  private normalizeFieldValue(name: string, value: CosmValue): CosmValue {
+    const schema = this.fieldSchemas[name];
+    if (!schema) {
+      return value;
+    }
+    if (value instanceof CosmEnumTagValue) {
+      return new CosmStringValue(value.literal);
+    }
+    if (value.type === "symbol" && this.acceptsTextValue(schema)) {
+      return new CosmStringValue(value.name);
+    }
+    return value;
+  }
+
+  private acceptsTextValue(schema: CosmSchemaValue): boolean {
+    if (schema.schemaKind === "string" || schema.schemaKind === "enum") {
+      return true;
+    }
+    if (schema.schemaKind === "optional") {
+      const inner = schema.innerSchema();
+      return inner ? this.acceptsTextValue(inner) : false;
+    }
+    return false;
   }
 
   private expectEntries(value: CosmValue, context: string): Record<string, CosmValue> {

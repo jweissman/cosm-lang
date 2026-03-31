@@ -323,7 +323,7 @@ export class RuntimeIr {
       instructions.push({ op: "begin_scope" });
     }
     if (statements.length === 0) {
-      instructions.push({ op: "push_bool", value: true });
+      instructions.push({ op: "push_nihil" });
       if (isolateScope) {
         instructions.push({ op: "end_scope" });
       }

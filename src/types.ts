@@ -19,6 +19,8 @@ import { CosmPromptValue } from "./values/CosmPromptValue";
 import { CosmAiValue } from "./values/CosmAiValue";
 import { CosmSessionValue } from "./values/CosmSessionValue";
 import { CosmDataModelValue } from "./values/CosmDataModelValue";
+import { CosmDataRecordValue } from "./values/CosmDataRecordValue";
+import { CosmEnumTagValue } from "./values/CosmEnumTagValue";
 
 export type CoreNodeKind =
   | 'program'
@@ -54,6 +56,7 @@ export type CoreNodeKind =
   | 'or'
   | 'and'
   | 'eq'
+  | 'semantic_cast'
   | 'semantic_eq'
   | 'neq'
   | 'lt'
@@ -151,7 +154,9 @@ export type CosmValue =
   | CosmPromptValue
   | CosmAiValue
   | CosmSessionValue
-  | CosmDataModelValue;
+  | CosmDataModelValue
+  | CosmDataRecordValue
+  | CosmEnumTagValue;
 
 export type SurfaceNodeKind =
   | 'program'
@@ -193,6 +198,7 @@ export type SurfaceNodeKind =
   | 'or'
   | 'and'
   | 'eq'
+  | 'semantic_cast'
   | 'semantic_eq'
   | 'neq'
   | 'lt'

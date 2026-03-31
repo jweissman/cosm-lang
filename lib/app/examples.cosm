@@ -3,38 +3,26 @@ require "examples/spec/index.cosm"
 # App-facing notebook/example presentation stays derived from the canonical
 # corpus so the VM corridor and the taught language surface share one source.
 
-def object_surface_split = Examples::Spec.object_surface_split()
-
-def receiver_reflection = Examples::Spec.receiver_reflection()
-
-def method_lookup = Examples::Spec.method_lookup()
-
-def method_origin = Examples::Spec.method_origin()
-
-def recursive_fib = Examples::Spec.recursive_fib()
-
-def iterative_fib = Examples::Spec.iterative_fib()
-
-def counter_object = Examples::Spec.counter_object()
-
-def point_object = Examples::Spec.point_object()
-
-def pair_object = Examples::Spec.pair_object()
-
-def mixin_include = Examples::Spec.mixin_include()
-
-def collections_array_hash = Examples::Spec.collections_array_hash()
-
-def data_model_build_validate = Examples::Spec.data_model_build_validate()
-
-def mirror_hologram_boundary = Examples::Spec.mirror_hologram_boundary()
-
-def session_notebook = Examples::Spec.session_notebook()
-
-def dispatch_helper = Examples::Spec.dispatch_helper()
-
-def router_sketch = Examples::Spec.router_sketch()
-
+# Q: What exactly is this needed for? Can we not just include Examples::Spec directly somehow rather than manually delegate all of these?
+def ai_intent_router = Examples::Spec.ai_intent_router()
+def ai_catalog = Examples::Spec.ai_catalog()
+def ai_semantic_match = Examples::Spec.ai_semantic_match()
+def ai_structured_cast = Examples::Spec.ai_structured_cast()
 def catalog = Examples::Spec.catalog()
-
+def collections_array_hash = Examples::Spec.collections_array_hash()
+def counter_object = Examples::Spec.counter_object()
+def data_model_build_validate = Examples::Spec.data_model_build_validate()
+def dispatch_helper = Examples::Spec.dispatch_helper()
+def iterative_fib = Examples::Spec.iterative_fib()
+def method_lookup = Examples::Spec.method_lookup()
+def method_origin = Examples::Spec.method_origin()
+def mirror_hologram_boundary = Examples::Spec.mirror_hologram_boundary()
+def mixin_include = Examples::Spec.mixin_include()
+def object_surface_split = Examples::Spec.object_surface_split()
+def pair_object = Examples::Spec.pair_object()
+def point_object = Examples::Spec.point_object()
+def receiver_reflection = Examples::Spec.receiver_reflection()
+def recursive_fib = Examples::Spec.recursive_fib()
+def router_sketch = Examples::Spec.router_sketch()
+def session_notebook = Examples::Spec.session_notebook()
 def vm_supported = Examples::Spec.vm_supported()
