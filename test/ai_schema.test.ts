@@ -113,8 +113,8 @@ test("Cosm::AI complete, cast, and compare can be driven through a mocked adapte
     expect(cosmEval('require "cosm/ai"; Cosm::AI.complete("hello")')).toBe("complete:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.cast("hello", Schema.string())')).toBe("cast:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.semantic_compare("Hello", " hello ")')).toBe(true);
-    expect(cosmEval('require "cosm/ai"; Cosm::AI.resolve("please review this change", ["reply", "review", "ignore"])')).toBe("review");
-    expect(cosmEval('require "cosm/ai"; Cosm::AI.resolve("please reset the session", [:help, :reset])')).toEqual({ kind: "symbol", name: "reset" });
+    expect(cosmEval('require "cosm/ai"; let action = Cosm::AI.resolve("please review this change", ["reply", "review", "ignore"]); [action.review?, action == "review", action == :review, Kernel.inspect(action)]')).toEqual([true, true, true, ":review"]);
+    expect(cosmEval('require "cosm/ai"; let action = Cosm::AI.resolve("please reset the session", [:help, :reset]); [action.reset?, action == "reset", action == :reset, Kernel.inspect(action)]')).toEqual([true, true, true, ":reset"]);
     expect(cosmEval('require "cosm/ai"; "hello" as Schema.string()')).toBe("cast:hello");
     expect(cosmEval('require "cosm/ai"; Cosm::AI.chat_cast([{ role: "system", content: "rules" }, { role: "user", content: "hello" }], Schema.string())')).toBe("chat:system:rules|user:hello");
     expect(cosmEval('"Hello" ~= " hello "')).toBe(true);

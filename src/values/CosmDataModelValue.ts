@@ -10,12 +10,13 @@ import { CosmStringValue } from "./CosmStringValue";
 import { CosmHashValue } from "./CosmHashValue";
 import { CosmDataRecordValue } from "./CosmDataRecordValue";
 import { CosmEnumTagValue } from "./CosmEnumTagValue";
+import { CosmArrayValue } from "./CosmArrayValue";
+import { CosmSymbolValue } from "./CosmSymbolValue";
 
 export class CosmDataModelValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmDataModelValue> = {
     properties: {
       name: (self) => new CosmStringValue(self.modelName),
-      fields: (self) => new CosmNamespaceValue(self.fieldSchemas, self.namespaceClassRef),
       length: (self) => new CosmNumberValue(Object.keys(self.fieldSchemas).length),
       defaults: (self) => new CosmHashValue({ ...self.fieldDefaults }),
     },
@@ -48,6 +49,30 @@ export class CosmDataModelValue extends CosmObjectValue {
         }
         const built = selfValue.buildRecord(args[0]);
         return selfValue.validateAndReturn(built);
+      }),
+      new: () => new CosmFunctionValue("new", (args, selfValue) => {
+        if (!(selfValue instanceof CosmDataModelValue)) {
+          throw new Error("Type error: new expects a DataModel receiver");
+        }
+        throw new Error(`Constructor error: DataModel ${selfValue.modelName} does not use .new(...); use ${selfValue.modelName}.build({...}) instead`);
+      }),
+      attributes: () => new CosmFunctionValue("attributes", (args, selfValue) => {
+        if (!(selfValue instanceof CosmDataModelValue)) {
+          throw new Error("Type error: attributes expects a DataModel receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: DataModel.attributes expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmArrayValue(Object.keys(selfValue.fieldSchemas).map((name) => new CosmSymbolValue(name)));
+      }),
+      fields: () => new CosmFunctionValue("fields", (args, selfValue) => {
+        if (!(selfValue instanceof CosmDataModelValue)) {
+          throw new Error("Type error: fields expects a DataModel receiver");
+        }
+        if (args.length !== 0) {
+          throw new Error(`Arity error: DataModel.fields expects 0 arguments, got ${args.length}`);
+        }
+        return new CosmNamespaceValue(selfValue.fieldSchemas, selfValue.namespaceClassRef);
       }),
       with_defaults: () => new CosmFunctionValue("with_defaults", (args, selfValue) => {
         if (!(selfValue instanceof CosmDataModelValue)) {
@@ -195,5 +220,9 @@ export class CosmDataModelValue extends CosmObjectValue {
       return inherited;
     }
     return manifestMethod(this, name, CosmDataModelValue.manifest);
+  }
+
+  override visibleNativeMethodNames(): string[] {
+    return [...super.visibleNativeMethodNames(), "new", "attributes", "fields"];
   }
 }

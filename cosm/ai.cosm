@@ -15,7 +15,7 @@ def semantic_compare(left, right) = compare(left, right)
 def resolve(value, options) = ai.resolve(value, options)
 
 def schema_for(target)
-  if target.class.name == "DataModel" then
+  if target.responds_to?(:build) && target.responds_to?(:schema) then
     target
   else
   let maybe_schema = Kernel.try do

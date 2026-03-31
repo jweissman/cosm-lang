@@ -480,7 +480,7 @@ test("cli prints a bare version with --version", () => {
   const result = runCli(["--version"]);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
-  expect(result.stdout.trim()).toBe("0.3.13.41");
+  expect(result.stdout.trim()).toBe("0.3.13.42");
   expect(result.stdout).not.toContain("Cosm version:");
 });
 
@@ -493,6 +493,28 @@ test("cli help command prints usage", () => {
 
 test("cli can evaluate one-off source with -e", () => {
   const result = runCli(["-e", "let value = [1, 2, 3, 4]; value.reduce(0, ->(acc, entry) { acc + entry })"]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toBe("");
+});
+
+test("cli can preload requires before -e with -r and --require", () => {
+  const result = runCli([
+    "-r", "cosm/ai",
+    "--require", "cosm/spec.cosm",
+    "-e", 'assert(Cosm::AI.class.name == "Module"); expect(2 + 2).to_eql(4)',
+  ]);
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toBe("");
+});
+
+test("cli can preload requires before script execution", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cosm-lang-require-"));
+  const sourcePath = join(tempDir, "main.cosm");
+  writeFileSync(sourcePath, 'expect(2 + 2).to_eql(4)\n');
+
+  const result = runCli(["-r", "cosm/spec.cosm", sourcePath], {}, tempDir);
   expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
   expect(result.stdout).toBe("");

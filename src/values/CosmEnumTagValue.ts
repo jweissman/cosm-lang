@@ -5,6 +5,7 @@ import { CosmClassValue } from "./CosmClassValue";
 import { CosmFunctionValue } from "./CosmFunctionValue";
 import { CosmObjectValue } from "./CosmObjectValue";
 import { CosmStringValue } from "./CosmStringValue";
+import { CosmSymbolValue } from "./CosmSymbolValue";
 
 export class CosmEnumTagValue extends CosmObjectValue {
   static readonly manifest: RuntimeValueManifest<CosmEnumTagValue> = {
@@ -25,6 +26,9 @@ export class CosmEnumTagValue extends CosmObjectValue {
         }
         if (right instanceof CosmStringValue) {
           return new CosmBoolValue(selfValue.literal === right.value);
+        }
+        if (right instanceof CosmSymbolValue) {
+          return new CosmBoolValue(selfValue.literal === right.name);
         }
         return new CosmBoolValue(false);
       }),

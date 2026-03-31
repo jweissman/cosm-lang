@@ -11,10 +11,10 @@ if Cosm::AI.available?() then
   let parsed = input as SupportIntent
   let action = Cosm::AI.resolve(input, ["reply", "review", "ignore"])
 
-  if action == "review" then
+  if action.review? then
     "review:" + parsed.subject
   else
-    if action == "reply" then
+    if action.reply? then
       "reply:" + parsed.subject
     else
       "ignore:" + parsed.subject

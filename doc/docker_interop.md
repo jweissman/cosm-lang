@@ -29,4 +29,4 @@ What should stay out initially:
 - complex event subscriptions
 - orchestration semantics beyond one-shot sandboxed execution
 
-This remains a design direction, not an implemented runtime surface in `0.3.13.41`.
+This remains a design direction, not an implemented runtime surface in `0.3.13.42`.

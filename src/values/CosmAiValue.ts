@@ -14,6 +14,8 @@ import { CosmNamespaceValue } from "./CosmNamespaceValue";
 import { CosmNumberValue } from "./CosmNumberValue";
 import { ValueAdapter } from "../ValueAdapter";
 import { CosmDataModelValue } from "./CosmDataModelValue";
+import { CosmEnumTagValue } from "./CosmEnumTagValue";
+import { CosmSymbolValue } from "./CosmSymbolValue";
 
 export class CosmAiValue extends CosmObjectValue {
   private static statusHandler?: () => CosmValue;
@@ -199,7 +201,7 @@ export class CosmAiValue extends CosmObjectValue {
         if (!match) {
           throw new Error(`AI resolve returned unknown option: ${JSON.stringify(chosen)}`);
         }
-        return match.value;
+        return selfValue.wrapResolvedOption(match.label, options, match.value);
       }),
       stream: () => new CosmFunctionValue("stream", (args, selfValue, env) => {
         if (!(selfValue instanceof CosmAiValue)) {
@@ -235,6 +237,7 @@ export class CosmAiValue extends CosmObjectValue {
     fields: Record<string, CosmValue>,
     classRef?: CosmClassValue,
     private readonly errorClassRef?: CosmClassValue,
+    private readonly enumTagClassRef?: CosmClassValue,
   ) {
     super("Ai", fields, classRef);
   }
@@ -308,6 +311,13 @@ export class CosmAiValue extends CosmObjectValue {
       labels.add(label);
       return { label, value: entry };
     });
+  }
+
+  private wrapResolvedOption(label: string, options: Array<{ label: string; value: CosmValue }>, original: CosmValue): CosmValue {
+    if (original instanceof CosmStringValue || original instanceof CosmSymbolValue) {
+      return new CosmEnumTagValue(label, options.map((option) => option.label), this.enumTagClassRef);
+    }
+    return original;
   }
 
   override nativeMethod(name: string): CosmFunctionValue | undefined {

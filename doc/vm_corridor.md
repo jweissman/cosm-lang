@@ -1,6 +1,6 @@
 # VM Corridor
 
-`0.3.13.41` still treats the VM as a maintained execution target for a named subset, not as an experimental second runtime for arbitrary Cosm code.
+`0.3.13.42` still treats the VM as a maintained execution target for a named subset, not as an experimental second runtime for arbitrary Cosm code.
 
 ## Supported Corridor
 

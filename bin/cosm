@@ -30,6 +30,7 @@ function usage(): string {
     "Usage:",
     "  cosm",
     "  cosm --version",
+    "  cosm -r cosm/ai -e '<source>'",
     "  cosm -e '<source>'",
     "  cosm test [file.cosm|spec/|test/]",
     "  cosm <file.cosm>",
@@ -61,12 +62,12 @@ function formatCliError(error: unknown): string {
 
 type CliMode =
   | { kind: "version" }
-  | { kind: "repl"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "help"; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "eval"; source: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "run"; filePath: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "test"; filePath?: string; scriptArgs: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
-  | { kind: "watch"; filePath: string; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
+  | { kind: "repl"; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "help"; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "eval"; source: string; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "run"; filePath: string; scriptArgs: string[]; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "test"; filePath?: string; scriptArgs: string[]; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }
+  | { kind: "watch"; filePath: string; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean };
 
 type TraceSurfaceNode = {
   kind: string;
@@ -96,9 +97,10 @@ function parseArgs(args: string[]): CliMode {
   let traceIr = false;
   let traceSend = false;
   let vm = false;
+  const requireTargets: string[] = [];
 
   if (args.length === 0) {
-    return { kind: "repl", traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "repl", requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (args.length === 1 && args[0] === "--version") {
@@ -106,7 +108,7 @@ function parseArgs(args: string[]): CliMode {
   }
 
   if (args.length === 1 && (args[0] === "help" || args[0] === "--help")) {
-    return { kind: "help", traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "help", requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (args[0] === "agent") {
@@ -132,7 +134,17 @@ function parseArgs(args: string[]): CliMode {
       if (args.length !== 1) {
         throw new Error("help cannot be combined with other arguments");
       }
-      return { kind: "help", traceSurface, traceCore, traceIr, traceSend, vm };
+      return { kind: "help", requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
+    }
+
+    if (arg === "-r" || arg === "--require") {
+      const next = args[index + 1];
+      if (next === undefined) {
+        throw new Error(`${arg} expects a require target`);
+      }
+      requireTargets.push(next);
+      index += 1;
+      continue;
     }
 
     if (arg === "--trace-surface") {
@@ -212,32 +224,36 @@ function parseArgs(args: string[]): CliMode {
     throw new Error("--watch and --test cannot be combined");
   }
 
+  if (vm && requireTargets.length > 0) {
+    throw new Error("--require is not supported with --vm");
+  }
+
   if (evalSource !== undefined) {
     if (modes.size > 0) {
       throw new Error("-e cannot be combined with --test or --watch");
     }
-    return { kind: "eval", source: evalSource, traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "eval", source: evalSource, requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (modes.has("test")) {
-    return { kind: "test", filePath, scriptArgs, traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "test", filePath, scriptArgs, requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (modes.has("watch")) {
     if (!filePath) {
       throw new Error("--watch expects a file path");
     }
-    return { kind: "watch", filePath, traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "watch", filePath, requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
   if (!filePath) {
-    return { kind: "repl", traceSurface, traceCore, traceIr, traceSend, vm };
+    return { kind: "repl", requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
   }
 
-  return { kind: "run", filePath, scriptArgs, traceSurface, traceCore, traceIr, traceSend, vm };
+  return { kind: "run", filePath, scriptArgs, requireTargets, traceSurface, traceCore, traceIr, traceSend, vm };
 }
 
-function watchFileRunner(filePath: string, traces: { traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }) {
+function watchFileRunner(filePath: string, traces: { requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean; traceSend: boolean; vm: boolean }) {
   if (!existsSync(filePath)) {
     console.error(`Error: watch target does not exist: ${filePath}`);
     process.exit(1);
@@ -266,6 +282,7 @@ function watchFileRunner(filePath: string, traces: { traceSurface: boolean; trac
 
   const startChild = () => {
     const childArgs = ["bun", "bin/cosm", filePath];
+    for (const target of traces.requireTargets) childArgs.push("-r", target);
     if (traces.traceSurface) childArgs.push("--trace-surface");
     if (traces.traceCore) childArgs.push("--trace-core");
     if (traces.traceIr) childArgs.push("--trace-ir");
@@ -339,9 +356,16 @@ function watchFileRunner(filePath: string, traces: { traceSurface: boolean; trac
   startChild();
 }
 
-function repl() {
+function preloadRequires(env: ReturnType<typeof Cosm.Interpreter.createEnv>, requireTargets: string[]) {
+  for (const target of requireTargets) {
+    Cosm.Interpreter.evalInEnv(`require ${JSON.stringify(target)}`, env);
+  }
+}
+
+function repl(requireTargets: string[]) {
   const readline = require('readline');
   const sessionEnv = Cosm.Interpreter.createEnv();
+  preloadRequires(sessionEnv, requireTargets);
   const persistedHistory = loadHistory();
   const rl = readline.createInterface({
     input: process.stdin,
@@ -419,8 +443,9 @@ function emitTraceFlags(source: string, traces: { traceSurface: boolean; traceCo
   }
 }
 
-function createTestEnv(): ReturnType<typeof Cosm.Interpreter.createEnv> {
+function createTestEnv(requireTargets: string[] = []): ReturnType<typeof Cosm.Interpreter.createEnv> {
   const env = Cosm.Interpreter.createEnv();
+  preloadRequires(env, requireTargets);
   Cosm.Interpreter.evalInEnv('require "cosm/spec.cosm"', env);
   return env;
 }
@@ -467,7 +492,7 @@ function resolveTestTargets(filePath?: string): string[] {
   return [filePath];
 }
 
-function runSingleTestTarget(source: string, filePath: string, scriptArgs: string[], mode: { vm: boolean }): { passed: number; failed: number; total: number } {
+function runSingleTestTarget(source: string, filePath: string, scriptArgs: string[], mode: { vm: boolean; requireTargets: string[] }): { passed: number; failed: number; total: number } {
   const originalArgv = [...process.argv];
   try {
     process.argv = [originalArgv[0] ?? "bun", originalArgv[1] ?? "bin/cosm", filePath, ...scriptArgs];
@@ -475,7 +500,7 @@ function runSingleTestTarget(source: string, filePath: string, scriptArgs: strin
     if (mode.vm) {
       Cosm.Interpreter.evalVm(source);
     } else {
-      const env = createTestEnv();
+      const env = createTestEnv(mode.requireTargets);
       Cosm.Interpreter.evalInEnv(source, env);
     }
     return ValueAdapter.cosmToJS(Cosm.Interpreter.eval("Kernel.testSummary()"));
@@ -484,7 +509,7 @@ function runSingleTestTarget(source: string, filePath: string, scriptArgs: strin
   }
 }
 
-function runTestMode(filePath: string | undefined, scriptArgs: string[], mode: { vm: boolean; traceSurface: boolean; traceCore: boolean; traceIr: boolean }): never {
+function runTestMode(filePath: string | undefined, scriptArgs: string[], mode: { vm: boolean; requireTargets: string[]; traceSurface: boolean; traceCore: boolean; traceIr: boolean }): never {
   const targets = resolveTestTargets(filePath);
   if (targets.length === 0) {
     throw new Error(filePath ? `no test targets found under '${filePath}'` : "no *_spec.cosm files found under 'spec'");
@@ -542,7 +567,7 @@ if (require.main === module) {
         logSend: (line) => console.log(line),
       });
     }
-    repl();
+    repl(mode.requireTargets);
   } else if (mode.kind === "watch") {
     watchFileRunner(mode.filePath, mode);
   } else {
@@ -565,7 +590,13 @@ if (require.main === module) {
       if (mode.kind === "test") {
         runTestMode(mode.filePath, mode.scriptArgs, mode);
       }
-      const result = mode.vm ? Cosm.Interpreter.evalVm(source) : Cosm.Interpreter.eval(source);
+      if (mode.vm) {
+        Cosm.Interpreter.evalVm(source);
+      } else {
+        const env = Cosm.Interpreter.createEnv();
+        preloadRequires(env, mode.requireTargets);
+        Cosm.Interpreter.evalInEnv(source, env);
+      }
       process.argv = originalArgv;
       // console.log(Cosm.Interpreter.inspect(result));
     } catch (e) {

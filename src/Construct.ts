@@ -66,8 +66,8 @@ export class Construct {
   static prompt(source: string, classRef?: CosmClass): CosmObject {
     return new CosmPromptValue(source, classRef);
   }
-  static ai(fields: Record<string, CosmValue>, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
-    return new CosmAiValue(fields, classRef, errorClassRef);
+  static ai(fields: Record<string, CosmValue>, classRef?: CosmClass, errorClassRef?: CosmClass, enumTagClassRef?: CosmClass): CosmObject {
+    return new CosmAiValue(fields, classRef, errorClassRef, enumTagClassRef);
   }
   static session(name: string, classRef?: CosmClass, errorClassRef?: CosmClass): CosmObject {
     return new CosmSessionValue(name, classRef, errorClassRef);

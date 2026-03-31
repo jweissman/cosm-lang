@@ -86,3 +86,25 @@ test("data declarations lower to Data models with thesis-shaped property reads",
     [Intent.class.name, parsed.kind.query?, parsed.subject, parsed.to_h().subject]
   `)).toEqual(["DataModel", true, "tickets", "tickets"]);
 });
+
+test("Data models expose teachable reflection and constructor guidance", () => {
+  expect(cosmEval(`
+    data Model
+      attribute :bar, String
+      attribute :kind, enum: ["yes", "no"]
+    end
+    [Model.attributes(), Model.fields.keys, Model.method(:attributes).name, Model.method(:fields).name]
+  `)).toEqual([
+    [{ kind: "symbol", name: "bar" }, { kind: "symbol", name: "kind" }],
+    [{ kind: "symbol", name: "bar" }, { kind: "symbol", name: "kind" }],
+    "attributes",
+    "fields",
+  ]);
+
+  expect(() => cosmEval(`
+    data Model
+      attribute :bar, String
+    end
+    Model.new({ bar: "Yes" })
+  `)).toThrow("does not use .new(...); use Model.build({...}) instead");
+});

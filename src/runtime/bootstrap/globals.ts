@@ -131,7 +131,7 @@ export function installKernelGlobals(
   const processObject = new CosmProcessValue({}, classes.Process);
   const timeObject = new CosmTimeValue({}, classes.Time);
   const randomObject = new CosmRandomValue({}, classes.Random);
-  const aiObject = new CosmAiValue({}, classes.Ai, classes.Error);
+  const aiObject = new CosmAiValue({}, classes.Ai, classes.Error, classes.EnumTag);
   const httpObject = new CosmHttpValue({}, classes.Http, classes.HttpServer, classes.Namespace, classes.HostObject, classes.HttpRequest, classes.HttpResponse);
 
   globals.Kernel = kernelObject;

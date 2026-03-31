@@ -180,10 +180,11 @@ export class ValueAdapter {
           };
         }
         if (value instanceof CosmDataModelValue) {
+          const fieldValue = value.nativeMethod("fields")?.nativeCall?.([], value);
           return {
             kind: "data_model",
             name: value.nativeProperty("name") ? this.cosmToJS(value.nativeProperty("name")!) : null,
-            fields: value.nativeProperty("fields") ? this.cosmToJS(value.nativeProperty("fields")!) : {},
+            fields: fieldValue ? this.cosmToJS(fieldValue) : {},
             defaults: value.nativeProperty("defaults") ? this.cosmToJS(value.nativeProperty("defaults")!) : {},
           };
         }

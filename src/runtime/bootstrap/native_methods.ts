@@ -112,7 +112,7 @@ export function installBootNativeMethods(classes: BootClasses): void {
     CosmPromptValue.manifest,
   ));
   Object.assign(classes.Ai.methods, manifestMethods(
-    new CosmAiValue({}, classes.Ai, classes.Error),
+    new CosmAiValue({}, classes.Ai, classes.Error, classes.EnumTag),
     CosmAiValue.manifest,
   ));
   Object.assign(classes.Session.methods, manifestMethods(
